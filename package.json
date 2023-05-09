@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "fmt": "prettier --write \"src/*.mjs\" \"test/*.mjs\" \"*.json\"",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "prettier": "2.8.8"
+  }
+}
