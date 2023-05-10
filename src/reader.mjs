@@ -14,15 +14,12 @@ export class NodeBufferReader {
   }
 
   fixedWidthString(offset, size) {
-    let bytes = this.#buffer.subarray(offset, offset + size);
-    let length = bytes.length;
-    while (length > 0) {
-      if (bytes.readUInt8(length - 1) !== 0) {
-        break;
-      }
-      length -= 1;
+    let buffer = this.#buffer;
+    let endOffset = offset + size;
+    while (endOffset > offset && buffer.readUInt8(endOffset - 1) === 0) {
+      endOffset -= 1;
     }
-    return bytes.toString("latin1", 0, length);
+    return buffer.toString("latin1", offset, endOffset);
   }
 
   utf8CString(offset) {
