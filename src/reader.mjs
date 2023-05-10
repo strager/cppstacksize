@@ -32,6 +32,44 @@ export class NodeBufferReader {
   }
 }
 
+export class ArrayBufferReader {
+  #dataView;
+
+  constructor(arrayBuffer) {
+    this.#dataView = new DataView(arrayBuffer);
+  }
+
+  u16(offset) {
+    return this.#dataView.getUint16(offset, /*littleEndian=*/ true);
+  }
+
+  u32(offset) {
+    return this.#dataView.getUint32(offset, /*littleEndian=*/ true);
+  }
+
+  fixedWidthString(offset, size) {
+    let dataView = this.#dataView;
+    let endOffset = offset + size;
+    while (endOffset > offset && dataView.getUint8(endOffset - 1) === 0) {
+      endOffset -= 1;
+    }
+    return new TextDecoder("latin1").decode(
+      new Uint8Array(this.#dataView.buffer, offset, endOffset - offset)
+    );
+  }
+
+  utf8CString(offset) {
+    let buffer = this.#dataView;
+    let endOffset = offset;
+    while (buffer.getUint8(endOffset) !== 0) {
+      endOffset += 1;
+    }
+    return new TextDecoder("utf-8").decode(
+      new Uint8Array(this.#dataView.buffer, offset, endOffset - offset)
+    );
+  }
+}
+
 export class SubFileReader {
   baseFile;
   subFileOffset;

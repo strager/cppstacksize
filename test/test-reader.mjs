@@ -3,7 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import test, { describe, it } from "node:test";
 import url from "node:url";
-import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
+import {
+  ArrayBufferReader,
+  NodeBufferReader,
+  SubFileReader,
+} from "../src/reader.mjs";
 import {
   findAllCodeViewFunctions,
   getCodeViewFunctionLocals,
@@ -15,6 +19,10 @@ let __dirname = path.dirname(__filename);
 
 describe("NodeBufferReader", (t) => {
   testReader((bytes) => new NodeBufferReader(Buffer.from(bytes)));
+});
+
+describe("ArrayBufferReader", (t) => {
+  testReader((bytes) => new ArrayBufferReader(new Uint8Array(bytes).buffer));
 });
 
 describe("SubFileReader with full NodeBufferReader", (t) => {

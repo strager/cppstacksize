@@ -1,4 +1,4 @@
-import { SubFileReader } from "../src/reader.mjs";
+import { SubFileReader } from "./reader.mjs";
 
 // CodeView signatures:
 let CV_SIGNATURE_C13 = 4;
