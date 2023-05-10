@@ -88,18 +88,10 @@ describe("debug symbols section", (t) => {
     let sectionReaders = findCOFFSectionsByName(file, ".debug$S");
 
     // Data according to: dumpbin.exe /HEADERS
-    assert.strictEqual(sectionReaders.length, 3);
+    assert.strictEqual(sectionReaders.length, 1);
     assert.ok(sectionReaders[0] instanceof SubFileReader);
     assert.strictEqual(sectionReaders[0].baseFile, file);
-    assert.strictEqual(sectionReaders[0].subFileOffset, 0x29e);
-    assert.strictEqual(sectionReaders[0].subFileSize, 0x160);
-    assert.ok(sectionReaders[1] instanceof SubFileReader);
-    assert.strictEqual(sectionReaders[1].baseFile, file);
-    assert.strictEqual(sectionReaders[1].subFileOffset, 0x416);
-    assert.strictEqual(sectionReaders[1].subFileSize, 0x6c);
-    assert.ok(sectionReaders[2] instanceof SubFileReader);
-    assert.strictEqual(sectionReaders[2].baseFile, file);
-    assert.strictEqual(sectionReaders[2].subFileOffset, 0x4d1);
-    assert.strictEqual(sectionReaders[2].subFileSize, 0x94);
+    assert.strictEqual(sectionReaders[0].subFileOffset, 0x10b);
+    assert.strictEqual(sectionReaders[0].subFileSize, 0x1e8);
   });
 });
