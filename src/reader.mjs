@@ -25,8 +25,8 @@ export class NodeBufferReader {
   utf8CString(offset) {
     let buffer = this.#buffer;
     let endOffset = offset;
-    for (; buffer.readUInt8(endOffset) !== 0; ++endOffset) {
-      // Scan.
+    while (buffer.readUInt8(endOffset) !== 0) {
+      endOffset += 1;
     }
     return this.#buffer.toString("utf-8", offset, endOffset);
   }
