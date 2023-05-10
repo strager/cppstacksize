@@ -61,4 +61,9 @@ export class SubFileReader {
     // TODO(strager): Bounds check.
     return this.baseFile.utf8CString(offset + this.subFileOffset);
   }
+
+  fixedWidthString(offset, size) {
+    // TODO(strager): Bounds check.
+    return this.baseFile.fixedWidthString(offset + this.subFileOffset, size);
+  }
 }
