@@ -4,7 +4,7 @@ import path from "node:path";
 import test, { describe, it } from "node:test";
 import url from "node:url";
 import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
-import { findCOFFSectionsByName } from "../src/coff.mjs";
+import { findCOFFSectionsByNameAsync } from "../src/coff.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
@@ -14,7 +14,7 @@ describe("debug symbols section", (t) => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "coff/small.obj"))
     );
-    let sectionReaders = findCOFFSectionsByName(file, ".debug$S");
+    let sectionReaders = await findCOFFSectionsByNameAsync(file, ".debug$S");
 
     // Data according to: dumpbin.exe /HEADERS
     assert.strictEqual(sectionReaders.length, 1);

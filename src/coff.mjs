@@ -1,6 +1,6 @@
 import { SubFileReader } from "./reader.mjs";
 
-export function findCOFFSectionsByName(file, sectionName) {
+export async function findCOFFSectionsByNameAsync(file, sectionName) {
   let magic = file.u16(0);
   if (magic != 0x8664) {
     throw new COFFParseError(`unexpected magic: 0x${magic.toString(16)}`);

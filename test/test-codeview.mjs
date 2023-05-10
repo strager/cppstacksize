@@ -5,10 +5,10 @@ import test, { describe, it } from "node:test";
 import url from "node:url";
 import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
 import {
-  findAllCodeViewFunctions,
+  findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocals,
 } from "../src/codeview.mjs";
-import { findCOFFSectionsByName } from "../src/coff.mjs";
+import { findCOFFSectionsByNameAsync } from "../src/coff.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
@@ -18,9 +18,11 @@ describe("primitives.obj", (t) => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "coff/primitives.obj"))
     );
-    let sectionReader = findCOFFSectionsByName(file, ".debug$S")[0];
+    let sectionReader = (
+      await findCOFFSectionsByNameAsync(file, ".debug$S")
+    )[0];
 
-    let functions = findAllCodeViewFunctions(sectionReader);
+    let functions = await findAllCodeViewFunctionsAsync(sectionReader);
     assert.strictEqual(functions.length, 1);
     assert.strictEqual(functions[0].name, "primitives");
     assert.strictEqual(
@@ -33,9 +35,11 @@ describe("primitives.obj", (t) => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "coff/primitives.obj"))
     );
-    let sectionReader = findCOFFSectionsByName(file, ".debug$S")[0];
+    let sectionReader = (
+      await findCOFFSectionsByNameAsync(file, ".debug$S")
+    )[0];
 
-    let func = findAllCodeViewFunctions(sectionReader)[0];
+    let func = (await findAllCodeViewFunctionsAsync(sectionReader))[0];
     let locals = getCodeViewFunctionLocals(func.reader, func.byteOffset);
 
     let localsByName = new Map();

@@ -316,7 +316,7 @@ function alignUp(n, alignment) {
   return (n + mask) & ~mask;
 }
 
-export function findAllCodeViewFunctions(reader) {
+export async function findAllCodeViewFunctionsAsync(reader) {
   let signature = reader.u32(0);
   if (signature !== CV_SIGNATURE_C13) {
     throw new UnsupportedCodeViewError(
@@ -334,7 +334,7 @@ export function findAllCodeViewFunctions(reader) {
     offset += 4;
     switch (subsectionType) {
       case DEBUG_S_SYMBOLS:
-        findAllCodeViewFunctionsInSubsection(
+        await findAllCodeViewFunctionsInSubsectionAsync(
           new SubFileReader(reader, offset, subsectionSize),
           functions
         );
@@ -348,7 +348,7 @@ export function findAllCodeViewFunctions(reader) {
   return functions;
 }
 
-function findAllCodeViewFunctionsInSubsection(reader, outFunctions) {
+async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
   let offset = 0;
   while (offset < reader.size) {
     let recordSize = reader.u16(offset + 0);

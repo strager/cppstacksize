@@ -1,14 +1,14 @@
 import { ArrayBufferReader } from "./reader.mjs";
-import {
-  findAllCodeViewFunctions,
-  getCodeViewFunctionLocals,
-} from "./codeview.mjs";
-import { findCOFFSectionsByName } from "./coff.mjs";
+import { findAllCodeViewFunctionsAsync } from "./codeview.mjs";
+import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 
 async function onUploadFileAsync(file) {
   let reader = new ArrayBufferReader(await file.arrayBuffer());
-  for (let sectionReader of findCOFFSectionsByName(reader, ".debug$S")) {
-    for (let func of findAllCodeViewFunctions(sectionReader)) {
+  for (let sectionReader of await findCOFFSectionsByNameAsync(
+    reader,
+    ".debug$S"
+  )) {
+    for (let func of await findAllCodeViewFunctionsAsync(sectionReader)) {
       let td = document.createElement("td");
       td.textContent = func.name;
       let tr = document.createElement("tr");
