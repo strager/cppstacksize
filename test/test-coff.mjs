@@ -83,7 +83,7 @@ function findCOFFSectionsByName(file, sectionName) {
 describe("debug symbols section", (t) => {
   it("small.obj", async () => {
     let file = new NodeBufferReader(
-      await fs.promises.readFile(path.join(__dirname, "objs/small.obj"))
+      await fs.promises.readFile(path.join(__dirname, "coff/small.obj"))
     );
     let sectionReaders = findCOFFSectionsByName(file, ".debug$S");
 
