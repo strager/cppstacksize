@@ -24,6 +24,15 @@ export class NodeBufferReader {
     }
     return bytes.toString("latin1", 0, length);
   }
+
+  utf8CString(offset) {
+    let buffer = this.#buffer;
+    let endOffset = offset;
+    for (; buffer.readUInt8(endOffset) !== 0; ++endOffset) {
+      // Scan.
+    }
+    return this.#buffer.toString("utf-8", offset, endOffset);
+  }
 }
 
 export class SubFileReader {
@@ -35,5 +44,24 @@ export class SubFileReader {
     this.baseFile = baseFile;
     this.subFileOffset = offset;
     this.subFileSize = size;
+  }
+
+  get size() {
+    return this.subFileSize;
+  }
+
+  u16(offset) {
+    // TODO(strager): Bounds check.
+    return this.baseFile.u16(offset + this.subFileOffset);
+  }
+
+  u32(offset) {
+    // TODO(strager): Bounds check.
+    return this.baseFile.u32(offset + this.subFileOffset);
+  }
+
+  utf8CString(offset) {
+    // TODO(strager): Bounds check.
+    return this.baseFile.utf8CString(offset + this.subFileOffset);
   }
 }
