@@ -1,21 +1,10 @@
 import assert from "node:assert";
-import fs from "node:fs";
-import path from "node:path";
-import test, { describe, it } from "node:test";
-import url from "node:url";
+import { describe, it } from "node:test";
 import {
   ArrayBufferReader,
   NodeBufferReader,
   SubFileReader,
 } from "../src/reader.mjs";
-import {
-  findAllCodeViewFunctions,
-  getCodeViewFunctionLocals,
-} from "../src/codeview.mjs";
-import { findCOFFSectionsByName } from "../src/coff.mjs";
-
-let __filename = url.fileURLToPath(import.meta.url);
-let __dirname = path.dirname(__filename);
 
 describe("NodeBufferReader", (t) => {
   testReader((bytes) => new NodeBufferReader(Buffer.from(bytes)));
