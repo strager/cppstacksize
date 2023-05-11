@@ -181,7 +181,7 @@ export class LoaderReader {
 
   #requireChunkLoaded(chunk, offset, size) {
     if (chunk === undefined || isPromise(chunk)) {
-      throw new DataNotLoadedError(this.#loader, offset, size);
+      throw new DataNotLoadedError(this, offset, size);
     }
   }
 
@@ -199,7 +199,7 @@ export class LoaderReader {
     ) {
       let chunk = this.#chunks[chunkIndex];
       if (chunk === undefined || isPromise(chunk)) {
-        throw new DataNotLoadedError(this.#loader, offset, size);
+        throw new DataNotLoadedError(this, offset, size);
       }
     }
     let endOffset = offset + size;
@@ -250,13 +250,13 @@ export class LoaderReader {
 }
 
 export class DataNotLoadedError extends Error {
-  loader;
+  loaderReader;
   offset;
   size;
 
-  constructor(loader, offset, size) {
+  constructor(loaderReader, offset, size) {
     super("data not loaded");
-    this.loader = loader;
+    this.loaderReader = loaderReader;
     this.offset = offset;
     this.size = size;
   }
@@ -264,4 +264,19 @@ export class DataNotLoadedError extends Error {
 
 function isPromise(v) {
   return v instanceof Promise;
+}
+
+export async function withLoadScopeAsync(scopeFunction) {
+  for (;;) {
+    try {
+      return await scopeFunction();
+    } catch (e) {
+      if (e instanceof DataNotLoadedError) {
+        await e.loaderReader.fetchAsync(e.offset, e.size);
+        continue;
+      } else {
+        throw e;
+      }
+    }
+  }
 }

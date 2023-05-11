@@ -1,4 +1,5 @@
 import { SubFileReader } from "./reader.mjs";
+import { withLoadScopeAsync } from "./loader.mjs";
 
 // CodeView signatures:
 let CV_SIGNATURE_C13 = 4;
@@ -317,35 +318,37 @@ function alignUp(n, alignment) {
 }
 
 export async function findAllCodeViewFunctionsAsync(reader) {
-  let signature = reader.u32(0);
-  if (signature !== CV_SIGNATURE_C13) {
-    throw new UnsupportedCodeViewError(
-      `unrecognized CodeView signature: 0x${signature.toString(16)}`
-    );
-  }
-
-  let functions = [];
-  let offset = 4;
-  while (offset < reader.size) {
-    offset = alignUp(offset, 4);
-    let subsectionType = reader.u32(offset);
-    offset += 4;
-    let subsectionSize = reader.u32(offset);
-    offset += 4;
-    switch (subsectionType) {
-      case DEBUG_S_SYMBOLS:
-        await findAllCodeViewFunctionsInSubsectionAsync(
-          new SubFileReader(reader, offset, subsectionSize),
-          functions
-        );
-        break;
-      default:
-        // Ignore.
-        break;
+  return await withLoadScopeAsync(async () => {
+    let signature = reader.u32(0);
+    if (signature !== CV_SIGNATURE_C13) {
+      throw new UnsupportedCodeViewError(
+        `unrecognized CodeView signature: 0x${signature.toString(16)}`
+      );
     }
-    offset += subsectionSize;
-  }
-  return functions;
+
+    let functions = [];
+    let offset = 4;
+    while (offset < reader.size) {
+      offset = alignUp(offset, 4);
+      let subsectionType = reader.u32(offset);
+      offset += 4;
+      let subsectionSize = reader.u32(offset);
+      offset += 4;
+      switch (subsectionType) {
+        case DEBUG_S_SYMBOLS:
+          await findAllCodeViewFunctionsInSubsectionAsync(
+            new SubFileReader(reader, offset, subsectionSize),
+            functions
+          );
+          break;
+        default:
+          // Ignore.
+          break;
+      }
+      offset += subsectionSize;
+    }
+    return functions;
+  });
 }
 
 async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {

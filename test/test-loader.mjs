@@ -4,6 +4,7 @@ import {
   ArrayLoader,
   LoaderReader,
   DataNotLoadedError,
+  withLoadScopeAsync,
 } from "../src/loader.mjs";
 
 describe("LoaderReader", (t) => {
@@ -14,7 +15,7 @@ describe("LoaderReader", (t) => {
       let error = assertThrows(() => {
         reader.u32(offset);
       }, DataNotLoadedError);
-      assert.strictEqual(error.loader, loader);
+      assert.strictEqual(error.loaderReader, reader);
       assert.strictEqual(error.offset, offset);
       assert.strictEqual(error.size, 4);
     }
@@ -45,7 +46,7 @@ describe("LoaderReader", (t) => {
         // 5..(5+4) straddles between two chunks.
         reader.u32(5);
       }, DataNotLoadedError);
-      assert.strictEqual(error.loader, loader);
+      assert.strictEqual(error.loaderReader, reader);
       assert.strictEqual(error.offset, 5);
       assert.strictEqual(error.size, 4);
     }
@@ -113,6 +114,42 @@ describe("LoaderReader", (t) => {
     await reader.fetchAsync(1, 2);
     await reader.fetchAsync(0, 1);
     assert.deepStrictEqual(loader.readCalls, [{ offset: 0, size: 4 }]);
+  });
+});
+
+describe("withLoadScopeAsync", (t) => {
+  it("fetches no data if nothing is read", async () => {
+    let loader = new TestLoader([1, 2, 3, 4, 5, 6, 7, 8]);
+    let reader = new LoaderReader(loader, { chunkSize: 4 });
+    await withLoadScopeAsync(() => {
+      // Do nothing.
+    });
+    assert.deepStrictEqual(loader.readCalls, []);
+  });
+
+  it("fetches data if read but not prefetched", async () => {
+    let loader = new TestLoader([1, 2, 3, 4, 5, 6, 7, 8]);
+    let reader = new LoaderReader(loader, { chunkSize: 4 });
+    let readData;
+    await withLoadScopeAsync(() => {
+      readData = reader.u32(0);
+    });
+    assert.strictEqual(loader.readCalls.length, 1);
+    assert.deepStrictEqual(readData, 0x04030201);
+  });
+
+  it("fetches data if read but not prefetched chunk by chunk", async () => {
+    let loader = new TestLoader([1, 2, 3, 4, 5, 6, 7, 8]);
+    let reader = new LoaderReader(loader, { chunkSize: 4 });
+    let readData0;
+    let readData4;
+    await withLoadScopeAsync(() => {
+      readData0 = reader.u32(0); // load chunk 0
+      readData4 = reader.u32(4); // load chunk 1
+    });
+    assert.strictEqual(loader.readCalls.length, 2);
+    assert.deepStrictEqual(readData0, 0x04030201);
+    assert.deepStrictEqual(readData4, 0x08070605);
   });
 });
 
