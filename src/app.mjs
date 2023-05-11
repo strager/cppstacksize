@@ -8,6 +8,9 @@ import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 let funcs = [];
 
 async function onUploadFileAsync(file) {
+  funcs.length = 0;
+  clearFunctionDetailsAsync();
+
   let loader = new BlobLoader(file);
   let reader = new LoaderReader(loader);
   for (let sectionReader of await findCOFFSectionsByNameAsync(
@@ -19,6 +22,7 @@ async function onUploadFileAsync(file) {
     }
   }
 
+  functionTableTbodyElement.innerHTML = "";
   for (let funcIndex = 0; funcIndex < funcs.length; ++funcIndex) {
     let func = funcs[funcIndex];
     let td = document.createElement("td");
@@ -31,7 +35,12 @@ async function onUploadFileAsync(file) {
   }
 }
 
+async function clearFunctionDetailsAsync() {
+  stackFrameTableTbodyElement.innerHTML = "";
+}
+
 async function showFunctionDetailsAsync(func) {
+  clearFunctionDetailsAsync();
   let locals = await getCodeViewFunctionLocalsAsync(
     func.reader,
     func.byteOffset
