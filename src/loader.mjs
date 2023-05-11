@@ -1,5 +1,3 @@
-import assert from "node:assert";
-
 /// A simple Loader implementation which reads data from an array. Used for
 /// testing.
 export class ArrayLoader {
@@ -12,6 +10,23 @@ export class ArrayLoader {
   async readAsync(offset, size) {
     size = Math.min(size, this.#data.byteLength - offset);
     return new Uint8Array(this.#data, offset, size);
+  }
+}
+
+/// A Loader implementation which reads data from a web Blob, such as a file
+/// input upload.
+export class BlobLoader {
+  #blob;
+
+  constructor(blob) {
+    this.#blob = blob;
+  }
+
+  async readAsync(offset, size) {
+    let arrayBuffer = await this.#blob
+      .slice(offset, offset + size)
+      .arrayBuffer();
+    return new Uint8Array(arrayBuffer);
   }
 }
 
@@ -37,7 +52,7 @@ export class LoaderReader {
   }
 
   async fetchAsync(offset, size) {
-    assert.ok(size > 0);
+    console.assert(size > 0);
     let beginChunkIndex = offset >> this.#chunkShift;
     let endChunkIndex = (offset + size - 1) >> this.#chunkShift;
     if (this.#allChunksAreLoaded(beginChunkIndex, endChunkIndex)) {
@@ -57,7 +72,7 @@ export class LoaderReader {
       ++chunkIndex
     ) {
       this.#chunks[chunkIndex] = chunksLoadPromise.then((chunksData) => {
-        assert.ok(chunksData instanceof Uint8Array);
+        console.assert(chunksData instanceof Uint8Array);
         let chunkOffset =
           chunksData.byteOffset +
           ((chunkIndex - beginChunkIndex) << this.#chunkShift);

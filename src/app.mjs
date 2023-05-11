@@ -1,9 +1,13 @@
-import { ArrayBufferReader } from "./reader.mjs";
+import { BlobLoader, LoaderReader } from "./loader.mjs";
 import { findAllCodeViewFunctionsAsync } from "./codeview.mjs";
 import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 
 async function onUploadFileAsync(file) {
-  let reader = new ArrayBufferReader(await file.arrayBuffer());
+  let loader = new BlobLoader(file);
+  let reader = new LoaderReader(loader);
+  // TODO(strager): Remove this fetch.
+  await reader.fetchAsync(0, file.size);
+
   for (let sectionReader of await findCOFFSectionsByNameAsync(
     reader,
     ".debug$S"
