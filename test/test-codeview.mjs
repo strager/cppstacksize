@@ -6,7 +6,7 @@ import url from "node:url";
 import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
 import {
   findAllCodeViewFunctionsAsync,
-  getCodeViewFunctionLocals,
+  getCodeViewFunctionLocalsAsync,
 } from "../src/codeview.mjs";
 import { findCOFFSectionsByNameAsync } from "../src/coff.mjs";
 
@@ -40,7 +40,10 @@ describe("primitives.obj", (t) => {
     )[0];
 
     let func = (await findAllCodeViewFunctionsAsync(sectionReader))[0];
-    let locals = getCodeViewFunctionLocals(func.reader, func.byteOffset);
+    let locals = await getCodeViewFunctionLocalsAsync(
+      func.reader,
+      func.byteOffset
+    );
 
     let localsByName = new Map();
     for (let local of locals) {

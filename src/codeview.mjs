@@ -382,29 +382,33 @@ export class CodeViewFunctionLocal {
   }
 }
 
-export function getCodeViewFunctionLocals(reader, offset) {
-  let locals = [];
-  while (offset < reader.size) {
-    let recordSize = reader.u16(offset + 0);
-    let recordType = reader.u16(offset + 2);
-    switch (recordType) {
-      case S_REGREL32: {
-        let local = new CodeViewFunctionLocal(reader.utf8CString(offset + 14));
-        // TODO(strager): Verify that the register is RSP.
-        local.spOffset = reader.u32(offset + 4);
-        let type = reader.u32(offset + 8);
-        local.byteSize = specialTypeSize(type);
-        locals.push(local);
-        break;
+export async function getCodeViewFunctionLocalsAsync(reader, offset) {
+  return await withLoadScopeAsync(async () => {
+    let locals = [];
+    while (offset < reader.size) {
+      let recordSize = reader.u16(offset + 0);
+      let recordType = reader.u16(offset + 2);
+      switch (recordType) {
+        case S_REGREL32: {
+          let local = new CodeViewFunctionLocal(
+            reader.utf8CString(offset + 14)
+          );
+          // TODO(strager): Verify that the register is RSP.
+          local.spOffset = reader.u32(offset + 4);
+          let type = reader.u32(offset + 8);
+          local.byteSize = specialTypeSize(type);
+          locals.push(local);
+          break;
+        }
+        // TODO(strager): Stop scanning when we hit S_PROC_ID_END.
+        default:
+          break;
       }
-      // TODO(strager): Stop scanning when we hit S_PROC_ID_END.
-      default:
-        break;
-    }
 
-    offset += recordSize + 2;
-  }
-  return locals;
+      offset += recordSize + 2;
+    }
+    return locals;
+  });
 }
 
 function specialTypeSize(type) {
