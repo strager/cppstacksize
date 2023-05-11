@@ -2,6 +2,8 @@ import { BlobLoader, LoaderReader, withLoadScopeAsync } from "./loader.mjs";
 import { findAllCodeViewFunctionsAsync } from "./codeview.mjs";
 import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 
+let funcs = [];
+
 async function onUploadFileAsync(file) {
   let loader = new BlobLoader(file);
   let reader = new LoaderReader(loader);
@@ -10,12 +12,16 @@ async function onUploadFileAsync(file) {
     ".debug$S"
   )) {
     for (let func of await findAllCodeViewFunctionsAsync(sectionReader)) {
-      let td = document.createElement("td");
-      td.textContent = func.name;
-      let tr = document.createElement("tr");
-      tr.appendChild(td);
-      functionTableTbodyElement.appendChild(tr);
+      funcs.push(func);
     }
+  }
+
+  for (let func of funcs) {
+    let td = document.createElement("td");
+    td.textContent = func.name;
+    let tr = document.createElement("tr");
+    tr.appendChild(td);
+    functionTableTbodyElement.appendChild(tr);
   }
 }
 
