@@ -5,6 +5,7 @@ import {
   NodeBufferReader,
   SubFileReader,
 } from "../src/reader.mjs";
+import { ArrayLoader, LoaderReader } from "../src/loader.mjs";
 
 describe("NodeBufferReader", (t) => {
   testReader((bytes) => new NodeBufferReader(Buffer.from(bytes)));
@@ -12,6 +13,22 @@ describe("NodeBufferReader", (t) => {
 
 describe("ArrayBufferReader", (t) => {
   testReader((bytes) => new ArrayBufferReader(new Uint8Array(bytes).buffer));
+});
+
+describe("LoaderReader + ArrayLoader, prefetched", (t) => {
+  testReader(async (bytes) => {
+    let reader = new LoaderReader(new ArrayLoader(bytes));
+    await reader.fetchAsync(0, bytes.length);
+    return reader;
+  });
+});
+
+describe("LoaderReader(chunkSize=1) + ArrayLoader, prefetched", (t) => {
+  testReader(async (bytes) => {
+    let reader = new LoaderReader(new ArrayLoader(bytes), { chunkSize: 1 });
+    await reader.fetchAsync(0, bytes.length);
+    return reader;
+  });
 });
 
 describe("SubFileReader with full NodeBufferReader", (t) => {
@@ -29,22 +46,22 @@ describe("SubFileReader with partial NodeBufferReader", (t) => {
   });
 });
 
-function testReader(makeReader) {
+function testReader(makeReaderAsync) {
   it("reads u16", async () => {
-    let r = makeReader([1, 2, 3, 4, 5]);
+    let r = await makeReaderAsync([1, 2, 3, 4, 5]);
     assert.strictEqual(r.u16(0), 0x0201);
     assert.strictEqual(r.u16(1), 0x0302);
     assert.strictEqual(r.u16(2), 0x0403);
   });
 
   it("reads u32", async () => {
-    let r = makeReader([1, 2, 3, 4, 5]);
+    let r = await makeReaderAsync([1, 2, 3, 4, 5]);
     assert.strictEqual(r.u32(0), 0x04030201);
     assert.strictEqual(r.u32(1), 0x05040302);
   });
 
   it("reads fixed with string", async () => {
-    let r = makeReader([
+    let r = await makeReaderAsync([
       // "hello\0\0\0x"
       0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x00, 0x00, 0x78,
     ]);
@@ -57,7 +74,7 @@ function testReader(makeReader) {
   });
 
   it("reads UTF-8 C string", async () => {
-    let r = makeReader([
+    let r = await makeReaderAsync([
       // "hello\0"
       0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00,
       // "wörld\0"
