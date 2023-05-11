@@ -71,12 +71,12 @@ export class ArrayBufferReader {
 }
 
 export class SubFileReader {
-  baseFile;
+  baseReader;
   subFileOffset;
   subFileSize;
 
-  constructor(baseFile, offset, size) {
-    this.baseFile = baseFile;
+  constructor(baseReader, offset, size) {
+    this.baseReader = baseReader;
     this.subFileOffset = offset;
     this.subFileSize = size;
   }
@@ -87,21 +87,21 @@ export class SubFileReader {
 
   u16(offset) {
     // TODO(strager): Bounds check.
-    return this.baseFile.u16(offset + this.subFileOffset);
+    return this.baseReader.u16(offset + this.subFileOffset);
   }
 
   u32(offset) {
     // TODO(strager): Bounds check.
-    return this.baseFile.u32(offset + this.subFileOffset);
+    return this.baseReader.u32(offset + this.subFileOffset);
   }
 
   utf8CString(offset) {
     // TODO(strager): Bounds check.
-    return this.baseFile.utf8CString(offset + this.subFileOffset);
+    return this.baseReader.utf8CString(offset + this.subFileOffset);
   }
 
   fixedWidthString(offset, size) {
     // TODO(strager): Bounds check.
-    return this.baseFile.fixedWidthString(offset + this.subFileOffset, size);
+    return this.baseReader.fixedWidthString(offset + this.subFileOffset, size);
   }
 }

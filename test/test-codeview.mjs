@@ -26,7 +26,7 @@ describe("primitives.obj", (t) => {
     assert.strictEqual(functions.length, 1);
     assert.strictEqual(functions[0].name, "primitives");
     assert.strictEqual(
-      rebaseFileOffset(functions[0].reader, functions[0].byteOffset, file),
+      rebaseReaderOffset(functions[0].reader, functions[0].byteOffset, file),
       0x237
     );
   });
@@ -103,11 +103,11 @@ describe("primitives.obj", (t) => {
   });
 });
 
-function rebaseFileOffset(reader, offset, desiredReader) {
+function rebaseReaderOffset(reader, offset, desiredReader) {
   while (reader !== desiredReader) {
     if (reader instanceof SubFileReader) {
       offset += reader.subFileOffset;
-      reader = reader.baseFile;
+      reader = reader.baseReader;
     } else {
       throw new Error("failed to rebase file offset");
     }

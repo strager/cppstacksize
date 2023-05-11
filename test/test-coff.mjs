@@ -19,7 +19,7 @@ describe("debug symbols section", (t) => {
     // Data according to: dumpbin.exe /HEADERS
     assert.strictEqual(sectionReaders.length, 1);
     assert.ok(sectionReaders[0] instanceof SubFileReader);
-    assert.strictEqual(sectionReaders[0].baseFile, file);
+    assert.strictEqual(sectionReaders[0].baseReader, file);
     assert.strictEqual(sectionReaders[0].subFileOffset, 0x10b);
     assert.strictEqual(sectionReaders[0].subFileSize, 0x1e8);
   });
