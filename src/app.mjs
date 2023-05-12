@@ -25,11 +25,14 @@ async function onUploadFileAsync(file) {
   functionTableTbodyElement.innerHTML = "";
   for (let funcIndex = 0; funcIndex < funcs.length; ++funcIndex) {
     let func = funcs[funcIndex];
-    let td = document.createElement("td");
-    td.textContent = func.name;
     let tr = document.createElement("tr");
     tr.classList.add("func");
     tr.dataset.funcIndex = funcIndex;
+    let td = document.createElement("td");
+    td.textContent = func.name;
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.textContent = `${func.selfStackSize}`;
     tr.appendChild(td);
     functionTableTbodyElement.appendChild(tr);
   }
