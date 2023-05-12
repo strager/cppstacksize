@@ -1,6 +1,7 @@
 import { BlobLoader, LoaderReader, withLoadScopeAsync } from "./loader.mjs";
 import {
   CodeViewTypeTable,
+  CodeViewTypesInSeparatePDBFileError,
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
   parseCodeViewTypesAsync,
@@ -8,11 +9,11 @@ import {
 import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 
 let funcs = [];
-let typeTable = new CodeViewTypeTable();
+let typeTable = null;
 
 async function onUploadFileAsync(file) {
   funcs.length = 0;
-  typeTable = new CodeViewTypeTable();
+  typeTable = null;
   clearFunctionDetailsAsync();
 
   let loader = new BlobLoader(file);
@@ -22,7 +23,16 @@ async function onUploadFileAsync(file) {
     reader,
     ".debug$T"
   )) {
-    typeTable = await parseCodeViewTypesAsync(sectionReader);
+    try {
+      typeTable = await parseCodeViewTypesAsync(sectionReader);
+    } catch (e) {
+      if (e instanceof CodeViewTypesInSeparatePDBFileError) {
+        // TODO(strager): See if the user attached a .pdb file too.
+        console.error(e);
+      } else {
+        throw e;
+      }
+    }
     break;
   }
 
@@ -48,7 +58,9 @@ async function onUploadFileAsync(file) {
     td.textContent = `${func.selfStackSize}`;
     tr.appendChild(td);
     td = document.createElement("td");
-    td.textContent = `${await func.getCallerStackSizeAsync(typeTable)}`;
+    if (typeTable !== null) {
+      td.textContent = `${await func.getCallerStackSizeAsync(typeTable)}`;
+    }
     tr.appendChild(td);
     functionTableTbodyElement.appendChild(tr);
   }
