@@ -475,13 +475,6 @@ export class CodeViewFunction {
           switch (funcTypeRecordType) {
             case LF_PROCEDURE: {
               let callingConvention = reader.u16(funcTypeOffset + 8);
-              console.error({
-                callingConvention,
-                funcIDTypeRecordType,
-                funcTypeRecordType,
-                funcTypeOffset,
-                funcIDTypeOffset,
-              });
               switch (callingConvention) {
                 case CV_CALL_NEAR_C: {
                   let parameterCount = reader.u16(funcTypeOffset + 10);
