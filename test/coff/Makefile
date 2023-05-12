@@ -1,4 +1,8 @@
-all: small.obj multiple-functions.obj primitives.obj primitive-parameters.obj
+all: call.obj small.obj multiple-functions.obj primitives.obj primitive-parameters.obj primitive-parameters-call.obj
+
+call.obj: call.cpp Makefile
+	cl /c /O2 /Zi /Fo:$(@) /Fd:$(@).pdb %s
+	del $(@).pdb
 
 small.obj: small.cpp Makefile
 	cl /c /Zi /Fo:$(@) /Fd:$(@).pdb %s
@@ -14,4 +18,8 @@ primitives.obj: primitives.cpp Makefile
 
 primitive-parameters.obj: primitive-parameters.cpp Makefile
 	cl /c /Zi /Fo:$(@) /Fd:$(@).pdb %s
+	del $(@).pdb
+
+primitive-parameters-call.obj: primitive-parameters-call.cpp Makefile
+	cl /c /O2 /Zi /Fo:$(@) /Fd:$(@).pdb %s
 	del $(@).pdb
