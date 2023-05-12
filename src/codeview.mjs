@@ -12,6 +12,7 @@ let CV_CALL_NEAR_C = 0x00;
 
 // Type types:
 let LF_PROCEDURE = 0x1008;
+let LF_TYPESERVER2 = 0x1515;
 let LF_FUNC_ID = 0x1601;
 
 // Symbol types:
@@ -325,6 +326,17 @@ function alignUp(n, alignment) {
   return (n + mask) & ~mask;
 }
 
+export class CodeViewTypesInSeparatePDBFileError extends Error {
+  pdbPath;
+
+  constructor(pdbPath) {
+    super(
+      "CodeView types cannot be loaded because they are in a separate PDB file"
+    );
+    this.pdbPath = pdbPath;
+  }
+}
+
 export class CodeViewTypeTable {
   #typeEntryOffsets = [];
   #reader;
@@ -367,7 +379,12 @@ export async function parseCodeViewTypesAsync(reader) {
     let table = new CodeViewTypeTable(reader, startTypeID);
     let offset = 4;
     while (offset < reader.size) {
-      let recordSize = reader.u16(offset);
+      let recordSize = reader.u16(offset + 0);
+      let recordType = reader.u16(offset + 2);
+      if (recordType === LF_TYPESERVER2) {
+        let pdbPath = reader.utf8CString(offset + 24);
+        throw new CodeViewTypesInSeparatePDBFileError(pdbPath);
+      }
       table._addTypeEntryAtOffset(offset);
       offset += recordSize + 2;
     }

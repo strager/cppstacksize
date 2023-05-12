@@ -5,6 +5,7 @@ import test, { describe, it } from "node:test";
 import url from "node:url";
 import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
 import {
+  CodeViewTypesInSeparatePDBFileError,
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
   parseCodeViewTypesAsync,
@@ -174,6 +175,25 @@ describe("int parameters", (t) => {
   });
 });
 
+describe("split COFF + PDB", (t) => {
+  it("fails to load type info", async () => {
+    let file = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.obj"))
+    );
+
+    let sectionReader = (
+      await findCOFFSectionsByNameAsync(file, ".debug$T")
+    )[0];
+    let error = await assertRejectsAsync(async () => {
+      await parseCodeViewTypesAsync(sectionReader);
+    }, CodeViewTypesInSeparatePDBFileError);
+    assert.strictEqual(
+      error.pdbPath,
+      "C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\coff-pdb\\example.pdb"
+    );
+  });
+});
+
 function rebaseReaderOffset(reader, offset, desiredReader) {
   while (reader !== desiredReader) {
     if (reader instanceof SubFileReader) {
@@ -184,4 +204,18 @@ function rebaseReaderOffset(reader, offset, desiredReader) {
     }
   }
   return offset;
+}
+
+// Like assert.rejects, but returns the thrown error.
+async function assertRejectsAsync(callback, ...args) {
+  let error;
+  await assert.rejects(async () => {
+    try {
+      return await callback();
+    } catch (e) {
+      error = e;
+      throw e;
+    }
+  }, ...args);
+  return error;
 }
