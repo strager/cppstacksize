@@ -8,6 +8,7 @@ let CV_SIGNATURE_C13 = 4;
 let DEBUG_S_SYMBOLS = 0xf1;
 
 // Symbol types:
+let S_FRAMEPROC = 0x1012;
 let S_REGREL32 = 0x1111;
 let S_GPROC32_ID = 0x1147;
 
@@ -366,6 +367,17 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
         outFunctions.push(func);
         break;
       }
+
+      case S_FRAMEPROC: {
+        if (outFunctions.length === 0) {
+          console.error("found S_FRAMEPROC with no corresponding S_GPROC32_ID");
+          break;
+        }
+        let func = outFunctions[outFunctions.length - 1];
+        func.selfStackSize = reader.u32(offset + 4);
+        break;
+      }
+
       default:
         break;
     }
@@ -379,6 +391,7 @@ export class CodeViewFunction {
     this.name = name;
     this.reader = reader;
     this.byteOffset = byteOffset;
+    this.selfStackSize = -1;
   }
 }
 

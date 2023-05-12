@@ -29,6 +29,7 @@ describe("primitives.obj", (t) => {
       rebaseReaderOffset(functions[0].reader, functions[0].byteOffset, file),
       0x237
     );
+    assert.strictEqual(functions[0].selfStackSize, 88);
   });
 
   it("function has local variables", async () => {
