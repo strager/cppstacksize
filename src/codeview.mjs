@@ -465,26 +465,58 @@ export class CodeViewFunction {
       let funcIDTypeOffset = typeTable._getOffsetOfTypeEntry(this.#typeID);
       // TODO(strager): Check size.
       let funcIDTypeRecordType = reader.u16(funcIDTypeOffset + 2);
-      if (funcIDTypeRecordType === LF_FUNC_ID) {
-        let funcTypeOffset = typeTable._getOffsetOfTypeEntry(
-          reader.u32(funcIDTypeOffset + 8)
-        );
-        // TODO(strager): Check size.
-        let funcTypeRecordType = reader.u16(funcTypeOffset + 2);
-        if (funcTypeRecordType === LF_PROCEDURE) {
-          let callingConvention = reader.u16(funcTypeOffset + 8);
-          console.error({
-            callingConvention,
-            funcIDTypeRecordType,
-            funcTypeRecordType,
-            funcTypeOffset,
-            funcIDTypeOffset,
-          });
-          if (callingConvention === CV_CALL_NEAR_C) {
-            let parameterCount = reader.u16(funcTypeOffset + 10);
-            return Math.max(parameterCount, 4) * 8;
+      switch (funcIDTypeRecordType) {
+        case LF_FUNC_ID: {
+          let funcTypeOffset = typeTable._getOffsetOfTypeEntry(
+            reader.u32(funcIDTypeOffset + 8)
+          );
+          // TODO(strager): Check size.
+          let funcTypeRecordType = reader.u16(funcTypeOffset + 2);
+          switch (funcTypeRecordType) {
+            case LF_PROCEDURE: {
+              let callingConvention = reader.u16(funcTypeOffset + 8);
+              console.error({
+                callingConvention,
+                funcIDTypeRecordType,
+                funcTypeRecordType,
+                funcTypeOffset,
+                funcIDTypeOffset,
+              });
+              switch (callingConvention) {
+                case CV_CALL_NEAR_C: {
+                  let parameterCount = reader.u16(funcTypeOffset + 10);
+                  return Math.max(parameterCount, 4) * 8;
+                }
+
+                default:
+                  console.warn(
+                    `unrecognized function calling convention: 0x${callingConvention.toString(
+                      16
+                    )}`
+                  );
+                  break;
+              }
+              break;
+            }
+
+            default:
+              console.warn(
+                `unrecognized function type record type: 0x${funcTypeRecordType.toString(
+                  16
+                )}`
+              );
+              break;
           }
+          break;
         }
+
+        default:
+          console.warn(
+            `unrecognized function ID record type: 0x${funcIDTypeRecordType.toString(
+              16
+            )}`
+          );
+          break;
       }
       return -1;
     });
