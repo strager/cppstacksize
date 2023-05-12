@@ -358,11 +358,12 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
     let recordType = reader.u16(offset + 2);
     switch (recordType) {
       case S_GPROC32_ID: {
-        outFunctions.push({
-          name: reader.utf8CString(offset + 39),
-          reader: reader,
-          byteOffset: offset,
-        });
+        let func = new CodeViewFunction(
+          reader.utf8CString(offset + 39),
+          reader,
+          offset
+        );
+        outFunctions.push(func);
         break;
       }
       default:
@@ -370,6 +371,14 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
     }
 
     offset += recordSize + 2;
+  }
+}
+
+export class CodeViewFunction {
+  constructor(name, reader, byteOffset) {
+    this.name = name;
+    this.reader = reader;
+    this.byteOffset = byteOffset;
   }
 }
 
