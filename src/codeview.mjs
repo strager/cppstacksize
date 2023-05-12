@@ -7,6 +7,13 @@ let CV_SIGNATURE_C13 = 4;
 // Subsection types:
 let DEBUG_S_SYMBOLS = 0xf1;
 
+// Calling conventions:
+let CV_CALL_NEAR_C = 0x00;
+
+// Type types:
+let LF_PROCEDURE = 0x1008;
+let LF_FUNC_ID = 0x1601;
+
 // Symbol types:
 let S_FRAMEPROC = 0x1012;
 let S_REGREL32 = 0x1111;
@@ -318,6 +325,56 @@ function alignUp(n, alignment) {
   return (n + mask) & ~mask;
 }
 
+class CodeViewTypeTable {
+  #typeEntryOffsets = [];
+  #reader;
+  #startTypeID;
+
+  constructor(reader, startTypeID) {
+    this.#reader = reader;
+    this.#startTypeID = startTypeID;
+  }
+
+  get _reader() {
+    return this.#reader;
+  }
+
+  _addTypeEntryAtOffset(offset) {
+    this.#typeEntryOffsets.push(offset);
+  }
+
+  _getOffsetOfTypeEntry(typeID) {
+    let index = typeID - this.#startTypeID;
+    if (index < 0 || index >= this.#typeEntryOffsets.length) {
+      return null;
+    }
+    return this.#typeEntryOffsets[index];
+  }
+}
+
+export async function parseCodeViewTypesAsync(reader) {
+  return await withLoadScopeAsync(async () => {
+    let signature = reader.u32(0);
+    if (signature !== CV_SIGNATURE_C13) {
+      throw new UnsupportedCodeViewError(
+        `unrecognized CodeView signature: 0x${signature.toString(16)}`
+      );
+    }
+
+    // FIXME(strager): This should be a parameter. PDB can overwrite the initial
+    // type ID.
+    let startTypeID = 0x1000;
+    let table = new CodeViewTypeTable(reader, startTypeID);
+    let offset = 4;
+    while (offset < reader.size) {
+      let recordSize = reader.u16(offset);
+      table._addTypeEntryAtOffset(offset);
+      offset += recordSize + 2;
+    }
+    return table;
+  });
+}
+
 export async function findAllCodeViewFunctionsAsync(reader) {
   return await withLoadScopeAsync(async () => {
     let signature = reader.u32(0);
@@ -362,6 +419,7 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
         let func = new CodeViewFunction(
           reader.utf8CString(offset + 39),
           reader,
+          /*typeID=*/ reader.u32(offset + 28),
           offset
         );
         outFunctions.push(func);
@@ -387,11 +445,49 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
 }
 
 export class CodeViewFunction {
-  constructor(name, reader, byteOffset) {
+  name;
+  reader;
+  byteOffset;
+  selfStackSize;
+  #typeID;
+
+  constructor(name, reader, typeID, byteOffset) {
     this.name = name;
     this.reader = reader;
+    this.#typeID = typeID;
     this.byteOffset = byteOffset;
     this.selfStackSize = -1;
+  }
+
+  async getCallerStackSizeAsync(typeTable) {
+    return withLoadScopeAsync(() => {
+      let reader = typeTable._reader;
+      let funcIDTypeOffset = typeTable._getOffsetOfTypeEntry(this.#typeID);
+      // TODO(strager): Check size.
+      let funcIDTypeRecordType = reader.u16(funcIDTypeOffset + 2);
+      if (funcIDTypeRecordType === LF_FUNC_ID) {
+        let funcTypeOffset = typeTable._getOffsetOfTypeEntry(
+          reader.u32(funcIDTypeOffset + 8)
+        );
+        // TODO(strager): Check size.
+        let funcTypeRecordType = reader.u16(funcTypeOffset + 2);
+        if (funcTypeRecordType === LF_PROCEDURE) {
+          let callingConvention = reader.u16(funcTypeOffset + 8);
+          console.error({
+            callingConvention,
+            funcIDTypeRecordType,
+            funcTypeRecordType,
+            funcTypeOffset,
+            funcIDTypeOffset,
+          });
+          if (callingConvention === CV_CALL_NEAR_C) {
+            let parameterCount = reader.u16(funcTypeOffset + 10);
+            return Math.max(parameterCount, 4) * 8;
+          }
+        }
+      }
+      return -1;
+    });
   }
 }
 

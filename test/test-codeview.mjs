@@ -7,6 +7,7 @@ import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
 import {
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
+  parseCodeViewTypesAsync,
 } from "../src/codeview.mjs";
 import { findCOFFSectionsByNameAsync } from "../src/coff.mjs";
 
@@ -104,6 +105,72 @@ describe("primitives.obj", (t) => {
     assert.strictEqual(localsByName.get("ld").byteSize, 8);
     assert.strictEqual(localsByName.get("sll").byteSize, 8);
     assert.strictEqual(localsByName.get("ull").byteSize, 8);
+  });
+});
+
+describe("int parameters", (t) => {
+  async function loadAsync(name) {
+    let file = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, name))
+    );
+
+    let typeTable = await parseCodeViewTypesAsync(
+      (
+        await findCOFFSectionsByNameAsync(file, ".debug$T")
+      )[0]
+    );
+
+    let func = (
+      await findAllCodeViewFunctionsAsync(
+        (
+          await findCOFFSectionsByNameAsync(file, ".debug$S")
+        )[1]
+      )
+    )[0];
+
+    return { func, typeTable };
+  }
+
+  it("void callee(void) has shadow space for four registers", async () => {
+    let { func, typeTable } = await loadAsync(
+      "coff/parameters-int-0-callee.obj"
+    );
+    assert.strictEqual(await func.getCallerStackSizeAsync(typeTable), 32);
+  });
+
+  it("void callee(int) has shadow space for four registers", async () => {
+    let { func, typeTable } = await loadAsync(
+      "coff/parameters-int-1-callee.obj"
+    );
+    assert.strictEqual(await func.getCallerStackSizeAsync(typeTable), 32);
+  });
+
+  it("void callee(int, int) has shadow space for four registers", async () => {
+    let { func, typeTable } = await loadAsync(
+      "coff/parameters-int-2-callee.obj"
+    );
+    assert.strictEqual(await func.getCallerStackSizeAsync(typeTable), 32);
+  });
+
+  it("void callee(int, int, int, int) has shadow space for four registers", async () => {
+    let { func, typeTable } = await loadAsync(
+      "coff/parameters-int-4-callee.obj"
+    );
+    assert.strictEqual(await func.getCallerStackSizeAsync(typeTable), 32);
+  });
+
+  it("void callee(int, int, int, int, int) has shadow space for four registers plus space for int on stack", async () => {
+    let { func, typeTable } = await loadAsync(
+      "coff/parameters-int-5-callee.obj"
+    );
+    assert.strictEqual(await func.getCallerStackSizeAsync(typeTable), 40);
+  });
+
+  it("void callee(int, int, int, int, int, int) has shadow space for four registers plus space for two ints on stack", async () => {
+    let { func, typeTable } = await loadAsync(
+      "coff/parameters-int-6-callee.obj"
+    );
+    assert.strictEqual(await func.getCallerStackSizeAsync(typeTable), 48);
   });
 });
 
