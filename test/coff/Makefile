@@ -1,4 +1,11 @@
-all: call.obj small.obj multiple-functions.obj primitives.obj primitive-parameters.obj primitive-parameters-call.obj
+all: call.obj small.obj multiple-functions.obj primitives.obj primitive-parameters.obj primitive-parameters-call.obj \
+	parameters-int-0-callee.obj parameters-int-0-caller.obj \
+	parameters-int-1-callee.obj parameters-int-1-caller.obj \
+	parameters-int-2-callee.obj parameters-int-2-caller.obj \
+	parameters-int-3-callee.obj parameters-int-3-caller.obj \
+	parameters-int-4-callee.obj parameters-int-4-caller.obj \
+	parameters-int-5-callee.obj parameters-int-5-caller.obj \
+	parameters-int-6-callee.obj parameters-int-6-caller.obj
 
 call.obj: call.cpp Makefile
 	cl /c /O2 /Zi /Fo:$(@) /Fd:$(@).pdb %s
@@ -23,3 +30,38 @@ primitive-parameters.obj: primitive-parameters.cpp Makefile
 primitive-parameters-call.obj: primitive-parameters-call.cpp Makefile
 	cl /c /O2 /Zi /Fo:$(@) /Fd:$(@).pdb %s
 	del $(@).pdb
+
+parameters-int-0-callee.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=0 /DCALLEE %s
+parameters-int-0-caller.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=0 /DCALLER %s
+
+parameters-int-1-callee.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=1 /DCALLEE %s
+parameters-int-1-caller.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=1 /DCALLER %s
+
+parameters-int-2-callee.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=2 /DCALLEE %s
+parameters-int-2-caller.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=2 /DCALLER %s
+
+parameters-int-3-callee.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=3 /DCALLEE %s
+parameters-int-3-caller.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=3 /DCALLER %s
+
+parameters-int-4-callee.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=4 /DCALLEE %s
+parameters-int-4-caller.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=4 /DCALLER %s
+
+parameters-int-5-callee.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=5 /DCALLEE %s
+parameters-int-5-caller.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=5 /DCALLER %s
+
+parameters-int-6-callee.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=6 /DCALLEE %s
+parameters-int-6-caller.obj: parameters-int.cpp Makefile
+	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=6 /DCALLER %s
