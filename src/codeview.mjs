@@ -325,7 +325,7 @@ function alignUp(n, alignment) {
   return (n + mask) & ~mask;
 }
 
-class CodeViewTypeTable {
+export class CodeViewTypeTable {
   #typeEntryOffsets = [];
   #reader;
   #startTypeID;

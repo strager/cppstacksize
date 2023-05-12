@@ -1,18 +1,31 @@
 import { BlobLoader, LoaderReader, withLoadScopeAsync } from "./loader.mjs";
 import {
+  CodeViewTypeTable,
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
+  parseCodeViewTypesAsync,
 } from "./codeview.mjs";
 import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 
 let funcs = [];
+let typeTable = new CodeViewTypeTable();
 
 async function onUploadFileAsync(file) {
   funcs.length = 0;
+  typeTable = new CodeViewTypeTable();
   clearFunctionDetailsAsync();
 
   let loader = new BlobLoader(file);
   let reader = new LoaderReader(loader);
+
+  for (let sectionReader of await findCOFFSectionsByNameAsync(
+    reader,
+    ".debug$T"
+  )) {
+    typeTable = await parseCodeViewTypesAsync(sectionReader);
+    break;
+  }
+
   for (let sectionReader of await findCOFFSectionsByNameAsync(
     reader,
     ".debug$S"
@@ -33,6 +46,9 @@ async function onUploadFileAsync(file) {
     tr.appendChild(td);
     td = document.createElement("td");
     td.textContent = `${func.selfStackSize}`;
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.textContent = `${await func.getCallerStackSizeAsync(typeTable)}`;
     tr.appendChild(td);
     functionTableTbodyElement.appendChild(tr);
   }
