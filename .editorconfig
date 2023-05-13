@@ -1,0 +1,19 @@
+# This file configures editors using the EditorConfig
+# scheme: https://editorconfig.org/
+
+root = true
+
+[*.{cpp,html,mjs}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+[{Makefile,.editorconfig,.gitignore}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+# Keep in sync with Prettier.
+[*.{html,mjs}]
+indent_size = 2
+indent_style = space
+max_line_length = 80
