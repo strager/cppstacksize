@@ -22,6 +22,24 @@ export class NodeBufferReader {
     return buffer.toString("latin1", offset, endOffset);
   }
 
+  // Searches for a byte equal b starting from offset.
+  //
+  // Returns the offset of the first match, or null if there is no match.
+  findU8(b, offset) {
+    let buffer = this.#buffer;
+    let size = buffer.length;
+    let i = offset;
+    for (;;) {
+      if (i >= size) {
+        return null;
+      }
+      if (buffer.readUInt8(i) === b) {
+        return i;
+      }
+      i += 1;
+    }
+  }
+
   utf8CString(offset) {
     let buffer = this.#buffer;
     let endOffset = offset;
@@ -34,9 +52,11 @@ export class NodeBufferReader {
 
 export class ArrayBufferReader {
   #dataView;
+  #uint8Array;
 
   constructor(arrayBuffer) {
     this.#dataView = new DataView(arrayBuffer);
+    this.#uint8Array = new Uint8Array(arrayBuffer);
   }
 
   u16(offset) {
@@ -56,6 +76,17 @@ export class ArrayBufferReader {
     return new TextDecoder("latin1").decode(
       new Uint8Array(this.#dataView.buffer, offset, endOffset - offset)
     );
+  }
+
+  // Searches for a byte equal b starting from offset.
+  //
+  // Returns the offset of the first match, or null if there is no match.
+  findU8(b, offset) {
+    let i = this.#uint8Array.indexOf(b, offset);
+    if (i === -1) {
+      return null;
+    }
+    return i;
   }
 
   utf8CString(offset) {
@@ -103,5 +134,17 @@ export class SubFileReader {
   fixedWidthString(offset, size) {
     // TODO(strager): Bounds check.
     return this.baseReader.fixedWidthString(offset + this.subFileOffset, size);
+  }
+
+  // Searches for a byte equal b starting from offset.
+  //
+  // Returns the offset of the first match, or null if there is no match.
+  findU8(b, offset) {
+    // TODO(strager): Bounds check.
+    let i = this.baseReader.findU8(b, offset + this.subFileOffset);
+    if (i === null) {
+      return null;
+    }
+    return i - this.subFileOffset;
   }
 }

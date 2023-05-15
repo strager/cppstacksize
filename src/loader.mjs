@@ -7,6 +7,10 @@ export class ArrayLoader {
     this.#data = new Uint8Array(bytes).buffer;
   }
 
+  get size() {
+    return this.#data.byteLength;
+  }
+
   async readAsync(offset, size) {
     size = Math.min(size, this.#data.byteLength - offset);
     return new Uint8Array(this.#data, offset, size);
@@ -20,6 +24,10 @@ export class BlobLoader {
 
   constructor(blob) {
     this.#blob = blob;
+  }
+
+  get size() {
+    return this.#blob.size;
   }
 
   async readAsync(offset, size) {
@@ -43,12 +51,14 @@ export class LoaderReader {
   #loader;
   #chunkSize;
   #chunkShift;
+  #chunkCount;
 
   constructor(loader, { chunkSize } = { chunkSize: 1 << 16 }) {
     // TODO(strager): Assert that chunkSize is a power of two.
     this.#loader = loader;
     this.#chunkSize = chunkSize;
     this.#chunkShift = 32 - Math.clz32(chunkSize) - 1;
+    this.#chunkCount = (loader.size + chunkSize - 1) >> this.#chunkShift;
   }
 
   async fetchAsync(offset, size) {
@@ -177,6 +187,38 @@ export class LoaderReader {
       }
       relativeOffset = 0;
     }
+  }
+
+  // Searches for a byte equal b starting from offset.
+  //
+  // Returns the offset of the first match, or null if there is no match.
+  findU8(b, offset) {
+    let beginChunkIndex = offset >> this.#chunkShift;
+    let relativeOffset = offset & (this.#chunkSize - 1);
+    for (
+      let chunkIndex = beginChunkIndex;
+      chunkIndex < this.#chunkCount;
+      ++chunkIndex
+    ) {
+      let chunk = this.#chunks[chunkIndex];
+      this.#requireChunkLoaded(
+        chunk,
+        (chunkIndex << this.#chunkShift) | relativeOffset,
+        1
+      );
+
+      let data = new Uint8Array(
+        chunk.buffer,
+        chunk.byteOffset + relativeOffset,
+        chunk.byteLength - relativeOffset
+      );
+      let i = data.indexOf(b);
+      if (i !== -1) {
+        return (chunkIndex << this.#chunkShift) + relativeOffset + i;
+      }
+      relativeOffset = 0;
+    }
+    return null;
   }
 
   #requireChunkLoaded(chunk, offset, size) {

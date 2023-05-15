@@ -83,4 +83,24 @@ function testReader(makeReaderAsync) {
     assert.strictEqual(r.utf8CString(0), "hello");
     assert.strictEqual(r.utf8CString(6), "wörld");
   });
+
+  it("finds u8 if present", async () => {
+    let r = await makeReaderAsync([10, 20, 30, 40, 50, 60, 70]);
+    assert.strictEqual(r.findU8(10, 0), 0);
+    assert.strictEqual(r.findU8(20, 0), 1);
+    assert.strictEqual(r.findU8(30, 0), 2);
+    assert.strictEqual(r.findU8(40, 0), 3);
+    assert.strictEqual(r.findU8(50, 0), 4);
+
+    assert.strictEqual(r.findU8(30, 2), 2);
+    assert.strictEqual(r.findU8(50, 2), 4);
+  });
+
+  it("fails to find u8 if missing", async () => {
+    let r = await makeReaderAsync([10, 20, 30, 40, 50, 60, 70]);
+    assert.strictEqual(r.findU8(0, 0), null);
+    assert.strictEqual(r.findU8(15, 0), null);
+
+    assert.strictEqual(r.findU8(10, 2), null);
+  });
 }
