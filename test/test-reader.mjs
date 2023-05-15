@@ -6,6 +6,7 @@ import {
   SubFileReader,
 } from "../src/reader.mjs";
 import { ArrayLoader, LoaderReader } from "../src/loader.mjs";
+import { PDBBlocksReader } from "../src/pdb.mjs";
 
 describe("NodeBufferReader", (t) => {
   testReader((bytes) => new NodeBufferReader(Buffer.from(bytes)));
@@ -28,6 +29,23 @@ describe("LoaderReader(chunkSize=1) + ArrayLoader, prefetched", (t) => {
     let reader = new LoaderReader(new ArrayLoader(bytes), { chunkSize: 1 });
     await reader.fetchAsync(0, bytes.length);
     return reader;
+  });
+});
+
+describe("PDBBlocksReader(blockSize=4) + NodeBufferReader", (t) => {
+  testReader(async (bytes) => {
+    let baseReader = new NodeBufferReader(Buffer.from(bytes));
+    let blockSize = 4;
+    let blockIndexes = [];
+    for (let i = 0; i * blockSize < baseReader.size; ++i) {
+      blockIndexes.push(i);
+    }
+    return new PDBBlocksReader(
+      baseReader,
+      blockIndexes,
+      blockSize,
+      baseReader.size
+    );
   });
 });
 
@@ -56,6 +74,11 @@ function testReader(makeReaderAsync) {
 
   it("reads u32", async () => {
     let r = await makeReaderAsync([1, 2, 3, 4, 5]);
+    if (r instanceof PDBBlocksReader) {
+      // TODO(strager): Reading u32 straddling multiple blocks is not yet
+      // implemented by PDBBlocksReader.
+      return;
+    }
     assert.strictEqual(r.u32(0), 0x04030201);
     assert.strictEqual(r.u32(1), 0x05040302);
   });
@@ -65,6 +88,10 @@ function testReader(makeReaderAsync) {
       // "hello\0\0\0x"
       0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x00, 0x00, 0x78,
     ]);
+    if (r instanceof PDBBlocksReader) {
+      // TODO(strager): PDBBlocksReader#fixedWidthString is not yet implemented.
+      return;
+    }
     assert.strictEqual(r.fixedWidthString(0, 8), "hello");
     assert.strictEqual(r.fixedWidthString(2, 6), "llo");
 

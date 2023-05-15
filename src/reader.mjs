@@ -5,6 +5,10 @@ export class NodeBufferReader {
     this.#buffer = buffer;
   }
 
+  get size() {
+    return this.#buffer.length;
+  }
+
   u16(offset) {
     return this.#buffer.readUInt16LE(offset);
   }

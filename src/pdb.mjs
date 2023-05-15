@@ -82,7 +82,7 @@ export class PDBParser {
   }
 }
 
-class PDBBlocksReader {
+export class PDBBlocksReader {
   #baseReader;
   #blockIndexes;
   #blockSize;
