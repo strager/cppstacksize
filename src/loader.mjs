@@ -197,12 +197,16 @@ export class LoaderReader {
   // Searches for a byte equal b starting from offset.
   //
   // Returns the offset of the first match, or null if there is no match.
-  findU8(b, offset) {
+  findU8(b, offset, endOffset = null) {
+    if (endOffset === null || endOffset > this.#loader.size) {
+      endOffset = this.#loader.size;
+    }
     let beginChunkIndex = offset >> this.#chunkShift;
+    let endChunkIndex = (endOffset - 1) >> this.#chunkShift;
     let relativeOffset = offset & (this.#chunkSize - 1);
     for (
       let chunkIndex = beginChunkIndex;
-      chunkIndex < this.#chunkCount;
+      chunkIndex <= endChunkIndex;
       ++chunkIndex
     ) {
       let chunk = this.#chunks[chunkIndex];
@@ -219,7 +223,11 @@ export class LoaderReader {
       );
       let i = data.indexOf(b);
       if (i !== -1) {
-        return (chunkIndex << this.#chunkShift) + relativeOffset + i;
+        let foundOffset = (chunkIndex << this.#chunkShift) + relativeOffset + i;
+        if (foundOffset >= endOffset) {
+          return null;
+        }
+        return foundOffset;
       }
       relativeOffset = 0;
     }

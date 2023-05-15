@@ -25,12 +25,14 @@ export class NodeBufferReader {
   // Searches for a byte equal b starting from offset.
   //
   // Returns the offset of the first match, or null if there is no match.
-  findU8(b, offset) {
+  findU8(b, offset, endOffset = null) {
     let buffer = this.#buffer;
-    let size = buffer.length;
+    if (endOffset === null || endOffset > buffer.length) {
+      endOffset = buffer.length;
+    }
     let i = offset;
     for (;;) {
-      if (i >= size) {
+      if (i >= endOffset) {
         return null;
       }
       if (buffer.readUInt8(i) === b) {
@@ -81,10 +83,16 @@ export class ArrayBufferReader {
   // Searches for a byte equal b starting from offset.
   //
   // Returns the offset of the first match, or null if there is no match.
-  findU8(b, offset) {
+  findU8(b, offset, endOffset = null) {
+    // TODO(strager): Don't read past endOffset if not null.
     let i = this.#uint8Array.indexOf(b, offset);
     if (i === -1) {
       return null;
+    }
+    if (endOffset !== null) {
+      if (i >= endOffset) {
+        return null;
+      }
     }
     return i;
   }
@@ -138,9 +146,10 @@ export class SubFileReader {
   // Searches for a byte equal b starting from offset.
   //
   // Returns the offset of the first match, or null if there is no match.
-  findU8(b, offset) {
+  findU8(b, offset, endOffset = null) {
     // TODO(strager): Bounds check.
-    let i = this.baseReader.findU8(b, offset + this.subFileOffset);
+    if (endOffset !== null) endOffset = endOffset + this.subFileOffset;
+    let i = this.baseReader.findU8(b, offset + this.subFileOffset, endOffset);
     if (i === null) {
       return null;
     }

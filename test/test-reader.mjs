@@ -94,13 +94,21 @@ function testReader(makeReaderAsync) {
 
     assert.strictEqual(r.findU8(30, 2), 2);
     assert.strictEqual(r.findU8(50, 2), 4);
+
+    assert.strictEqual(r.findU8(10, 0, 6), 0);
+    assert.strictEqual(r.findU8(50, 0, 6), 4);
   });
 
   it("fails to find u8 if missing", async () => {
     let r = await makeReaderAsync([10, 20, 30, 40, 50, 60, 70]);
     assert.strictEqual(r.findU8(0, 0), null);
     assert.strictEqual(r.findU8(15, 0), null);
+    assert.strictEqual(r.findU8(15, 0, 7), null);
+    assert.strictEqual(r.findU8(15, 0, 100), null);
 
     assert.strictEqual(r.findU8(10, 2), null);
+
+    assert.strictEqual(r.findU8(70, 0, 2), null);
+    assert.strictEqual(r.findU8(50, 0, 4), null);
   });
 }
