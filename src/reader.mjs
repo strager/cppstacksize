@@ -23,7 +23,7 @@ export class NodeBufferReader {
     while (endOffset > offset && buffer.readUInt8(endOffset - 1) === 0) {
       endOffset -= 1;
     }
-    return buffer.toString("latin1", offset, endOffset);
+    return this.utf8String(offset, endOffset - offset);
   }
 
   // Searches for a byte equal b starting from offset.
@@ -83,9 +83,7 @@ export class ArrayBufferReader {
     while (endOffset > offset && dataView.getUint8(endOffset - 1) === 0) {
       endOffset -= 1;
     }
-    return new TextDecoder("latin1").decode(
-      new Uint8Array(this.#dataView.buffer, offset, endOffset - offset)
-    );
+    return this.utf8String(offset, endOffset - offset);
   }
 
   // Searches for a byte equal b starting from offset.
