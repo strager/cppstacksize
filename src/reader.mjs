@@ -18,12 +18,12 @@ export class NodeBufferReader {
   }
 
   fixedWidthString(offset, size) {
-    let buffer = this.#buffer;
-    let endOffset = offset + size;
-    while (endOffset > offset && buffer.readUInt8(endOffset - 1) === 0) {
-      endOffset -= 1;
+    let length = size;
+    let stringEndOffset = this.findU8(0, offset, offset + size);
+    if (stringEndOffset !== null) {
+      length = stringEndOffset - offset;
     }
-    return this.utf8String(offset, endOffset - offset);
+    return this.utf8String(offset, length);
   }
 
   // Searches for a byte equal b starting from offset.
@@ -78,12 +78,12 @@ export class ArrayBufferReader {
   }
 
   fixedWidthString(offset, size) {
-    let dataView = this.#dataView;
-    let endOffset = offset + size;
-    while (endOffset > offset && dataView.getUint8(endOffset - 1) === 0) {
-      endOffset -= 1;
+    let length = size;
+    let stringEndOffset = this.findU8(0, offset, offset + size);
+    if (stringEndOffset !== null) {
+      length = stringEndOffset - offset;
     }
-    return this.utf8String(offset, endOffset - offset);
+    return this.utf8String(offset, length);
   }
 
   // Searches for a byte equal b starting from offset.
