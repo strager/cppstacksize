@@ -5,7 +5,10 @@ import test, { describe, it } from "node:test";
 import url from "node:url";
 import { ArrayBufferReader, NodeBufferReader } from "../src/reader.mjs";
 import { PDBParser } from "../src/pdb.mjs";
-import { findAllCodeViewFunctions2Async } from "../src/codeview.mjs";
+import {
+  findAllCodeViewFunctions2Async,
+  getCodeViewFunctionLocalsAsync,
+} from "../src/codeview.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
@@ -326,6 +329,19 @@ describe("PDB file", (t) => {
       let functions = await findAllCodeViewFunctions2Async(parser.streams[15]);
       let functionNames = functions.map((func) => func.name).sort();
       assert.deepStrictEqual(functionNames, ["callee", "caller"]);
+    });
+
+    it("has example.cpp caller variables", async () => {
+      let parser = new PDBParser(await filePromise);
+      await parser.parseHeaderAsync();
+      await parser.parseStreamDirectoryAsync();
+      let func = (await findAllCodeViewFunctions2Async(parser.streams[15]))[1];
+      let locals = await getCodeViewFunctionLocalsAsync(
+        func.reader,
+        func.byteOffset
+      );
+      let localNames = locals.map((local) => local.name).sort();
+      assert.deepStrictEqual(localNames, ["a"]);
     });
   });
 });
