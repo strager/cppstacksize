@@ -155,45 +155,88 @@ class PDBBlocksReader {
     }
   }
 
-  utf8CString(offset) {
+  // Searches for a byte equal b starting from offset.
+  //
+  // Returns the offset of the first match, or null if there is no match.
+  findU8(b, offset, endOffset = null) {
+    if (endOffset === null || endOffset > this.#byteSize) {
+      endOffset = this.#byteSize;
+    }
     // TODO(strager): Avoid divisions.
     // TODO(strager): Avoid multiplications.
     let beginBlockIndexIndex = Math.floor(offset / this.#blockSize);
+    let endBlockIndexIndex = Math.floor((endOffset - 1) / this.#blockSize);
+    let relativeOffset = offset % this.#blockSize;
+
+    for (
+      let blockIndexIndex = beginBlockIndexIndex;
+      blockIndexIndex <= endBlockIndexIndex;
+      ++blockIndexIndex
+    ) {
+      // TODO(strager): Bounds check.
+      let blockIndex = this.#blockIndexes[blockIndexIndex];
+
+      // TODO(strager): Properly bounds check.
+      let i = this.#baseReader.findU8(
+        b,
+        blockIndex * this.#blockSize + relativeOffset,
+        (blockIndex + 1) * this.#blockSize
+      );
+      if (i !== null) {
+        return (i % this.#blockSize) + blockIndexIndex * this.#blockSize;
+      }
+      relativeOffset = 0;
+    }
+    return null;
+  }
+
+  utf8CString(offset) {
+    let endOffset = this.findU8(0, offset);
+
+    // TODO(strager): Avoid divisions.
+    // TODO(strager): Avoid multiplications.
+    let beginBlockIndexIndex = Math.floor(offset / this.#blockSize);
+    let endBlockIndexIndex = Math.floor(endOffset / this.#blockSize);
     let relativeOffset = offset % this.#blockSize;
     let decoder = new TextDecoder("utf-8");
     let result = "";
 
     let buffer = new Uint8Array(this.#blockSize);
-    for (let blockIndexIndex = beginBlockIndexIndex; ; ++blockIndexIndex) {
-      // TODO(strager): Bounds check.
+    for (
+      let blockIndexIndex = beginBlockIndexIndex;
+      blockIndexIndex <= endBlockIndexIndex;
+      ++blockIndexIndex
+    ) {
       let blockIndex = this.#blockIndexes[blockIndexIndex];
 
-      let i;
-      // TODO(strager): Bounds check.
-      for (i = relativeOffset; i < this.#blockSize; ++i) {
+      let isLastBlock = blockIndexIndex === endBlockIndexIndex;
+      let sizeNeededInBlock =
+        (isLastBlock ? endOffset & (this.#blockSize - 1) : this.#blockSize) -
+        relativeOffset;
+
+      for (
+        let i = relativeOffset;
+        i < relativeOffset + sizeNeededInBlock;
+        ++i
+      ) {
         // FIXME(strager): This is inefficient and silly. At the time of writing,
         // our Reader abstractions are too weak to make this elegant.
         let word = this.#baseReader.u16(blockIndex * this.#blockSize + i);
-        let byte = word & 0xff;
-        if (byte === 0) {
-          result += decoder.decode(
-            new Uint8Array(buffer.buffer, relativeOffset, i - relativeOffset)
-            /*options={stream: false}*/
-          );
-          return result;
-        }
-        buffer[i] = byte;
+        buffer[i] = word & 0xff;
       }
 
-      result += decoder.decode(
-        new Uint8Array(
-          buffer.buffer,
-          relativeOffset,
-          this.#blockSize - relativeOffset
-        ),
-        { stream: true }
+      let data = new Uint8Array(
+        buffer.buffer,
+        relativeOffset,
+        sizeNeededInBlock
       );
-      relativeOffset = 0;
+      if (isLastBlock) {
+        result += decoder.decode(data /*options={stream: false}*/);
+        return result;
+      } else {
+        result += decoder.decode(data, { stream: true });
+        relativeOffset = 0;
+      }
     }
   }
 }
