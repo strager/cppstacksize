@@ -161,7 +161,11 @@ export class LoaderReader {
     if (endOffset === null) {
       throw new Error("could not find null terminator for string");
     }
+    return this.utf8String(offset, endOffset - offset);
+  }
 
+  utf8String(offset, length) {
+    let endOffset = offset + length;
     let beginChunkIndex = offset >> this.#chunkShift;
     let endChunkIndex = endOffset >> this.#chunkShift;
     let relativeOffset = offset & (this.#chunkSize - 1);

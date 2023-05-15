@@ -192,7 +192,14 @@ export class PDBBlocksReader {
 
   utf8CString(offset) {
     let endOffset = this.findU8(0, offset);
+    if (endOffset === null) {
+      throw new Error("could not find null terminator for string");
+    }
+    return this.utf8String(offset, endOffset - offset);
+  }
 
+  utf8String(offset, length) {
+    let endOffset = offset + length;
     // TODO(strager): Avoid divisions.
     // TODO(strager): Avoid multiplications.
     let beginBlockIndexIndex = Math.floor(offset / this.#blockSize);

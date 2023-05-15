@@ -52,7 +52,11 @@ export class NodeBufferReader {
     if (endOffset === null) {
       throw new Error("could not find null terminator for string");
     }
-    return this.#buffer.toString("utf-8", offset, endOffset);
+    return this.utf8String(offset, endOffset - offset);
+  }
+
+  utf8String(offset, length) {
+    return this.#buffer.toString("utf-8", offset, offset + length);
   }
 }
 
@@ -106,8 +110,12 @@ export class ArrayBufferReader {
     if (endOffset === null) {
       throw new Error("could not find null terminator for string");
     }
+    return this.utf8String(offset, endOffset - offset);
+  }
+
+  utf8String(offset, length) {
     return new TextDecoder("utf-8").decode(
-      new Uint8Array(this.#dataView.buffer, offset, endOffset - offset)
+      new Uint8Array(this.#dataView.buffer, offset, length)
     );
   }
 }
@@ -140,6 +148,11 @@ export class SubFileReader {
   utf8CString(offset) {
     // TODO(strager): Bounds check.
     return this.baseReader.utf8CString(offset + this.subFileOffset);
+  }
+
+  utf8String(offset, length) {
+    // TODO(strager): Bounds check.
+    return this.baseReader.utf8String(offset + this.subFileOffset, length);
   }
 
   fixedWidthString(offset, size) {
