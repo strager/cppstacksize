@@ -88,10 +88,6 @@ function testReader(makeReaderAsync) {
       // "hello\0\0\0x"
       0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x00, 0x00, 0x78,
     ]);
-    if (r instanceof PDBBlocksReader) {
-      // TODO(strager): PDBBlocksReader#fixedWidthString is not yet implemented.
-      return;
-    }
     assert.strictEqual(r.fixedWidthString(0, 8), "hello");
     assert.strictEqual(r.fixedWidthString(2, 6), "llo");
 
