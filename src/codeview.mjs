@@ -16,9 +16,11 @@ let LF_TYPESERVER2 = 0x1515;
 let LF_FUNC_ID = 0x1601;
 
 // Symbol types:
+let S_END = 0x0006;
 let S_FRAMEPROC = 0x1012;
 let S_REGREL32 = 0x1111;
 let S_GPROC32 = 0x1110;
+let S_PROC_ID_END = 0x114f;
 let S_GPROC32_ID = 0x1147;
 
 // Special types:
@@ -582,7 +584,10 @@ export async function getCodeViewFunctionLocalsAsync(reader, offset) {
           locals.push(local);
           break;
         }
-        // TODO(strager): Stop scanning when we hit S_PROC_ID_END.
+        case S_END:
+        case S_PROC_ID_END:
+          offset = reader.size;
+          break;
         default:
           break;
       }

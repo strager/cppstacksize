@@ -343,5 +343,18 @@ describe("PDB file", (t) => {
       let localNames = locals.map((local) => local.name).sort();
       assert.deepStrictEqual(localNames, ["a"]);
     });
+
+    it("has example.cpp callee variables", async () => {
+      let parser = new PDBParser(await filePromise);
+      await parser.parseHeaderAsync();
+      await parser.parseStreamDirectoryAsync();
+      let func = (await findAllCodeViewFunctions2Async(parser.streams[15]))[0];
+      let locals = await getCodeViewFunctionLocalsAsync(
+        func.reader,
+        func.byteOffset
+      );
+      let localNames = locals.map((local) => local.name).sort();
+      assert.deepStrictEqual(localNames, ["a", "b", "c", "d", "e"]);
+    });
   });
 });
