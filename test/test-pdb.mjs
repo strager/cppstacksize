@@ -252,66 +252,68 @@ describe("PDB file", (t) => {
     );
   });
 
-  it("reads stream directory block indexes from real PDB file", async () => {
-    let file = new NodeBufferReader(
-      await fs.promises.readFile(path.join(__dirname, "pdb/example.pdb"))
-    );
-    let parser = new PDBParser(file);
-    await parser.parseHeaderAsync();
-    await parser.parseStreamDirectoryAsync();
-    assert.deepStrictEqual(
-      parser.streams.map((stream) => ({
-        blocks: stream.blockIndexes,
-        size: stream.size,
-      })),
-      [
-        { blocks: [7], size: 76 },
-        { blocks: [84], size: 174 },
-        { blocks: [83, 8, 74, 75, 76, 77, 78, 79, 80, 81, 82], size: 41736 },
-        { blocks: [65, 66, 67, 68, 69, 70, 71, 72, 73], size: 32795 },
-        { blocks: [92, 90, 91], size: 8456 },
-        { blocks: [86, 85, 87, 88, 89], size: 18718 },
-        { blocks: [93], size: 3188 },
-        { blocks: [94], size: 960 },
-        { blocks: [], size: 0 },
-        { blocks: [], size: 0 },
-        { blocks: [24, 25], size: 4452 },
-        { blocks: [26, 27], size: 6048 },
-        { blocks: [28, 29], size: 5248 },
-        { blocks: [30, 31, 32], size: 10740 },
-        { blocks: [23], size: 200 },
-        { blocks: [10], size: 648 },
-        { blocks: [12], size: 728 },
-        { blocks: [9], size: 308 },
-        { blocks: [16], size: 740 },
-        { blocks: [17], size: 560 },
-        { blocks: [18, 19], size: 4284 },
-        { blocks: [20, 21], size: 4764 },
-        { blocks: [22], size: 636 },
-        { blocks: [33], size: 212 },
-        { blocks: [34, 35], size: 6080 },
-        { blocks: [36], size: 488 },
-        { blocks: [37, 38], size: 7528 },
-        { blocks: [39], size: 648 },
-        { blocks: [40], size: 192 },
-        { blocks: [41, 42], size: 4372 },
-        { blocks: [43, 44], size: 6180 },
-        { blocks: [45, 46], size: 5920 },
-        { blocks: [47, 48], size: 6340 },
-        { blocks: [49], size: 1500 },
-        { blocks: [50], size: 1620 },
-        { blocks: [51], size: 1532 },
-        { blocks: [52, 53], size: 6352 },
-        { blocks: [54, 55, 56], size: 10728 },
-        { blocks: [57], size: 1088 },
-        { blocks: [58], size: 152 },
-        { blocks: [59], size: 3528 },
-        { blocks: [61], size: 2860 },
-        { blocks: [60, 62, 63, 64], size: 13812 },
-        { blocks: [], size: 0 },
-        { blocks: [], size: 4294967295 },
-        { blocks: [], size: 0 },
-      ]
-    );
+  describe("example.pdb", (t) => {
+    it("can read stream directory block indexes", async () => {
+      let file = new NodeBufferReader(
+        await fs.promises.readFile(path.join(__dirname, "pdb/example.pdb"))
+      );
+      let parser = new PDBParser(file);
+      await parser.parseHeaderAsync();
+      await parser.parseStreamDirectoryAsync();
+      assert.deepStrictEqual(
+        parser.streams.map((stream) => ({
+          blocks: stream.blockIndexes,
+          size: stream.size,
+        })),
+        [
+          { blocks: [7], size: 76 },
+          { blocks: [84], size: 174 },
+          { blocks: [83, 8, 74, 75, 76, 77, 78, 79, 80, 81, 82], size: 41736 },
+          { blocks: [65, 66, 67, 68, 69, 70, 71, 72, 73], size: 32795 },
+          { blocks: [92, 90, 91], size: 8456 },
+          { blocks: [86, 85, 87, 88, 89], size: 18718 },
+          { blocks: [93], size: 3188 },
+          { blocks: [94], size: 960 },
+          { blocks: [], size: 0 },
+          { blocks: [], size: 0 },
+          { blocks: [24, 25], size: 4452 },
+          { blocks: [26, 27], size: 6048 },
+          { blocks: [28, 29], size: 5248 },
+          { blocks: [30, 31, 32], size: 10740 },
+          { blocks: [23], size: 200 },
+          { blocks: [10], size: 648 },
+          { blocks: [12], size: 728 },
+          { blocks: [9], size: 308 },
+          { blocks: [16], size: 740 },
+          { blocks: [17], size: 560 },
+          { blocks: [18, 19], size: 4284 },
+          { blocks: [20, 21], size: 4764 },
+          { blocks: [22], size: 636 },
+          { blocks: [33], size: 212 },
+          { blocks: [34, 35], size: 6080 },
+          { blocks: [36], size: 488 },
+          { blocks: [37, 38], size: 7528 },
+          { blocks: [39], size: 648 },
+          { blocks: [40], size: 192 },
+          { blocks: [41, 42], size: 4372 },
+          { blocks: [43, 44], size: 6180 },
+          { blocks: [45, 46], size: 5920 },
+          { blocks: [47, 48], size: 6340 },
+          { blocks: [49], size: 1500 },
+          { blocks: [50], size: 1620 },
+          { blocks: [51], size: 1532 },
+          { blocks: [52, 53], size: 6352 },
+          { blocks: [54, 55, 56], size: 10728 },
+          { blocks: [57], size: 1088 },
+          { blocks: [58], size: 152 },
+          { blocks: [59], size: 3528 },
+          { blocks: [61], size: 2860 },
+          { blocks: [60, 62, 63, 64], size: 13812 },
+          { blocks: [], size: 0 },
+          { blocks: [], size: 4294967295 },
+          { blocks: [], size: 0 },
+        ]
+      );
+    });
   });
 });
