@@ -5,6 +5,7 @@ import test, { describe, it } from "node:test";
 import url from "node:url";
 import { ArrayBufferReader, NodeBufferReader } from "../src/reader.mjs";
 import { PDBParser } from "../src/pdb.mjs";
+import { findAllCodeViewFunctions2Async } from "../src/codeview.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
@@ -253,11 +254,13 @@ describe("PDB file", (t) => {
   });
 
   describe("example.pdb", (t) => {
-    it("can read stream directory block indexes", async () => {
-      let file = new NodeBufferReader(
+    let filePromise = (async () =>
+      new NodeBufferReader(
         await fs.promises.readFile(path.join(__dirname, "pdb/example.pdb"))
-      );
-      let parser = new PDBParser(file);
+      ))();
+
+    it("can read stream directory block indexes", async () => {
+      let parser = new PDBParser(await filePromise);
       await parser.parseHeaderAsync();
       await parser.parseStreamDirectoryAsync();
       assert.deepStrictEqual(
@@ -314,6 +317,15 @@ describe("PDB file", (t) => {
           { blocks: [], size: 0 },
         ]
       );
+    });
+
+    it("has example.cpp caller and callee functions", async () => {
+      let parser = new PDBParser(await filePromise);
+      await parser.parseHeaderAsync();
+      await parser.parseStreamDirectoryAsync();
+      let functions = await findAllCodeViewFunctions2Async(parser.streams[15]);
+      let functionNames = functions.map((func) => func.name).sort();
+      assert.deepStrictEqual(functionNames, ["callee", "caller"]);
     });
   });
 });

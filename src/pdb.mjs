@@ -103,6 +103,32 @@ class PDBBlocksReader {
     return this.#byteSize;
   }
 
+  u16(offset) {
+    let size = 2;
+    if (offset + size >= this.#byteSize) {
+      // TODO(strager): Report out of range error.
+    }
+
+    // TODO(strager): Avoid divisions.
+    // TODO(strager): Avoid multiplications.
+    let blockIndexIndex = Math.floor(offset / this.#blockSize);
+    let blockIndex = this.#blockIndexes[blockIndexIndex];
+    let endBlockIndexIndex = Math.floor((offset + size - 1) / this.#blockSize);
+    let data;
+    if (blockIndexIndex === endBlockIndexIndex) {
+      let relativeOffset = offset % this.#blockSize;
+      return this.#baseReader.u16(
+        blockIndex * this.#blockSize + relativeOffset
+      );
+    } else {
+      throw new Error(
+        `not yet implemented: reading u16 straddling multiple blocks`
+      );
+      //let data = this.#readCopySlow(offset, size);
+      //return data.getUint16(0, /*littleEndian=*/ true);
+    }
+  }
+
   u32(offset) {
     let size = 4;
     if (offset + size >= this.#byteSize) {
@@ -126,6 +152,48 @@ class PDBBlocksReader {
       );
       //let data = this.#readCopySlow(offset, size);
       //return data.getUint32(0, /*littleEndian=*/ true);
+    }
+  }
+
+  utf8CString(offset) {
+    // TODO(strager): Avoid divisions.
+    // TODO(strager): Avoid multiplications.
+    let beginBlockIndexIndex = Math.floor(offset / this.#blockSize);
+    let relativeOffset = offset % this.#blockSize;
+    let decoder = new TextDecoder("utf-8");
+    let result = "";
+
+    let buffer = new Uint8Array(this.#blockSize);
+    for (let blockIndexIndex = beginBlockIndexIndex; ; ++blockIndexIndex) {
+      // TODO(strager): Bounds check.
+      let blockIndex = this.#blockIndexes[blockIndexIndex];
+
+      let i;
+      // TODO(strager): Bounds check.
+      for (i = relativeOffset; i < this.#blockSize; ++i) {
+        // FIXME(strager): This is inefficient and silly. At the time of writing,
+        // our Reader abstractions are too weak to make this elegant.
+        let word = this.#baseReader.u16(blockIndex * this.#blockSize + i);
+        let byte = word & 0xff;
+        if (byte === 0) {
+          result += decoder.decode(
+            new Uint8Array(buffer.buffer, relativeOffset, i - relativeOffset)
+            /*options={stream: false}*/
+          );
+          return result;
+        }
+        buffer[i] = byte;
+      }
+
+      result += decoder.decode(
+        new Uint8Array(
+          buffer.buffer,
+          relativeOffset,
+          this.#blockSize - relativeOffset
+        ),
+        { stream: true }
+      );
+      relativeOffset = 0;
     }
   }
 }

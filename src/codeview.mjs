@@ -18,6 +18,7 @@ let LF_FUNC_ID = 0x1601;
 // Symbol types:
 let S_FRAMEPROC = 0x1012;
 let S_REGREL32 = 0x1111;
+let S_GPROC32 = 0x1110;
 let S_GPROC32_ID = 0x1147;
 
 // Special types:
@@ -426,12 +427,33 @@ export async function findAllCodeViewFunctionsAsync(reader) {
   });
 }
 
+// FIXME(strager): Why do we need findAllCodeViewFunctionsAsync with .obj but
+// findAllCodeViewFunctions2Async with .pdb?
+export async function findAllCodeViewFunctions2Async(reader) {
+  return await withLoadScopeAsync(async () => {
+    let signature = reader.u32(0);
+    if (signature !== CV_SIGNATURE_C13) {
+      throw new UnsupportedCodeViewError(
+        `unrecognized CodeView signature: 0x${signature.toString(16)}`
+      );
+    }
+
+    let functions = [];
+    await findAllCodeViewFunctionsInSubsectionAsync(
+      new SubFileReader(reader, 4, reader.size - 4),
+      functions
+    );
+    return functions;
+  });
+}
+
 async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
   let offset = 0;
   while (offset < reader.size) {
     let recordSize = reader.u16(offset + 0);
     let recordType = reader.u16(offset + 2);
     switch (recordType) {
+      case S_GPROC32:
       case S_GPROC32_ID: {
         let func = new CodeViewFunction(
           reader.utf8CString(offset + 39),
@@ -445,7 +467,7 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
 
       case S_FRAMEPROC: {
         if (outFunctions.length === 0) {
-          console.error("found S_FRAMEPROC with no corresponding S_GPROC32_ID");
+          console.error("found S_FRAMEPROC with no corresponding S_GPROC32");
           break;
         }
         let func = outFunctions[outFunctions.length - 1];
