@@ -161,6 +161,10 @@ class TestLoader {
     this.#loader = new ArrayLoader(bytes);
   }
 
+  get size() {
+    return this.#loader.size;
+  }
+
   async readAsync(offset, size) {
     this.readCalls.push({ offset: offset, size: size });
     return await this.#loader.readAsync(offset, size);

@@ -42,9 +42,9 @@ export class NodeBufferReader {
 
   utf8CString(offset) {
     let buffer = this.#buffer;
-    let endOffset = offset;
-    while (buffer.readUInt8(endOffset) !== 0) {
-      endOffset += 1;
+    let endOffset = this.findU8(0, offset);
+    if (endOffset === null) {
+      throw new Error("could not find null terminator for string");
     }
     return this.#buffer.toString("utf-8", offset, endOffset);
   }
@@ -90,10 +90,9 @@ export class ArrayBufferReader {
   }
 
   utf8CString(offset) {
-    let buffer = this.#dataView;
-    let endOffset = offset;
-    while (buffer.getUint8(endOffset) !== 0) {
-      endOffset += 1;
+    let endOffset = this.findU8(0, offset);
+    if (endOffset === null) {
+      throw new Error("could not find null terminator for string");
     }
     return new TextDecoder("utf-8").decode(
       new Uint8Array(this.#dataView.buffer, offset, endOffset - offset)

@@ -157,35 +157,40 @@ export class LoaderReader {
   }
 
   utf8CString(offset) {
+    let endOffset = this.findU8(0, offset);
+    if (endOffset === null) {
+      throw new Error("could not find null terminator for string");
+    }
+
     let beginChunkIndex = offset >> this.#chunkShift;
+    let endChunkIndex = endOffset >> this.#chunkShift;
     let relativeOffset = offset & (this.#chunkSize - 1);
     let decoder = new TextDecoder("utf-8");
     let result = "";
     for (let chunkIndex = beginChunkIndex; ; ++chunkIndex) {
       let chunk = this.#chunks[chunkIndex];
+      let isLastChunk = chunkIndex === endChunkIndex;
+      let sizeNeededInChunk =
+        (isLastChunk ? endOffset & (this.#chunkSize - 1) : this.#chunkSize) -
+        relativeOffset;
       this.#requireChunkLoaded(
         chunk,
         (chunkIndex << this.#chunkShift) | relativeOffset,
-        1
+        sizeNeededInChunk
       );
 
       let data = new Uint8Array(
         chunk.buffer,
         chunk.byteOffset + relativeOffset,
-        chunk.byteLength - relativeOffset
+        sizeNeededInChunk
       );
-
-      let nullTerminatorIndex = data.indexOf(0);
-      if (nullTerminatorIndex === -1) {
-        result += decoder.decode(data, { stream: true });
-      } else {
-        result += decoder.decode(
-          new Uint8Array(data.buffer, data.byteOffset, nullTerminatorIndex)
-          /*options={stream: false}*/
-        );
+      if (isLastChunk) {
+        result += decoder.decode(data /*options={stream: false}*/);
         return result;
+      } else {
+        result += decoder.decode(data, { stream: true });
+        relativeOffset = 0;
       }
-      relativeOffset = 0;
     }
   }
 
