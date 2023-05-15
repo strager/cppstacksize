@@ -1,7 +1,27 @@
-export class NodeBufferReader {
+export class ReaderBase {
+  fixedWidthString(offset, size) {
+    let length = size;
+    let stringEndOffset = this.findU8(0, offset, offset + size);
+    if (stringEndOffset !== null) {
+      length = stringEndOffset - offset;
+    }
+    return this.utf8String(offset, length);
+  }
+
+  utf8CString(offset) {
+    let endOffset = this.findU8(0, offset);
+    if (endOffset === null) {
+      throw new Error("could not find null terminator for string");
+    }
+    return this.utf8String(offset, endOffset - offset);
+  }
+}
+
+export class NodeBufferReader extends ReaderBase {
   #buffer;
 
   constructor(buffer) {
+    super();
     this.#buffer = buffer;
   }
 
@@ -15,15 +35,6 @@ export class NodeBufferReader {
 
   u32(offset) {
     return this.#buffer.readUInt32LE(offset);
-  }
-
-  fixedWidthString(offset, size) {
-    let length = size;
-    let stringEndOffset = this.findU8(0, offset, offset + size);
-    if (stringEndOffset !== null) {
-      length = stringEndOffset - offset;
-    }
-    return this.utf8String(offset, length);
   }
 
   // Searches for a byte equal b starting from offset.
@@ -46,25 +57,17 @@ export class NodeBufferReader {
     }
   }
 
-  utf8CString(offset) {
-    let buffer = this.#buffer;
-    let endOffset = this.findU8(0, offset);
-    if (endOffset === null) {
-      throw new Error("could not find null terminator for string");
-    }
-    return this.utf8String(offset, endOffset - offset);
-  }
-
   utf8String(offset, length) {
     return this.#buffer.toString("utf-8", offset, offset + length);
   }
 }
 
-export class ArrayBufferReader {
+export class ArrayBufferReader extends ReaderBase {
   #dataView;
   #uint8Array;
 
   constructor(arrayBuffer) {
+    super();
     this.#dataView = new DataView(arrayBuffer);
     this.#uint8Array = new Uint8Array(arrayBuffer);
   }
@@ -75,15 +78,6 @@ export class ArrayBufferReader {
 
   u32(offset) {
     return this.#dataView.getUint32(offset, /*littleEndian=*/ true);
-  }
-
-  fixedWidthString(offset, size) {
-    let length = size;
-    let stringEndOffset = this.findU8(0, offset, offset + size);
-    if (stringEndOffset !== null) {
-      length = stringEndOffset - offset;
-    }
-    return this.utf8String(offset, length);
   }
 
   // Searches for a byte equal b starting from offset.
@@ -101,14 +95,6 @@ export class ArrayBufferReader {
       }
     }
     return i;
-  }
-
-  utf8CString(offset) {
-    let endOffset = this.findU8(0, offset);
-    if (endOffset === null) {
-      throw new Error("could not find null terminator for string");
-    }
-    return this.utf8String(offset, endOffset - offset);
   }
 
   utf8String(offset, length) {

@@ -1,3 +1,4 @@
+import { ReaderBase } from "./reader.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 export class PDBParser {
@@ -82,13 +83,14 @@ export class PDBParser {
   }
 }
 
-export class PDBBlocksReader {
+export class PDBBlocksReader extends ReaderBase {
   #baseReader;
   #blockIndexes;
   #blockSize;
   #byteSize;
 
   constructor(baseReader, blockIndexes, blockSize, byteSize) {
+    super();
     this.#baseReader = baseReader;
     this.#blockIndexes = blockIndexes;
     this.#blockSize = blockSize;
@@ -188,14 +190,6 @@ export class PDBBlocksReader {
       relativeOffset = 0;
     }
     return null;
-  }
-
-  utf8CString(offset) {
-    let endOffset = this.findU8(0, offset);
-    if (endOffset === null) {
-      throw new Error("could not find null terminator for string");
-    }
-    return this.utf8String(offset, endOffset - offset);
   }
 
   utf8String(offset, length) {
