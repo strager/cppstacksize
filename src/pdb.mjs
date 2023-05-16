@@ -16,9 +16,6 @@ export class PDBParser {
 
   #reader;
 
-  /// Call parseHeaderAsync to populate the following variables:
-  #superBlock = null;
-
   constructor(reader) {
     this.#reader = reader;
   }
@@ -32,29 +29,28 @@ export class PDBParser {
       superBlock.blockCount = this.#reader.u32(0x28);
       superBlock.directorySize = this.#reader.u32(0x2c);
       superBlock.directoryMapBlock = this.#reader.u32(0x34);
-      this.#superBlock = superBlock;
+      return superBlock;
     });
   }
 
-  async parseStreamDirectoryAsync() {
+  async parseStreamDirectoryAsync(superBlock) {
     return await withLoadScopeAsync(() => {
       let directoryBlockCount = Math.ceil(
-        this.#superBlock.directorySize / this.#superBlock.blockSize
+        superBlock.directorySize / superBlock.blockSize
       );
       let directoryBlocks = [];
       for (let i = 0; i < directoryBlockCount; ++i) {
         directoryBlocks.push(
           this.#reader.u32(
-            this.#superBlock.directoryMapBlock * this.#superBlock.blockSize +
-              i * 4
+            superBlock.directoryMapBlock * superBlock.blockSize + i * 4
           )
         );
       }
       let directoryReader = new PDBBlocksReader(
         this.#reader,
         directoryBlocks,
-        this.#superBlock.blockSize,
-        this.#superBlock.directorySize
+        superBlock.blockSize,
+        superBlock.directorySize
       );
 
       let streams = [];
@@ -68,7 +64,7 @@ export class PDBParser {
       }
       for (let streamIndex = 0; streamIndex < streamCount; ++streamIndex) {
         let streamSize = streamSizes[streamIndex];
-        let blockCount = Math.ceil(streamSize / this.#superBlock.blockSize);
+        let blockCount = Math.ceil(streamSize / superBlock.blockSize);
         if (streamSize === 2 ** 32 - 1) {
           // HACK(strager): Sometimes we see a stream with size 4294967295. This
           // might be legit, but I suspect not. Pretend the size is 0 instead.
@@ -84,7 +80,7 @@ export class PDBParser {
           new PDBBlocksReader(
             this.#reader,
             streamBlocks,
-            this.#superBlock.blockSize,
+            superBlock.blockSize,
             streamSize
           )
         );
