@@ -2,6 +2,14 @@ import { ReaderBase, SubFileReader } from "./reader.mjs";
 import { alignUp } from "./util.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
+/// The header of a PDB file.
+export class PDBSuperBlock {
+  blockSize;
+  blockCount;
+  directorySize; // In bytes.
+  directoryMapBlock; // Block index.
+}
+
 export class PDBParser {
   /// Call parseStreamDirectoryAsync to populate streams.
   streams = null;
@@ -9,10 +17,7 @@ export class PDBParser {
   #reader;
 
   /// Call parseHeaderAsync to populate the following variables:
-  #blockSize = null;
-  #blockCount = null;
-  #directorySize = null; // In bytes.
-  #directoryMapBlock = null; // Block index.
+  #superBlock = null;
 
   constructor(reader) {
     this.#reader = reader;
@@ -22,29 +27,34 @@ export class PDBParser {
   async parseHeaderAsync() {
     return await withLoadScopeAsync(() => {
       // TODO(strager): Validate the PDB signature.
-      this.#blockSize = this.#reader.u32(0x20);
-      this.#blockCount = this.#reader.u32(0x28);
-      this.#directorySize = this.#reader.u32(0x2c);
-      this.#directoryMapBlock = this.#reader.u32(0x34);
+      let superBlock = new PDBSuperBlock();
+      superBlock.blockSize = this.#reader.u32(0x20);
+      superBlock.blockCount = this.#reader.u32(0x28);
+      superBlock.directorySize = this.#reader.u32(0x2c);
+      superBlock.directoryMapBlock = this.#reader.u32(0x34);
+      this.#superBlock = superBlock;
     });
   }
 
   async parseStreamDirectoryAsync() {
     return await withLoadScopeAsync(() => {
       let directoryBlockCount = Math.ceil(
-        this.#directorySize / this.#blockSize
+        this.#superBlock.directorySize / this.#superBlock.blockSize
       );
       let directoryBlocks = [];
       for (let i = 0; i < directoryBlockCount; ++i) {
         directoryBlocks.push(
-          this.#reader.u32(this.#directoryMapBlock * this.#blockSize + i * 4)
+          this.#reader.u32(
+            this.#superBlock.directoryMapBlock * this.#superBlock.blockSize +
+              i * 4
+          )
         );
       }
       let directoryReader = new PDBBlocksReader(
         this.#reader,
         directoryBlocks,
-        this.#blockSize,
-        this.#directorySize
+        this.#superBlock.blockSize,
+        this.#superBlock.directorySize
       );
 
       let streams = [];
@@ -58,7 +68,7 @@ export class PDBParser {
       }
       for (let streamIndex = 0; streamIndex < streamCount; ++streamIndex) {
         let streamSize = streamSizes[streamIndex];
-        let blockCount = Math.ceil(streamSize / this.#blockSize);
+        let blockCount = Math.ceil(streamSize / this.#superBlock.blockSize);
         if (streamSize === 2 ** 32 - 1) {
           // HACK(strager): Sometimes we see a stream with size 4294967295. This
           // might be legit, but I suspect not. Pretend the size is 0 instead.
@@ -74,7 +84,7 @@ export class PDBParser {
           new PDBBlocksReader(
             this.#reader,
             streamBlocks,
-            this.#blockSize,
+            this.#superBlock.blockSize,
             streamSize
           )
         );
