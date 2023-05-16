@@ -1,4 +1,5 @@
-import { ReaderBase } from "./reader.mjs";
+import { ReaderBase, SubFileReader } from "./reader.mjs";
+import { alignUp } from "./util.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 export class PDBParser {
@@ -81,6 +82,56 @@ export class PDBParser {
       this.streams = streams;
     });
   }
+}
+
+export async function parsePDBDBIStreamAsync(reader) {
+  return withLoadScopeAsync(() => {
+    let moduleInfoSize = reader.u32(0x18);
+
+    let modules = [];
+    let moduleInfosBegin = 0x40;
+    let moduleInfosReader = new SubFileReader(
+      reader,
+      moduleInfosBegin,
+      moduleInfoSize
+    );
+    let offset = 0;
+    while (offset < moduleInfosReader.size) {
+      offset = alignUp(offset, 4);
+      let moduleSymStream = moduleInfosReader.u16(offset + 0x22);
+      let moduleNameNullTerminatorOffset = moduleInfosReader.findU8(
+        0,
+        offset + 0x40
+      );
+      if (moduleNameNullTerminatorOffset === null) {
+        console.error("incomplete module info entry");
+        break;
+      }
+      let moduleName = moduleInfosReader.utf8String(
+        offset + 0x40,
+        moduleNameNullTerminatorOffset - (offset + 0x40)
+      );
+      offset = moduleNameNullTerminatorOffset + 1;
+      let objNameNullTerminatorOffset = moduleInfosReader.findU8(0, offset);
+      if (objNameNullTerminatorOffset === null) {
+        console.error("incomplete module info entry");
+        break;
+      }
+      let objName = moduleInfosReader.utf8String(
+        offset,
+        objNameNullTerminatorOffset - offset
+      );
+      offset = objNameNullTerminatorOffset + 1;
+      modules.push({
+        linkedObjectPath: objName,
+        sourceObjectPath: moduleName,
+        debugInfoStreamIndex: moduleSymStream,
+      });
+    }
+    return {
+      modules: modules,
+    };
+  });
 }
 
 export class PDBBlocksReader extends ReaderBase {

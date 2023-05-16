@@ -1,4 +1,5 @@
 import { SubFileReader } from "./reader.mjs";
+import { alignUp } from "./util.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 // CodeView signatures:
@@ -323,11 +324,6 @@ let T_64PUINT16 = 0x0679;
 let T_64PCHAR16 = 0x067a;
 let T_64PCHAR32 = 0x067b;
 let T_64NCVPTR = 0x06f0;
-
-function alignUp(n, alignment) {
-  let mask = alignment - 1;
-  return (n + mask) & ~mask;
-}
 
 export class CodeViewTypesInSeparatePDBFileError extends Error {
   pdbPath;

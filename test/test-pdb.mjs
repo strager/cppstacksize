@@ -4,7 +4,11 @@ import path from "node:path";
 import test, { describe, it } from "node:test";
 import url from "node:url";
 import { ArrayBufferReader, NodeBufferReader } from "../src/reader.mjs";
-import { PDBParser } from "../src/pdb.mjs";
+import {
+  PDBBlocksReader,
+  PDBParser,
+  parsePDBDBIStreamAsync,
+} from "../src/pdb.mjs";
 import {
   findAllCodeViewFunctions2Async,
   getCodeViewFunctionLocalsAsync,
@@ -320,6 +324,43 @@ describe("PDB file", (t) => {
           { blocks: [], size: 0 },
         ]
       );
+    });
+
+    it("can read DBI stream", async () => {
+      // Stream #3 from example.pdb.
+      let dbiReader = new PDBBlocksReader(
+        await filePromise,
+        [65, 66, 67, 68, 69, 70, 71, 72, 73],
+        /*blockSize=*/ 4096,
+        /*byteSize=*/ 32795
+      );
+
+      let dbi = await parsePDBDBIStreamAsync(dbiReader);
+      assert.strictEqual(dbi.modules.length, 29);
+
+      assert.strictEqual(
+        dbi.modules[0].linkedObjectPath,
+        "C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\pdb\\example.obj"
+      );
+      assert.strictEqual(
+        dbi.modules[0].sourceObjectPath,
+        "C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\pdb\\example.obj"
+      );
+      assert.strictEqual(dbi.modules[0].debugInfoStreamIndex, 15);
+
+      assert.strictEqual(
+        dbi.modules[1].linkedObjectPath,
+        "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.31.31103\\lib\\x64\\MSVCRT.lib"
+      );
+      assert.strictEqual(
+        dbi.modules[1].sourceObjectPath,
+        "d:\\a01\\_work\\43\\s\\Intermediate\\vctools\\msvcrt.nativeproj_110336922\\objr\\amd64\\dll_dllmain.obj"
+      );
+      assert.strictEqual(dbi.modules[1].debugInfoStreamIndex, 37);
+
+      assert.strictEqual(dbi.modules[28].sourceObjectPath, "* Linker *");
+      assert.strictEqual(dbi.modules[28].linkedObjectPath, "");
+      assert.strictEqual(dbi.modules[28].debugInfoStreamIndex, 35);
     });
 
     it("has example.cpp caller and callee functions", async () => {
