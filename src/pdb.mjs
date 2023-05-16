@@ -10,25 +10,17 @@ export class PDBSuperBlock {
   directoryMapBlock; // Block index.
 }
 
-export class PDBParser {
-  #reader;
-
-  constructor(reader) {
-    this.#reader = reader;
-  }
-
-  /// Parses the superblock.
-  async parseHeaderAsync() {
-    return await withLoadScopeAsync(() => {
-      // TODO(strager): Validate the PDB signature.
-      let superBlock = new PDBSuperBlock();
-      superBlock.blockSize = this.#reader.u32(0x20);
-      superBlock.blockCount = this.#reader.u32(0x28);
-      superBlock.directorySize = this.#reader.u32(0x2c);
-      superBlock.directoryMapBlock = this.#reader.u32(0x34);
-      return superBlock;
-    });
-  }
+/// Parses the superblock.
+export async function parsePDBHeaderAsync(reader) {
+  return await withLoadScopeAsync(() => {
+    // TODO(strager): Validate the PDB signature.
+    let superBlock = new PDBSuperBlock();
+    superBlock.blockSize = reader.u32(0x20);
+    superBlock.blockCount = reader.u32(0x28);
+    superBlock.directorySize = reader.u32(0x2c);
+    superBlock.directoryMapBlock = reader.u32(0x34);
+    return superBlock;
+  });
 }
 
 export async function parsePDBStreamDirectoryAsync(reader, superBlock) {

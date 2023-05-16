@@ -6,8 +6,8 @@ import url from "node:url";
 import { ArrayBufferReader, NodeBufferReader } from "../src/reader.mjs";
 import {
   PDBBlocksReader,
-  PDBParser,
   parsePDBDBIStreamAsync,
+  parsePDBHeaderAsync,
   parsePDBStreamDirectoryAsync,
 } from "../src/pdb.mjs";
 import {
@@ -87,8 +87,7 @@ describe("PDB file", (t) => {
     }
 
     let file = new ArrayBufferReader(fileData);
-    let parser = new PDBParser(file);
-    let superBlock = await parser.parseHeaderAsync();
+    let superBlock = await parsePDBHeaderAsync(file);
     let streams = await parsePDBStreamDirectoryAsync(file, superBlock);
     assert.deepStrictEqual(
       streams.map((stream) => ({
@@ -249,8 +248,7 @@ describe("PDB file", (t) => {
     }
 
     let file = new ArrayBufferReader(fileData);
-    let parser = new PDBParser(file);
-    let superBlock = await parser.parseHeaderAsync();
+    let superBlock = await parsePDBHeaderAsync(file);
     let parsedStreams = await parsePDBStreamDirectoryAsync(file, superBlock);
     assert.deepStrictEqual(
       parsedStreams.map((stream) => ({
@@ -269,8 +267,7 @@ describe("PDB file", (t) => {
 
     it("can read stream directory block indexes", async () => {
       let file = await filePromise;
-      let parser = new PDBParser(file);
-      let superBlock = await parser.parseHeaderAsync();
+      let superBlock = await parsePDBHeaderAsync(file);
       let streams = await parsePDBStreamDirectoryAsync(file, superBlock);
       assert.deepStrictEqual(
         streams.map((stream) => ({
@@ -367,8 +364,7 @@ describe("PDB file", (t) => {
 
     it("has example.cpp caller and callee functions", async () => {
       let file = await filePromise;
-      let parser = new PDBParser(file);
-      let superBlock = await parser.parseHeaderAsync();
+      let superBlock = await parsePDBHeaderAsync(file);
       let streams = await parsePDBStreamDirectoryAsync(file, superBlock);
       let functions = await findAllCodeViewFunctions2Async(streams[15]);
       let functionNames = functions.map((func) => func.name).sort();
@@ -377,8 +373,7 @@ describe("PDB file", (t) => {
 
     it("has example.cpp caller variables", async () => {
       let file = await filePromise;
-      let parser = new PDBParser(file);
-      let superBlock = await parser.parseHeaderAsync();
+      let superBlock = await parsePDBHeaderAsync(file);
       let streams = await parsePDBStreamDirectoryAsync(file, superBlock);
       let func = (await findAllCodeViewFunctions2Async(streams[15]))[1];
       let locals = await getCodeViewFunctionLocalsAsync(
@@ -391,8 +386,7 @@ describe("PDB file", (t) => {
 
     it("has example.cpp callee variables", async () => {
       let file = await filePromise;
-      let parser = new PDBParser(file);
-      let superBlock = await parser.parseHeaderAsync();
+      let superBlock = await parsePDBHeaderAsync(file);
       let streams = await parsePDBStreamDirectoryAsync(file, superBlock);
       let func = (await findAllCodeViewFunctions2Async(streams[15]))[0];
       let locals = await getCodeViewFunctionLocalsAsync(
