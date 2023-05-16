@@ -11,9 +11,6 @@ export class PDBSuperBlock {
 }
 
 export class PDBParser {
-  /// Call parseStreamDirectoryAsync to populate streams.
-  streams = null;
-
   #reader;
 
   constructor(reader) {
@@ -85,7 +82,7 @@ export class PDBParser {
           )
         );
       }
-      this.streams = streams;
+      return streams;
     });
   }
 }
