@@ -29,62 +29,60 @@ export class PDBParser {
       return superBlock;
     });
   }
+}
 
-  async parseStreamDirectoryAsync(superBlock) {
-    return await withLoadScopeAsync(() => {
-      let directoryBlockCount = Math.ceil(
-        superBlock.directorySize / superBlock.blockSize
+export async function parsePDBStreamDirectoryAsync(reader, superBlock) {
+  return await withLoadScopeAsync(() => {
+    let directoryBlockCount = Math.ceil(
+      superBlock.directorySize / superBlock.blockSize
+    );
+    let directoryBlocks = [];
+    for (let i = 0; i < directoryBlockCount; ++i) {
+      directoryBlocks.push(
+        reader.u32(superBlock.directoryMapBlock * superBlock.blockSize + i * 4)
       );
-      let directoryBlocks = [];
-      for (let i = 0; i < directoryBlockCount; ++i) {
-        directoryBlocks.push(
-          this.#reader.u32(
-            superBlock.directoryMapBlock * superBlock.blockSize + i * 4
-          )
-        );
-      }
-      let directoryReader = new PDBBlocksReader(
-        this.#reader,
-        directoryBlocks,
-        superBlock.blockSize,
-        superBlock.directorySize
-      );
+    }
+    let directoryReader = new PDBBlocksReader(
+      reader,
+      directoryBlocks,
+      superBlock.blockSize,
+      superBlock.directorySize
+    );
 
-      let streams = [];
-      let offset = 0;
-      let streamCount = directoryReader.u32(offset);
+    let streams = [];
+    let offset = 0;
+    let streamCount = directoryReader.u32(offset);
+    offset += 4;
+    let streamSizes = [];
+    for (let streamIndex = 0; streamIndex < streamCount; ++streamIndex) {
+      streamSizes.push(directoryReader.u32(offset));
       offset += 4;
-      let streamSizes = [];
-      for (let streamIndex = 0; streamIndex < streamCount; ++streamIndex) {
-        streamSizes.push(directoryReader.u32(offset));
+    }
+    for (let streamIndex = 0; streamIndex < streamCount; ++streamIndex) {
+      let streamSize = streamSizes[streamIndex];
+      let blockCount = Math.ceil(streamSize / superBlock.blockSize);
+      if (streamSize === 2 ** 32 - 1) {
+        // HACK(strager): Sometimes we see a stream with size 4294967295. This
+        // might be legit, but I suspect not. Pretend the size is 0 instead.
+        blockCount = 0;
+      }
+
+      let streamBlocks = [];
+      for (let i = 0; i < blockCount; ++i) {
+        streamBlocks.push(directoryReader.u32(offset));
         offset += 4;
       }
-      for (let streamIndex = 0; streamIndex < streamCount; ++streamIndex) {
-        let streamSize = streamSizes[streamIndex];
-        let blockCount = Math.ceil(streamSize / superBlock.blockSize);
-        if (streamSize === 2 ** 32 - 1) {
-          // HACK(strager): Sometimes we see a stream with size 4294967295. This
-          // might be legit, but I suspect not. Pretend the size is 0 instead.
-          blockCount = 0;
-        }
-
-        let streamBlocks = [];
-        for (let i = 0; i < blockCount; ++i) {
-          streamBlocks.push(directoryReader.u32(offset));
-          offset += 4;
-        }
-        streams.push(
-          new PDBBlocksReader(
-            this.#reader,
-            streamBlocks,
-            superBlock.blockSize,
-            streamSize
-          )
-        );
-      }
-      return streams;
-    });
-  }
+      streams.push(
+        new PDBBlocksReader(
+          reader,
+          streamBlocks,
+          superBlock.blockSize,
+          streamSize
+        )
+      );
+    }
+    return streams;
+  });
 }
 
 export async function parsePDBDBIStreamAsync(reader) {
