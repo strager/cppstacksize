@@ -125,7 +125,7 @@ export class SubFileReader {
   }
 
   u32(offset) {
-    // TODO(strager): Bounds check.
+    this.#checkBounds(offset, 4);
     return this.baseReader.u32(offset + this.subFileOffset);
   }
 

@@ -141,4 +141,16 @@ function testReader(makeReaderAsync) {
       r.u16(1);
     }, RangeError);
   });
+
+  it("out of bounds u32 fails", async () => {
+    let r = await makeReaderAsync([10, 20, 30, 40]);
+    if (r instanceof PDBBlocksReader) {
+      // TODO(strager): Reading u32 straddling multiple blocks is not yet
+      // implemented by PDBBlocksReader.
+      return;
+    }
+    assert.throws(() => {
+      r.u32(2);
+    }, RangeError);
+  });
 }
