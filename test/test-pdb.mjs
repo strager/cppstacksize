@@ -6,10 +6,12 @@ import url from "node:url";
 import { ArrayBufferReader, NodeBufferReader } from "../src/reader.mjs";
 import {
   PDBBlocksReader,
+  PDBMagicMismatchError,
   parsePDBDBIStreamAsync,
   parsePDBHeaderAsync,
   parsePDBStreamDirectoryAsync,
 } from "../src/pdb.mjs";
+import { assertRejectsAsync } from "./assert-util.mjs";
 import {
   findAllCodeViewFunctions2Async,
   getCodeViewFunctionLocalsAsync,
@@ -19,7 +21,7 @@ let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
 
 let pdbFileMagic = [
-  ...new TextEncoder("utf-8").encode("Microsoft C / C++ MSF 7.00\r\n"),
+  ...new TextEncoder("utf-8").encode("Microsoft C/C++ MSF 7.00\r\n"),
   0x1a,
   0x44,
   0x53,
@@ -396,5 +398,21 @@ describe("PDB file", (t) => {
       let localNames = locals.map((local) => local.name).sort();
       assert.deepStrictEqual(localNames, ["a", "b", "c", "d", "e"]);
     });
+  });
+
+  it("rejects .obj file", async () => {
+    let reader = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "coff/small.obj"))
+    );
+    await assertRejectsAsync(async () => {
+      await parsePDBHeaderAsync(reader);
+    }, PDBMagicMismatchError);
+  });
+
+  it("rejects empty file", async () => {
+    let reader = new ArrayBufferReader(new ArrayBuffer(0));
+    await assertRejectsAsync(async () => {
+      await parsePDBHeaderAsync(reader);
+    }, PDBMagicMismatchError);
   });
 });

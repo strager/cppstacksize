@@ -10,6 +10,7 @@ import {
   getCodeViewFunctionLocalsAsync,
   parseCodeViewTypesAsync,
 } from "../src/codeview.mjs";
+import { assertRejectsAsync } from "./assert-util.mjs";
 import { findCOFFSectionsByNameAsync } from "../src/coff.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
@@ -204,18 +205,4 @@ function rebaseReaderOffset(reader, offset, desiredReader) {
     }
   }
   return offset;
-}
-
-// Like assert.rejects, but returns the thrown error.
-async function assertRejectsAsync(callback, ...args) {
-  let error;
-  await assert.rejects(async () => {
-    try {
-      return await callback();
-    } catch (e) {
-      error = e;
-      throw e;
-    }
-  }, ...args);
-  return error;
 }

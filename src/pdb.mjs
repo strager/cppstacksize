@@ -2,6 +2,12 @@ import { ReaderBase, SubFileReader } from "./reader.mjs";
 import { alignUp } from "./util.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
+export class PDBMagicMismatchError extends Error {
+  constructor() {
+    super("PDB magic mismatched");
+  }
+}
+
 /// The header of a PDB file.
 export class PDBSuperBlock {
   blockSize;
@@ -10,11 +16,35 @@ export class PDBSuperBlock {
   directoryMapBlock; // Block index.
 }
 
+let pdbMagic = [
+  0x7263694d, 0x666f736f, 0x2f432074, 0x202b2b43, 0x2046534d, 0x30302e37,
+  0x441a0a0d, 0x00000053,
+];
+
 /// Parses the superblock.
 export async function parsePDBHeaderAsync(reader) {
   return await withLoadScopeAsync(() => {
     // TODO(strager): Validate the PDB signature.
     let superBlock = new PDBSuperBlock();
+    let magicU32s = [];
+    try {
+      for (let i = 0; i < pdbMagic.length; ++i) {
+        if (reader.u32(i * 4) !== pdbMagic[i]) {
+          console.error(
+            i,
+            reader.u32(i * 4).toString(16),
+            pdbMagic[i].toString(16)
+          );
+          throw new PDBMagicMismatchError();
+        }
+      }
+    } catch (e) {
+      if (e instanceof RangeError) {
+        throw new PDBMagicMismatchError();
+      } else {
+        throw e;
+      }
+    }
     superBlock.blockSize = reader.u32(0x20);
     superBlock.blockCount = reader.u32(0x28);
     superBlock.directorySize = reader.u32(0x2c);
