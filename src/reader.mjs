@@ -120,7 +120,7 @@ export class SubFileReader {
   }
 
   u16(offset) {
-    // TODO(strager): Bounds check.
+    this.#checkBounds(offset, 2);
     return this.baseReader.u16(offset + this.subFileOffset);
   }
 
@@ -155,5 +155,15 @@ export class SubFileReader {
       return null;
     }
     return i - this.subFileOffset;
+  }
+
+  #checkBounds(offset, size) {
+    if (offset + size > this.subFileSize) {
+      throw new RangeError(
+        `cannot read out of bounds; offset=0x${offset.toString(
+          16
+        )} size=0x${size.toString(16)}`
+      );
+    }
   }
 }

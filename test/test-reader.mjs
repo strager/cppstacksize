@@ -134,4 +134,11 @@ function testReader(makeReaderAsync) {
     assert.strictEqual(r.findU8(70, 0, 2), null);
     assert.strictEqual(r.findU8(50, 0, 4), null);
   });
+
+  it("out of bounds u16 fails", async () => {
+    let r = await makeReaderAsync([10, 20]);
+    assert.throws(() => {
+      r.u16(1);
+    }, RangeError);
+  });
 }

@@ -240,6 +240,13 @@ export class LoaderReader {
 
   #requireChunkLoaded(chunk, offset, size) {
     if (chunk === undefined || isPromise(chunk)) {
+      if (offset + size > this.#loader.size) {
+        throw new RangeError(
+          `cannot read out of bounds; offset=0x${offset.toString(
+            16
+          )} size=0x${size.toString(16)}`
+        );
+      }
       throw new DataNotLoadedError(this, offset, size);
     }
   }
@@ -256,10 +263,7 @@ export class LoaderReader {
       chunkIndex <= endChunkIndex;
       ++chunkIndex
     ) {
-      let chunk = this.#chunks[chunkIndex];
-      if (chunk === undefined || isPromise(chunk)) {
-        throw new DataNotLoadedError(this, offset, size);
-      }
+      this.#requireChunkLoaded(this.#chunks[chunkIndex], offset, size);
     }
     let endOffset = offset + size;
     let data = new Uint8Array(size);
