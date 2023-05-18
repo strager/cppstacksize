@@ -3,18 +3,24 @@ import fs from "node:fs";
 import path from "node:path";
 import test, { describe, it } from "node:test";
 import url from "node:url";
-import { ArrayBufferReader, NodeBufferReader } from "../src/reader.mjs";
+import {
+  ArrayBufferReader,
+  NodeBufferReader,
+  SubFileReader,
+} from "../src/reader.mjs";
 import {
   PDBBlocksReader,
   PDBMagicMismatchError,
   parsePDBDBIStreamAsync,
   parsePDBHeaderAsync,
   parsePDBStreamDirectoryAsync,
+  parsePDBTPIStreamHeaderAsync,
 } from "../src/pdb.mjs";
 import { assertRejectsAsync } from "./assert-util.mjs";
 import {
   findAllCodeViewFunctions2Async,
   getCodeViewFunctionLocalsAsync,
+  parseCodeViewTypesWithoutHeaderAsync,
 } from "../src/codeview.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
@@ -364,6 +370,22 @@ describe("PDB file", (t) => {
       assert.strictEqual(dbi.modules[28].debugInfoStreamIndex, 35);
     });
 
+    it("can read TPI stream", async () => {
+      // Stream #2 from example.pdb.
+      let tpiReader = new PDBBlocksReader(
+        await filePromise,
+        [83, 8, 74, 75, 76, 77, 78, 79, 80, 81, 82],
+        /*blockSize=*/ 4096,
+        /*byteSize=*/ 41736
+      );
+
+      let dbi = await parsePDBTPIStreamHeaderAsync(tpiReader);
+      assert.ok(dbi.typeReader instanceof SubFileReader);
+      assert.ok(dbi.typeReader.subFileOffset, 0x20);
+      assert.ok(dbi.typeReader.subFileSize, 41680);
+      // TODO[start-type-id]
+    });
+
     it("has example.cpp caller and callee functions", async () => {
       let file = await filePromise;
       let superBlock = await parsePDBHeaderAsync(file);
@@ -397,6 +419,19 @@ describe("PDB file", (t) => {
       );
       let localNames = locals.map((local) => local.name).sort();
       assert.deepStrictEqual(localNames, ["a", "b", "c", "d", "e"]);
+    });
+
+    it("calculates caller stack size for 'callee' function", async () => {
+      let file = await filePromise;
+      let superBlock = await parsePDBHeaderAsync(file);
+      let streams = await parsePDBStreamDirectoryAsync(file, superBlock);
+      let func = (await findAllCodeViewFunctions2Async(streams[15]))[0];
+      let tpiHeader = await parsePDBTPIStreamHeaderAsync(streams[2]);
+      // TODO[start-type-id]
+      let typeTable = await parseCodeViewTypesWithoutHeaderAsync(
+        tpiHeader.typeReader
+      );
+      assert.strictEqual(await func.getCallerStackSizeAsync(typeTable), 40);
     });
   });
 

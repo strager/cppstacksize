@@ -152,6 +152,16 @@ export async function parsePDBDBIStreamAsync(reader) {
   });
 }
 
+export function parsePDBTPIStreamHeaderAsync(reader) {
+  return withLoadScopeAsync(() => {
+    let headerSize = reader.u32(0x4);
+    let typeRecordsSize = reader.u32(0x10);
+    return {
+      typeReader: new SubFileReader(reader, headerSize, typeRecordsSize),
+    };
+  });
+}
+
 export class PDBBlocksReader extends ReaderBase {
   #baseReader;
   #blockIndexes;

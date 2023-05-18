@@ -371,24 +371,32 @@ export async function parseCodeViewTypesAsync(reader) {
         `unrecognized CodeView signature: 0x${signature.toString(16)}`
       );
     }
-
-    // FIXME(strager): This should be a parameter. PDB can overwrite the initial
-    // type ID.
-    let startTypeID = 0x1000;
-    let table = new CodeViewTypeTable(reader, startTypeID);
-    let offset = 4;
-    while (offset < reader.size) {
-      let recordSize = reader.u16(offset + 0);
-      let recordType = reader.u16(offset + 2);
-      if (recordType === LF_TYPESERVER2) {
-        let pdbPath = reader.utf8CString(offset + 24);
-        throw new CodeViewTypesInSeparatePDBFileError(pdbPath);
-      }
-      table._addTypeEntryAtOffset(offset);
-      offset += recordSize + 2;
-    }
-    return table;
+    return parseCodeViewTypesWithoutHeader(reader, 4);
   });
+}
+
+export function parseCodeViewTypesWithoutHeaderAsync(reader) {
+  return withLoadScopeAsync(async () => {
+    return parseCodeViewTypesWithoutHeader(reader, 0);
+  });
+}
+
+export async function parseCodeViewTypesWithoutHeader(reader, offset) {
+  // FIXME[start-type-id]: This should be a parameter. PDB can overwrite the
+  // initial type ID.
+  let startTypeID = 0x1000;
+  let table = new CodeViewTypeTable(reader, startTypeID);
+  while (offset < reader.size) {
+    let recordSize = reader.u16(offset + 0);
+    let recordType = reader.u16(offset + 2);
+    if (recordType === LF_TYPESERVER2) {
+      let pdbPath = reader.utf8CString(offset + 24);
+      throw new CodeViewTypesInSeparatePDBFileError(pdbPath);
+    }
+    table._addTypeEntryAtOffset(offset);
+    offset += recordSize + 2;
+  }
+  return table;
 }
 
 export async function findAllCodeViewFunctionsAsync(reader) {
@@ -461,7 +469,8 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
           reader.utf8CString(offset + 39),
           reader,
           /*typeID=*/ reader.u32(offset + 28),
-          offset
+          offset,
+          /*hasFuncIDType=*/ recordType === S_GPROC32_ID
         );
         outFunctions.push(func);
         break;
@@ -490,11 +499,13 @@ export class CodeViewFunction {
   reader;
   byteOffset;
   selfStackSize;
+  #hasFuncIDType;
   #typeID;
 
-  constructor(name, reader, typeID, byteOffset) {
+  constructor(name, reader, typeID, byteOffset, hasFuncIDType) {
     this.name = name;
     this.reader = reader;
+    this.#hasFuncIDType = hasFuncIDType;
     this.#typeID = typeID;
     this.byteOffset = byteOffset;
     this.selfStackSize = -1;
@@ -503,39 +514,40 @@ export class CodeViewFunction {
   async getCallerStackSizeAsync(typeTable) {
     return withLoadScopeAsync(() => {
       let reader = typeTable._reader;
-      let funcIDTypeOffset = typeTable._getOffsetOfTypeEntry(this.#typeID);
-      // TODO(strager): Check size.
-      let funcIDTypeRecordType = reader.u16(funcIDTypeOffset + 2);
-      switch (funcIDTypeRecordType) {
-        case LF_FUNC_ID: {
-          let funcTypeOffset = typeTable._getOffsetOfTypeEntry(
-            reader.u32(funcIDTypeOffset + 8)
-          );
-          // TODO(strager): Check size.
-          let funcTypeRecordType = reader.u16(funcTypeOffset + 2);
-          switch (funcTypeRecordType) {
-            case LF_PROCEDURE: {
-              let callingConvention = reader.u16(funcTypeOffset + 8);
-              switch (callingConvention) {
-                case CV_CALL_NEAR_C: {
-                  let parameterCount = reader.u16(funcTypeOffset + 10);
-                  return Math.max(parameterCount, 4) * 8;
-                }
+      let typeID = this.#typeID;
+      if (this.#hasFuncIDType) {
+        let funcIDTypeOffset = typeTable._getOffsetOfTypeEntry(typeID);
+        // TODO(strager): Check size.
+        let funcIDTypeRecordType = reader.u16(funcIDTypeOffset + 2);
+        switch (funcIDTypeRecordType) {
+          case LF_FUNC_ID:
+            typeID = reader.u32(funcIDTypeOffset + 8);
+            break;
+          default:
+            console.warn(
+              `unrecognized function ID record type: 0x${funcIDTypeRecordType.toString(
+                16
+              )}`
+            );
+            return -1;
+        }
+      }
 
-                default:
-                  console.warn(
-                    `unrecognized function calling convention: 0x${callingConvention.toString(
-                      16
-                    )}`
-                  );
-                  break;
-              }
-              break;
+      let funcTypeOffset = typeTable._getOffsetOfTypeEntry(typeID);
+      // TODO(strager): Check size.
+      let funcTypeRecordType = reader.u16(funcTypeOffset + 2);
+      switch (funcTypeRecordType) {
+        case LF_PROCEDURE: {
+          let callingConvention = reader.u16(funcTypeOffset + 8);
+          switch (callingConvention) {
+            case CV_CALL_NEAR_C: {
+              let parameterCount = reader.u16(funcTypeOffset + 10);
+              return Math.max(parameterCount, 4) * 8;
             }
 
             default:
               console.warn(
-                `unrecognized function type record type: 0x${funcTypeRecordType.toString(
+                `unrecognized function calling convention: 0x${callingConvention.toString(
                   16
                 )}`
               );
@@ -546,7 +558,7 @@ export class CodeViewFunction {
 
         default:
           console.warn(
-            `unrecognized function ID record type: 0x${funcIDTypeRecordType.toString(
+            `unrecognized function type record type: 0x${funcTypeRecordType.toString(
               16
             )}`
           );

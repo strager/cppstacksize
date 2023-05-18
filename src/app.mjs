@@ -6,12 +6,14 @@ import {
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
   parseCodeViewTypesAsync,
+  parseCodeViewTypesWithoutHeaderAsync,
 } from "./codeview.mjs";
 import {
   PDBMagicMismatchError,
   parsePDBDBIStreamAsync,
   parsePDBHeaderAsync,
   parsePDBStreamDirectoryAsync,
+  parsePDBTPIStreamHeaderAsync,
 } from "./pdb.mjs";
 import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 
@@ -67,6 +69,9 @@ async function parsePDBAsync(reader) {
       funcs.push(func);
     }
   }
+  let tpiHeader = await parsePDBTPIStreamHeaderAsync(parsedStreams[2]);
+  // TODO[start-type-id]
+  typeTable = await parseCodeViewTypesWithoutHeaderAsync(tpiHeader.typeReader);
 }
 
 async function parseCOFFAsync(reader) {
