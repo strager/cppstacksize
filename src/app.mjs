@@ -2,10 +2,17 @@ import { BlobLoader, LoaderReader, withLoadScopeAsync } from "./loader.mjs";
 import {
   CodeViewTypeTable,
   CodeViewTypesInSeparatePDBFileError,
+  findAllCodeViewFunctions2Async,
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
   parseCodeViewTypesAsync,
 } from "./codeview.mjs";
+import {
+  PDBMagicMismatchError,
+  parsePDBDBIStreamAsync,
+  parsePDBHeaderAsync,
+  parsePDBStreamDirectoryAsync,
+} from "./pdb.mjs";
 import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 
 let funcs = [];
@@ -19,6 +26,50 @@ async function onUploadFileAsync(file) {
   let loader = new BlobLoader(file);
   let reader = new LoaderReader(loader);
 
+  try {
+    await parsePDBAsync(reader);
+  } catch (e) {
+    if (e instanceof PDBMagicMismatchError) {
+      await parseCOFFAsync(reader);
+    } else {
+      throw e;
+    }
+  }
+
+  functionTableTbodyElement.innerHTML = "";
+  for (let funcIndex = 0; funcIndex < funcs.length; ++funcIndex) {
+    let func = funcs[funcIndex];
+    let tr = document.createElement("tr");
+    tr.classList.add("func");
+    tr.dataset.funcIndex = funcIndex;
+    let td = document.createElement("td");
+    td.textContent = func.name;
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.textContent = `${func.selfStackSize}`;
+    tr.appendChild(td);
+    td = document.createElement("td");
+    if (typeTable !== null) {
+      td.textContent = `${await func.getCallerStackSizeAsync(typeTable)}`;
+    }
+    tr.appendChild(td);
+    functionTableTbodyElement.appendChild(tr);
+  }
+}
+
+async function parsePDBAsync(reader) {
+  let superBlock = await parsePDBHeaderAsync(reader);
+  let parsedStreams = await parsePDBStreamDirectoryAsync(reader, superBlock);
+  let dbi = await parsePDBDBIStreamAsync(parsedStreams[3]);
+  for (let module of dbi.modules) {
+    let codeViewStream = parsedStreams[module.debugInfoStreamIndex];
+    for (let func of await findAllCodeViewFunctions2Async(codeViewStream)) {
+      funcs.push(func);
+    }
+  }
+}
+
+async function parseCOFFAsync(reader) {
   for (let sectionReader of await findCOFFSectionsByNameAsync(
     reader,
     ".debug$T"
@@ -43,26 +94,6 @@ async function onUploadFileAsync(file) {
     for (let func of await findAllCodeViewFunctionsAsync(sectionReader)) {
       funcs.push(func);
     }
-  }
-
-  functionTableTbodyElement.innerHTML = "";
-  for (let funcIndex = 0; funcIndex < funcs.length; ++funcIndex) {
-    let func = funcs[funcIndex];
-    let tr = document.createElement("tr");
-    tr.classList.add("func");
-    tr.dataset.funcIndex = funcIndex;
-    let td = document.createElement("td");
-    td.textContent = func.name;
-    tr.appendChild(td);
-    td = document.createElement("td");
-    td.textContent = `${func.selfStackSize}`;
-    tr.appendChild(td);
-    td = document.createElement("td");
-    if (typeTable !== null) {
-      td.textContent = `${await func.getCallerStackSizeAsync(typeTable)}`;
-    }
-    tr.appendChild(td);
-    functionTableTbodyElement.appendChild(tr);
   }
 }
 

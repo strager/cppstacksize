@@ -449,6 +449,10 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
   let offset = 0;
   while (offset < reader.size) {
     let recordSize = reader.u16(offset + 0);
+    if (recordSize < 2) {
+      console.error(`record has unusual size: ${recordSize}`);
+      break;
+    }
     let recordType = reader.u16(offset + 2);
     switch (recordType) {
       case S_GPROC32:
