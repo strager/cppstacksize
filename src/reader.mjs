@@ -104,12 +104,13 @@ export class ArrayBufferReader extends ReaderBase {
   }
 }
 
-export class SubFileReader {
+export class SubFileReader extends ReaderBase {
   baseReader;
   subFileOffset;
   subFileSize;
 
   constructor(baseReader, offset, size) {
+    super();
     this.baseReader = baseReader;
     this.subFileOffset = offset;
     this.subFileSize = size;
@@ -129,19 +130,9 @@ export class SubFileReader {
     return this.baseReader.u32(offset + this.subFileOffset);
   }
 
-  utf8CString(offset) {
-    // TODO(strager): Bounds check.
-    return this.baseReader.utf8CString(offset + this.subFileOffset);
-  }
-
   utf8String(offset, length) {
     // TODO(strager): Bounds check.
     return this.baseReader.utf8String(offset + this.subFileOffset, length);
-  }
-
-  fixedWidthString(offset, size) {
-    // TODO(strager): Bounds check.
-    return this.baseReader.fixedWidthString(offset + this.subFileOffset, size);
   }
 
   // Searches for a byte equal b starting from offset.
