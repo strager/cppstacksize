@@ -1,3 +1,5 @@
+import { ReaderBase } from "./reader.mjs";
+
 /// A simple Loader implementation which reads data from an array. Used for
 /// testing.
 export class ArrayLoader {
@@ -41,7 +43,7 @@ export class BlobLoader {
 /// A Reader which caches data from a Loader.
 ///
 /// TODO(strager): Implement a cache eviction strategy.
-export class LoaderReader {
+export class LoaderReader extends ReaderBase {
   /// Array<Promise<DataView> | DataView | undefined>
   ///
   /// If the slot is a Promise, then either the data failed to load or the data
@@ -54,6 +56,7 @@ export class LoaderReader {
   #chunkCount;
 
   constructor(loader, { chunkSize } = { chunkSize: 1 << 16 }) {
+    super();
     // TODO(strager): Assert that chunkSize is a power of two.
     this.#loader = loader;
     this.#chunkSize = chunkSize;
@@ -154,14 +157,6 @@ export class LoaderReader {
     return new TextDecoder("latin1").decode(
       new Uint8Array(data.buffer, data.byteOffset, length)
     );
-  }
-
-  utf8CString(offset) {
-    let endOffset = this.findU8(0, offset);
-    if (endOffset === null) {
-      throw new Error("could not find null terminator for string");
-    }
-    return this.utf8String(offset, endOffset - offset);
   }
 
   utf8String(offset, length) {
