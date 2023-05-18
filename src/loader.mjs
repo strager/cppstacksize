@@ -147,18 +147,6 @@ export class LoaderReader extends ReaderBase {
     return data.getUint32(relativeOffset, /*littleEndian=*/ true);
   }
 
-  fixedWidthString(offset, size) {
-    // TODO(strager): Make this more efficient.
-    let data = this.#readCopySlow(offset, size);
-    let length = size;
-    while (length > offset && data.getUint8(length - 1) === 0) {
-      length -= 1;
-    }
-    return new TextDecoder("latin1").decode(
-      new Uint8Array(data.buffer, data.byteOffset, length)
-    );
-  }
-
   utf8String(offset, length) {
     let endOffset = offset + length;
     let beginChunkIndex = offset >> this.#chunkShift;
