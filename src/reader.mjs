@@ -11,7 +11,7 @@ export class ReaderBase {
   utf8CString(offset) {
     let endOffset = this.findU8(0, offset);
     if (endOffset === null) {
-      throw new Error("could not find null terminator for string");
+      throw new CStringNullTerminatorNotFoundError();
     }
     return this.utf8String(offset, endOffset - offset);
   }
@@ -165,5 +165,11 @@ export class SubFileReader {
         )} size=0x${size.toString(16)}`
       );
     }
+  }
+}
+
+export class CStringNullTerminatorNotFoundError extends Error {
+  constructor() {
+    super("could not find null terminator in C string");
   }
 }

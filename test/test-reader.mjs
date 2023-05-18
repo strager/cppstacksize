@@ -2,6 +2,7 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 import {
   ArrayBufferReader,
+  CStringNullTerminatorNotFoundError,
   NodeBufferReader,
   SubFileReader,
 } from "../src/reader.mjs";
@@ -152,5 +153,12 @@ function testReader(makeReaderAsync) {
     assert.throws(() => {
       r.u32(2);
     }, RangeError);
+  });
+
+  it("out of bounds utf8CString fails", async () => {
+    let r = await makeReaderAsync([0x6c, 0x6f, 0x6c]);
+    assert.throws(() => {
+      r.utf8CString(0);
+    }, CStringNullTerminatorNotFoundError);
   });
 }
