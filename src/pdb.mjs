@@ -30,11 +30,6 @@ export async function parsePDBHeaderAsync(reader) {
     try {
       for (let i = 0; i < pdbMagic.length; ++i) {
         if (reader.u32(i * 4) !== pdbMagic[i]) {
-          console.error(
-            i,
-            reader.u32(i * 4).toString(16),
-            pdbMagic[i].toString(16)
-          );
           throw new PDBMagicMismatchError();
         }
       }
