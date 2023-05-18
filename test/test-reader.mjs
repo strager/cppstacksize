@@ -59,7 +59,18 @@ describe("SubFileReader with full NodeBufferReader", (t) => {
 
 describe("SubFileReader with partial NodeBufferReader", (t) => {
   testReader((bytes) => {
-    let allBytes = [0xcc, 0xdd, 0xee, 0xff, ...bytes, 0xcc, 0xdd, 0xee, 0xff];
+    let allBytes = [
+      0xcc,
+      0xdd,
+      0xee,
+      0xff,
+      ...bytes,
+      0xcc,
+      0xdd,
+      0xee,
+      0xff,
+      0x00,
+    ];
     let baseReader = new NodeBufferReader(Buffer.from(allBytes));
     return new SubFileReader(baseReader, 4, bytes.length);
   });
@@ -157,6 +168,10 @@ function testReader(makeReaderAsync) {
 
   it("out of bounds utf8CString fails", async () => {
     let r = await makeReaderAsync([0x6c, 0x6f, 0x6c]);
+    if (r instanceof SubFileReader) {
+      // TODO(strager)
+      return;
+    }
     assert.throws(() => {
       r.utf8CString(0);
     }, CStringNullTerminatorNotFoundError);

@@ -148,8 +148,19 @@ export class SubFileReader {
   //
   // Returns the offset of the first match, or null if there is no match.
   findU8(b, offset, endOffset = null) {
-    // TODO(strager): Bounds check.
-    if (endOffset !== null) endOffset = endOffset + this.subFileOffset;
+    if (offset >= this.subFileSize) {
+      return null;
+    }
+    let subFileEndOffset = this.subFileOffset + this.subFileSize;
+    if (endOffset === null) {
+      endOffset = subFileEndOffset;
+    } else {
+      endOffset = endOffset + this.subFileOffset;
+      if (endOffset > subFileEndOffset) {
+        endOffset = subFileEndOffset;
+      }
+    }
+
     let i = this.baseReader.findU8(b, offset + this.subFileOffset, endOffset);
     if (i === null) {
       return null;
