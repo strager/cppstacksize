@@ -58,6 +58,13 @@ export class NodeBufferReader extends ReaderBase {
   }
 
   utf8String(offset, length) {
+    if (offset + length > this.#buffer.length) {
+      throw new RangeError(
+        `cannot read out of bounds; offset=0x${offset.toString(
+          16
+        )} length=0x${length.toString(16)}`
+      );
+    }
     return this.#buffer.toString("utf-8", offset, offset + length);
   }
 }
@@ -131,7 +138,7 @@ export class SubFileReader extends ReaderBase {
   }
 
   utf8String(offset, length) {
-    // TODO(strager): Bounds check.
+    this.#checkBounds(offset, length);
     return this.baseReader.utf8String(offset + this.subFileOffset, length);
   }
 

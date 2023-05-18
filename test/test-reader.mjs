@@ -168,12 +168,18 @@ function testReader(makeReaderAsync) {
 
   it("out of bounds utf8CString fails", async () => {
     let r = await makeReaderAsync([0x6c, 0x6f, 0x6c]);
-    if (r instanceof SubFileReader) {
-      // TODO(strager)
-      return;
-    }
     assert.throws(() => {
       r.utf8CString(0);
     }, CStringNullTerminatorNotFoundError);
+  });
+
+  it("out of bounds utf8String fails", async () => {
+    let r = await makeReaderAsync([0x6c, 0x6f, 0x6c]);
+    assert.throws(() => {
+      r.utf8String(0, 4);
+    }, RangeError);
+    assert.throws(() => {
+      r.utf8String(0, 100);
+    }, RangeError);
   });
 }
