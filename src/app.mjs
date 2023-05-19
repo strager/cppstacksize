@@ -28,6 +28,7 @@ async function onUploadFileAsync(file) {
   typeTableError = null;
   clearFunctionDetailsAsync();
   showFunctionSelection(null);
+  hideLogs();
 
   let loader = new BlobLoader(file);
   let reader = new LoaderReader(loader);
@@ -248,3 +249,6 @@ let logger = new (class HTMLTableLogger {
 logButtonElement.addEventListener("click", (_event) => {
   document.body.classList.toggle("show-logs");
 });
+function hideLogs() {
+  document.body.classList.remove("show-logs");
+}
