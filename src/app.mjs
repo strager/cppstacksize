@@ -20,10 +20,12 @@ import { findCOFFSectionsByNameAsync } from "./coff.mjs";
 
 let funcs = [];
 let typeTable = null;
+let typeTableError = null;
 
 async function onUploadFileAsync(file) {
   funcs.length = 0;
   typeTable = null;
+  typeTableError = null;
   clearFunctionDetailsAsync();
   showFunctionSelection(null);
 
@@ -54,7 +56,16 @@ async function onUploadFileAsync(file) {
     tr.appendChild(td);
     td = document.createElement("td");
     if (typeTable !== null) {
-      td.textContent = `${await func.getCallerStackSizeAsync(typeTable)}`;
+      let funcLogger = new CapturingLogger();
+      td.textContent = `${await func.getCallerStackSizeAsync(
+        typeTable,
+        funcLogger
+      )}`;
+      if (funcLogger.didLogMessage) {
+        td.title = funcLogger.getLoggedMessagesStringForToolTip();
+      }
+    } else if (typeTableError !== null) {
+      td.title = typeTableError.toString();
     }
     tr.appendChild(td);
     functionTableTbodyElement.appendChild(tr);
@@ -86,7 +97,8 @@ async function parseCOFFAsync(reader) {
     } catch (e) {
       if (e instanceof CodeViewTypesInSeparatePDBFileError) {
         // TODO(strager): See if the user attached a .pdb file too.
-        console.error(e);
+        typeTableError = e;
+        console.warn(e);
       } else {
         throw e;
       }

@@ -518,7 +518,7 @@ export class CodeViewFunction {
     this.selfStackSize = -1;
   }
 
-  async getCallerStackSizeAsync(typeTable) {
+  async getCallerStackSizeAsync(typeTable, logger = fallbackLogger) {
     return withLoadScopeAsync(() => {
       let reader = typeTable._reader;
       let typeID = this.#typeID;
@@ -532,12 +532,11 @@ export class CodeViewFunction {
             typeID = reader.u32(funcIDTypeOffset + 8);
             break;
           default:
-            console.warn(
-              `${reader.locate(
-                funcIDTypeRecordTypeOffset
-              )}: unrecognized function ID record type: 0x${funcIDTypeRecordType.toString(
+            logger.log(
+              `unrecognized function ID record type: 0x${funcIDTypeRecordType.toString(
                 16
-              )}`
+              )}`,
+              reader.locate(funcIDTypeRecordTypeOffset)
             );
             return -1;
         }
@@ -558,12 +557,11 @@ export class CodeViewFunction {
             }
 
             default:
-              console.warn(
-                `${reader.locate(
-                  callingConventionOffset
-                )}: unrecognized function calling convention: 0x${callingConvention.toString(
+              logger.log(
+                `unrecognized function calling convention: 0x${callingConvention.toString(
                   16
-                )}`
+                )}`,
+                reader.locate(callingConventionOffset)
               );
               break;
           }
@@ -571,12 +569,11 @@ export class CodeViewFunction {
         }
 
         default:
-          console.warn(
-            `${reader.locate(
-              funcTypeRecordTypeOffset
-            )}: unrecognized function type record type: 0x${funcTypeRecordType.toString(
+          logger.log(
+            `unrecognized function type record type: 0x${funcTypeRecordType.toString(
               16
-            )}`
+            )}`,
+            reader.locate(funcTypeRecordTypeOffset)
           );
           break;
       }
