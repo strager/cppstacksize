@@ -458,7 +458,9 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
   while (offset < reader.size) {
     let recordSize = reader.u16(offset + 0);
     if (recordSize < 2) {
-      console.error(`record has unusual size: ${recordSize}`);
+      console.error(
+        `${reader.locate(offset + 0)}: record has unusual size: ${recordSize}`
+      );
       break;
     }
     let recordType = reader.u16(offset + 2);
@@ -478,7 +480,11 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
 
       case S_FRAMEPROC: {
         if (outFunctions.length === 0) {
-          console.error("found S_FRAMEPROC with no corresponding S_GPROC32");
+          console.error(
+            `${reader.locate(
+              offset + 0
+            )}: found S_FRAMEPROC with no corresponding S_GPROC32`
+          );
           break;
         }
         let func = outFunctions[outFunctions.length - 1];
@@ -518,14 +524,17 @@ export class CodeViewFunction {
       if (this.#hasFuncIDType) {
         let funcIDTypeOffset = typeTable._getOffsetOfTypeEntry(typeID);
         // TODO(strager): Check size.
-        let funcIDTypeRecordType = reader.u16(funcIDTypeOffset + 2);
+        let funcIDTypeRecordTypeOffset = funcIDTypeOffset + 2;
+        let funcIDTypeRecordType = reader.u16(funcIDTypeRecordTypeOffset);
         switch (funcIDTypeRecordType) {
           case LF_FUNC_ID:
             typeID = reader.u32(funcIDTypeOffset + 8);
             break;
           default:
             console.warn(
-              `unrecognized function ID record type: 0x${funcIDTypeRecordType.toString(
+              `${reader.locate(
+                funcIDTypeRecordTypeOffset
+              )}: unrecognized function ID record type: 0x${funcIDTypeRecordType.toString(
                 16
               )}`
             );
@@ -534,11 +543,13 @@ export class CodeViewFunction {
       }
 
       let funcTypeOffset = typeTable._getOffsetOfTypeEntry(typeID);
+      let funcTypeRecordTypeOffset = funcTypeOffset + 2;
       // TODO(strager): Check size.
-      let funcTypeRecordType = reader.u16(funcTypeOffset + 2);
+      let funcTypeRecordType = reader.u16(funcTypeRecordTypeOffset);
       switch (funcTypeRecordType) {
         case LF_PROCEDURE: {
-          let callingConvention = reader.u16(funcTypeOffset + 8);
+          let callingConventionOffset = funcTypeOffset + 8;
+          let callingConvention = reader.u16(callingConventionOffset);
           switch (callingConvention) {
             case CV_CALL_NEAR_C: {
               let parameterCount = reader.u16(funcTypeOffset + 10);
@@ -547,7 +558,9 @@ export class CodeViewFunction {
 
             default:
               console.warn(
-                `unrecognized function calling convention: 0x${callingConvention.toString(
+                `${reader.locate(
+                  callingConventionOffset
+                )}: unrecognized function calling convention: 0x${callingConvention.toString(
                   16
                 )}`
               );
@@ -558,7 +571,9 @@ export class CodeViewFunction {
 
         default:
           console.warn(
-            `unrecognized function type record type: 0x${funcTypeRecordType.toString(
+            `${reader.locate(
+              funcTypeRecordTypeOffset
+            )}: unrecognized function type record type: 0x${funcTypeRecordType.toString(
               16
             )}`
           );

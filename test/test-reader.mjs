@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   ArrayBufferReader,
   CStringNullTerminatorNotFoundError,
+  Location,
   NodeBufferReader,
   SubFileReader,
 } from "../src/reader.mjs";
@@ -45,7 +46,8 @@ describe("PDBBlocksReader(blockSize=4) + NodeBufferReader", (t) => {
       baseReader,
       blockIndexes,
       blockSize,
-      baseReader.size
+      baseReader.size,
+      /*streamIndex=*/ 0
     );
   });
 });
@@ -73,6 +75,127 @@ describe("SubFileReader with partial NodeBufferReader", (t) => {
     ];
     let baseReader = new NodeBufferReader(Buffer.from(allBytes));
     return new SubFileReader(baseReader, 4, bytes.length);
+  });
+});
+
+describe("Reader location", () => {
+  it("NodeBufferReader", async () => {
+    let reader = new NodeBufferReader(Buffer.from([1, 2, 3, 4]));
+
+    let location = reader.locate(0);
+    assert.strictEqual(location.fileOffset, 0);
+    assert.strictEqual(location.streamIndex, null);
+    assert.strictEqual(location.streamOffset, null);
+
+    location = reader.locate(2);
+    assert.strictEqual(location.fileOffset, 2);
+    assert.strictEqual(location.streamIndex, null);
+    assert.strictEqual(location.streamOffset, null);
+  });
+
+  it("LoaderReader", async () => {
+    let reader = new LoaderReader(new ArrayLoader([1, 2, 3, 4]));
+
+    let location = reader.locate(0);
+    assert.strictEqual(location.fileOffset, 0);
+    assert.strictEqual(location.streamIndex, null);
+    assert.strictEqual(location.streamOffset, null);
+
+    location = reader.locate(2);
+    assert.strictEqual(location.fileOffset, 2);
+    assert.strictEqual(location.streamIndex, null);
+    assert.strictEqual(location.streamOffset, null);
+  });
+
+  it("PDBBlocksReader", async () => {
+    let reader = new PDBBlocksReader(
+      /*baseReader=*/ new NodeBufferReader(Buffer.from([1, 2, 3, 4])),
+      /*blockIndexes=*/ [1, 0],
+      /*blockSize=*/ 2,
+      /*byteSize=*/ 4,
+      /*streamIndex=*/ 42
+    );
+
+    let location = reader.locate(0);
+    assert.strictEqual(location.fileOffset, 2);
+    assert.strictEqual(location.streamIndex, 42);
+    assert.strictEqual(location.streamOffset, 0);
+
+    location = reader.locate(1);
+    assert.strictEqual(location.fileOffset, 3);
+    assert.strictEqual(location.streamIndex, 42);
+    assert.strictEqual(location.streamOffset, 1);
+
+    location = reader.locate(2);
+    assert.strictEqual(location.fileOffset, 0);
+    assert.strictEqual(location.streamIndex, 42);
+    assert.strictEqual(location.streamOffset, 2);
+
+    location = reader.locate(3);
+    assert.strictEqual(location.fileOffset, 1);
+    assert.strictEqual(location.streamIndex, 42);
+    assert.strictEqual(location.streamOffset, 3);
+  });
+
+  it("SubFileReader with offset", async () => {
+    let reader = new SubFileReader(
+      new NodeBufferReader(Buffer.from([1, 2, 3, 4])),
+      /*offset=*/ 1,
+      /*size=*/ 2
+    );
+
+    let location = reader.locate(0);
+    assert.strictEqual(location.fileOffset, 1);
+    assert.strictEqual(location.streamIndex, null);
+    assert.strictEqual(location.streamOffset, null);
+
+    location = reader.locate(2);
+    assert.strictEqual(location.fileOffset, 3);
+    assert.strictEqual(location.streamIndex, null);
+    assert.strictEqual(location.streamOffset, null);
+  });
+
+  it("SubFileReader with offset of SubFileReader with offset", async () => {
+    let reader = new SubFileReader(
+      new SubFileReader(
+        new NodeBufferReader(Buffer.from([1, 2, 3, 4, 5, 6, 7])),
+        /*offset=*/ 1,
+        /*size=*/ 5
+      ),
+      /*offset=*/ 2,
+      /*size=*/ 2
+    );
+
+    let location = reader.locate(0);
+    assert.strictEqual(location.fileOffset, 0 + 2 + 1);
+    assert.strictEqual(location.streamIndex, null);
+    assert.strictEqual(location.streamOffset, null);
+
+    location = reader.locate(2);
+    assert.strictEqual(location.fileOffset, 2 + 2 + 1);
+    assert.strictEqual(location.streamIndex, null);
+    assert.strictEqual(location.streamOffset, null);
+  });
+
+  it("serializes with only file offset", () => {
+    assert.strictEqual(
+      new Location(42, null, null).toString(),
+      "file offset 0x2a"
+    );
+  });
+
+  it("serializes with stream offset", () => {
+    assert.strictEqual(
+      new Location(42, 420, 69).toString(),
+      "stream #420 offset 0x45 (file offset 0x2a)"
+    );
+  });
+
+  it("serializes with stream directory offset", () => {
+    assert.strictEqual(
+      new Location(42, -1, 69).toString(),
+      "stream directory offset 0x45 (file offset 0x2a)"
+    );
   });
 });
 

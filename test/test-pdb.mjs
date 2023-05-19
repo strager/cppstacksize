@@ -339,7 +339,8 @@ describe("PDB file", (t) => {
         await filePromise,
         [65, 66, 67, 68, 69, 70, 71, 72, 73],
         /*blockSize=*/ 4096,
-        /*byteSize=*/ 32795
+        /*byteSize=*/ 32795,
+        /*streamIndex=*/ 3
       );
 
       let dbi = await parsePDBDBIStreamAsync(dbiReader);
@@ -376,7 +377,8 @@ describe("PDB file", (t) => {
         await filePromise,
         [83, 8, 74, 75, 76, 77, 78, 79, 80, 81, 82],
         /*blockSize=*/ 4096,
-        /*byteSize=*/ 41736
+        /*byteSize=*/ 41736,
+        /*streamIndex=*/ 2
       );
 
       let dbi = await parsePDBTPIStreamHeaderAsync(tpiReader);

@@ -1,4 +1,4 @@
-import { ReaderBase, SubFileReader } from "./reader.mjs";
+import { Location, ReaderBase, SubFileReader } from "./reader.mjs";
 import { alignUp } from "./util.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
@@ -63,7 +63,8 @@ export async function parsePDBStreamDirectoryAsync(reader, superBlock) {
       reader,
       directoryBlocks,
       superBlock.blockSize,
-      superBlock.directorySize
+      superBlock.directorySize,
+      /*streamIndex=*/ -1
     );
 
     let streams = [];
@@ -94,7 +95,8 @@ export async function parsePDBStreamDirectoryAsync(reader, superBlock) {
           reader,
           streamBlocks,
           superBlock.blockSize,
-          streamSize
+          streamSize,
+          streamIndex
         )
       );
     }
@@ -167,13 +169,15 @@ export class PDBBlocksReader extends ReaderBase {
   #blockIndexes;
   #blockSize;
   #byteSize;
+  #streamIndex;
 
-  constructor(baseReader, blockIndexes, blockSize, byteSize) {
+  constructor(baseReader, blockIndexes, blockSize, byteSize, streamIndex) {
     super();
     this.#baseReader = baseReader;
     this.#blockIndexes = blockIndexes;
     this.#blockSize = blockSize;
     this.#byteSize = byteSize;
+    this.#streamIndex = streamIndex;
   }
 
   get blockIndexes() {
@@ -182,6 +186,17 @@ export class PDBBlocksReader extends ReaderBase {
 
   get size() {
     return this.#byteSize;
+  }
+
+  locate(offset) {
+    let blockIndex = this.#blockIndexes[Math.floor(offset / this.#blockSize)];
+    let relativeOffset = offset % this.#blockSize;
+    let location = this.#baseReader.locate(
+      blockIndex * this.#blockSize + relativeOffset
+    );
+    location.streamIndex = this.#streamIndex;
+    location.streamOffset = offset;
+    return location;
   }
 
   u16(offset) {

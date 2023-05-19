@@ -1,3 +1,31 @@
+export class Location {
+  fileOffset;
+  streamIndex;
+  streamOffset;
+
+  constructor(fileOffset, streamIndex, streamOffset) {
+    this.fileOffset = fileOffset;
+    this.streamIndex = streamIndex;
+    this.streamOffset = streamOffset;
+  }
+
+  toString() {
+    let result = `file offset 0x${this.fileOffset.toString(16)}`;
+    if (this.streamIndex !== null && this.streamOffset !== null) {
+      if (this.streamIndex === -1) {
+        result = `stream directory offset 0x${this.streamOffset.toString(
+          16
+        )} (${result})`;
+      } else {
+        result = `stream #${
+          this.streamIndex
+        } offset 0x${this.streamOffset.toString(16)} (${result})`;
+      }
+    }
+    return result;
+  }
+}
+
 export class ReaderBase {
   fixedWidthString(offset, size) {
     let length = size;
@@ -27,6 +55,10 @@ export class NodeBufferReader extends ReaderBase {
 
   get size() {
     return this.#buffer.length;
+  }
+
+  locate(offset) {
+    return new Location(offset, null, null);
   }
 
   u16(offset) {
@@ -79,6 +111,10 @@ export class ArrayBufferReader extends ReaderBase {
     this.#uint8Array = new Uint8Array(arrayBuffer);
   }
 
+  locate(offset) {
+    return new Location(offset, null, null);
+  }
+
   u16(offset) {
     return this.#dataView.getUint16(offset, /*littleEndian=*/ true);
   }
@@ -125,6 +161,10 @@ export class SubFileReader extends ReaderBase {
 
   get size() {
     return this.subFileSize;
+  }
+
+  locate(offset) {
+    return this.baseReader.locate(offset + this.subFileOffset);
   }
 
   u16(offset) {

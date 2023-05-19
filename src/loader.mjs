@@ -1,4 +1,4 @@
-import { ReaderBase } from "./reader.mjs";
+import { Location, ReaderBase } from "./reader.mjs";
 
 /// A simple Loader implementation which reads data from an array. Used for
 /// testing.
@@ -117,6 +117,10 @@ export class LoaderReader extends ReaderBase {
       }
     }
     return true;
+  }
+
+  locate(offset) {
+    return new Location(offset, null, null);
   }
 
   u16(offset) {
