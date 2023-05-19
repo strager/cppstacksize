@@ -1,4 +1,5 @@
 import { BlobLoader, LoaderReader, withLoadScopeAsync } from "./loader.mjs";
+import { CapturingLogger } from "./logger.mjs";
 import {
   CodeViewTypeTable,
   CodeViewTypesInSeparatePDBFileError,
@@ -119,7 +120,11 @@ async function showFunctionDetailsAsync(func) {
     td.textContent = local.name;
     tr.appendChild(td);
     td = document.createElement("td");
-    td.textContent = `${await local.getByteSizeAsync(typeTable)}`;
+    let localLogger = new CapturingLogger();
+    td.textContent = `${await local.getByteSizeAsync(typeTable, localLogger)}`;
+    if (localLogger.didLogMessage) {
+      td.title = localLogger.getLoggedMessagesStringForToolTip();
+    }
     tr.appendChild(td);
     stackFrameTableTbodyElement.appendChild(tr);
   }

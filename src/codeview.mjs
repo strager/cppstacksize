@@ -1,5 +1,6 @@
 import { SubFileReader } from "./reader.mjs";
 import { alignUp } from "./util.mjs";
+import { fallbackLogger } from "./logger.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 // CodeView signatures:
@@ -600,21 +601,19 @@ export class CodeViewFunctionLocal {
     this.#recordOffset = offset;
   }
 
-  async getByteSizeAsync(typeTable) {
+  async getByteSizeAsync(typeTable, logger = fallbackLogger) {
     let maybeSize = specialTypeSizeMap[this.typeID];
     if (maybeSize === undefined) {
-      console.warn(
-        `${this.#reader.locate(
-          this.#recordOffset
-        )}: local has unknown special type: 0x${this.typeID.toString(16)}`
+      logger.log(
+        `local has unknown special type: 0x${this.typeID.toString(16)}`,
+        this.#reader.locate(this.#recordOffset)
       );
       return -1;
     }
     if (typeof maybeSize === "string") {
-      console.warn(
-        `${this.#reader.locate(
-          this.#recordOffset
-        )}: local has unsupported special type: ${maybeSize}`
+      logger.log(
+        `local has unsupported special type: ${maybeSize}`,
+        this.#reader.locate(this.#recordOffset)
       );
       return -1;
     }
