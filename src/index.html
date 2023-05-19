@@ -1,18 +1,64 @@
 <!DOCTYPE html>
-<input type="file" id="file-picker" />
+<style>
+  /* Create the layout. */
+  body {
+    display: grid;
+    grid-template-areas:
+      "header header"
+      "list details";
 
-<table id="function-table">
-  <thead>
-    <tr>
-      <th>function</th>
-      <th>self size</th>
-      <th>params size</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+  }
+  header {
+    grid-area: header;
+  }
+  #list-section {
+    grid-area: list;
+  }
+  #details-section {
+    grid-area: details;
+  }
 
-<section>
+  /* Make the function table scrollable. */
+  #list-section {
+    overflow-y: scroll;
+  }
+  #function-table thead th {
+    position: sticky;
+    top: 0;
+  }
+  #function-table {
+    border-spacing: 0;
+  }
+
+  /* Make the details scrollable. */
+  #details-section {
+    overflow-y: auto;
+  }
+</style>
+
+<header>
+  <input type="file" id="file-picker" />
+</header>
+
+<section id="list-section">
+  <table id="function-table">
+    <thead>
+      <tr>
+        <th>function</th>
+        <th>self size</th>
+        <th>params size</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section id="details-section">
   <table id="stack-frame-table">
     <thead>
       <tr>
