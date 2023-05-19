@@ -119,7 +119,7 @@ async function showFunctionDetailsAsync(func) {
     td.textContent = local.name;
     tr.appendChild(td);
     td = document.createElement("td");
-    td.textContent = `${local.byteSize}`;
+    td.textContent = `${await local.getByteSizeAsync(typeTable)}`;
     tr.appendChild(td);
     stackFrameTableTbodyElement.appendChild(tr);
   }

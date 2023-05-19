@@ -586,10 +586,18 @@ export class CodeViewFunction {
 
 // A local variable or parameter in a function.
 export class CodeViewFunctionLocal {
+  name;
+  spOffset;
+  typeID;
+
   constructor(name) {
     this.name = name;
     this.spOffset = null;
-    this.byteSize = -1;
+    this.typeID = null;
+  }
+
+  async getByteSizeAsync(typeTable) {
+    return specialTypeSize(this.typeID);
   }
 }
 
@@ -606,8 +614,7 @@ export async function getCodeViewFunctionLocalsAsync(reader, offset) {
           );
           // TODO(strager): Verify that the register is RSP.
           local.spOffset = reader.u32(offset + 4);
-          let type = reader.u32(offset + 8);
-          local.byteSize = specialTypeSize(type);
+          local.typeID = reader.u32(offset + 8);
           locals.push(local);
           break;
         }
