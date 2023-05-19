@@ -589,21 +589,33 @@ export class CodeViewFunctionLocal {
   name;
   spOffset;
   typeID;
+  #reader;
+  #recordOffset;
 
-  constructor(name) {
+  constructor(name, reader, offset) {
     this.name = name;
     this.spOffset = null;
     this.typeID = null;
+    this.#reader = reader;
+    this.#recordOffset = offset;
   }
 
   async getByteSizeAsync(typeTable) {
     let maybeSize = specialTypeSizeMap[this.typeID];
     if (maybeSize === undefined) {
-      console.warn(`unknown special type: 0x${this.typeID.toString(16)}`);
+      console.warn(
+        `${this.#reader.locate(
+          this.#recordOffset
+        )}: local has unknown special type: 0x${this.typeID.toString(16)}`
+      );
       return -1;
     }
     if (typeof maybeSize === "string") {
-      console.warn(`unsupported special type: ${maybeSize}`);
+      console.warn(
+        `${this.#reader.locate(
+          this.#recordOffset
+        )}: local has unsupported special type: ${maybeSize}`
+      );
       return -1;
     }
     return maybeSize;
@@ -619,7 +631,9 @@ export async function getCodeViewFunctionLocalsAsync(reader, offset) {
       switch (recordType) {
         case S_REGREL32: {
           let local = new CodeViewFunctionLocal(
-            reader.utf8CString(offset + 14)
+            reader.utf8CString(offset + 14),
+            reader,
+            offset
           );
           // TODO(strager): Verify that the register is RSP.
           local.spOffset = reader.u32(offset + 4);
