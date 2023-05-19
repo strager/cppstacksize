@@ -597,7 +597,16 @@ export class CodeViewFunctionLocal {
   }
 
   async getByteSizeAsync(typeTable) {
-    return specialTypeSize(this.typeID);
+    let maybeSize = specialTypeSizeMap[this.typeID];
+    if (maybeSize === undefined) {
+      console.warn(`unknown special type: 0x${this.typeID.toString(16)}`);
+      return -1;
+    }
+    if (typeof maybeSize === "string") {
+      console.warn(`unsupported special type: ${maybeSize}`);
+      return -1;
+    }
+    return maybeSize;
   }
 }
 
@@ -630,19 +639,6 @@ export async function getCodeViewFunctionLocalsAsync(reader, offset) {
     }
     return locals;
   });
-}
-
-function specialTypeSize(type) {
-  let maybeSize = specialTypeSizeMap[type];
-  if (maybeSize === undefined) {
-    console.warn(`unknown special type: 0x${type.toString(16)}`);
-    return -1;
-  }
-  if (typeof maybeSize === "string") {
-    console.warn(`unsupported special type: ${maybeSize}`);
-    return -1;
-  }
-  return maybeSize;
 }
 
 let specialTypeSizeMap = {
