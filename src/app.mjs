@@ -1,5 +1,5 @@
 import { BlobLoader, LoaderReader, withLoadScopeAsync } from "./loader.mjs";
-import { CapturingLogger } from "./logger.mjs";
+import { CapturingLogger, fallbackLogger } from "./logger.mjs";
 import {
   CodeViewTypeTable,
   CodeViewTypesInSeparatePDBFileError,
@@ -56,7 +56,7 @@ async function onUploadFileAsync(file) {
     tr.appendChild(td);
     td = document.createElement("td");
     if (typeTable !== null) {
-      let funcLogger = new CapturingLogger();
+      let funcLogger = new CapturingLogger(logger);
       td.textContent = `${await func.getCallerStackSizeAsync(
         typeTable,
         funcLogger
@@ -132,7 +132,7 @@ async function showFunctionDetailsAsync(func) {
     td.textContent = local.name;
     tr.appendChild(td);
     td = document.createElement("td");
-    let localLogger = new CapturingLogger();
+    let localLogger = new CapturingLogger(logger);
     td.textContent = `${await local.getByteSizeAsync(typeTable, localLogger)}`;
     if (localLogger.didLogMessage) {
       td.title = localLogger.getLoggedMessagesStringForToolTip();
@@ -193,4 +193,44 @@ let filePickerElement = document.getElementById("file-picker");
 filePickerElement.addEventListener("change", (_event) => {
   // TODO(strager): Support multiple files.
   onUploadFileAsync(filePickerElement.files[0]);
+});
+
+let logTableTbodyElement = document.querySelector("#log-table tbody");
+let logCounterElement = document.getElementById("log-counter");
+let logButtonElement = document.getElementById("log-button");
+let logger = new (class HTMLTableLogger {
+  #logCount = 0;
+
+  log(message, location) {
+    this.#logCount += 1;
+
+    fallbackLogger.log(message, location);
+
+    let tr = document.createElement("tr");
+    let td = document.createElement("td");
+    td.textContent = this.#logCount - 1;
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.textContent = `0x${location.fileOffset.toString(16)}`;
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.textContent =
+      location.streamIndex === null ? "" : `#${location.streamIndex}`;
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.textContent =
+      location.streamOffset === null
+        ? ""
+        : `0x${location.streamOffset.toString(16)}`;
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.textContent = message;
+    tr.appendChild(td);
+    logTableTbodyElement.appendChild(tr);
+
+    logCounterElement.textContent = `${this.#logCount}`;
+  }
+})();
+logButtonElement.addEventListener("click", (_event) => {
+  document.body.classList.toggle("show-logs");
 });

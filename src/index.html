@@ -29,6 +29,27 @@
   #details-section {
     grid-area: details;
   }
+  #log-section {
+    grid-area: log;
+    display: none;
+  }
+
+  /* Show logs tab if requested. */
+  body.show-logs {
+    display: grid;
+    grid-template-areas:
+      "header header"
+      "log log";
+    grid-template-rows: min-content auto;
+  }
+  body.show-logs #log-section {
+    display: block;
+    grid-area: log;
+  }
+  body.show-logs #list-section,
+  body.show-logs #details-section {
+    display: none;
+  }
 
   /* Make the function table scrollable. */
   #list-section {
@@ -96,6 +117,8 @@
 
 <header>
   <input type="file" id="file-picker" />
+
+  <span id="log-button"> <span id="log-counter">0</span> warnings </span>
 </header>
 
 <section id="list-section">
@@ -117,6 +140,21 @@
       <tr>
         <th>variable</th>
         <th>size</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section id="log-section">
+  <table id="log-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>file offset</th>
+        <th>stream</th>
+        <th>stream offset</th>
+        <th>message</th>
       </tr>
     </thead>
     <tbody></tbody>
