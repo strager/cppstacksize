@@ -124,7 +124,10 @@ export async function parsePDBDBIStreamAsync(reader, logger) {
         offset + 0x40
       );
       if (moduleNameNullTerminatorOffset === null) {
-        logger.log("incomplete module info entry", reader.locate(offset));
+        logger.log(
+          "incomplete module info entry",
+          moduleInfosReader.locate(offset)
+        );
         break;
       }
       let moduleName = moduleInfosReader.utf8String(
@@ -134,7 +137,10 @@ export async function parsePDBDBIStreamAsync(reader, logger) {
       offset = moduleNameNullTerminatorOffset + 1;
       let objNameNullTerminatorOffset = moduleInfosReader.findU8(0, offset);
       if (objNameNullTerminatorOffset === null) {
-        logger.log("incomplete module info entry", reader.locate(offset));
+        logger.log(
+          "incomplete module info entry",
+          moduleInfosReader.locate(offset)
+        );
         break;
       }
       let objName = moduleInfosReader.utf8String(
