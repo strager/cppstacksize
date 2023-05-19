@@ -24,6 +24,7 @@ async function onUploadFileAsync(file) {
   funcs.length = 0;
   typeTable = null;
   clearFunctionDetailsAsync();
+  showFunctionSelection(null);
 
   let loader = new BlobLoader(file);
   let reader = new LoaderReader(loader);
@@ -127,14 +128,46 @@ async function showFunctionDetailsAsync(func) {
 let functionTableElement = document.getElementById("function-table");
 let functionTableTbodyElement = functionTableElement.querySelector("tbody");
 
+let functionTableSelectionElement = document.createElement("div");
+functionTableSelectionElement.classList.add("row-selection");
+let functionTableSelectionScrollBoxElement =
+  document.getElementById("list-section");
+functionTableSelectionScrollBoxElement.appendChild(
+  functionTableSelectionElement
+);
+
 functionTableTbodyElement.addEventListener("click", async (event) => {
   let funcRowElement = event.target.closest("tr.func");
   if (funcRowElement === null) {
     return;
   }
+  showFunctionSelection(funcRowElement);
   let func = funcs[funcRowElement.dataset.funcIndex];
   await showFunctionDetailsAsync(func);
 });
+
+function showFunctionSelection(selectedRowElement) {
+  if (selectedRowElement === null) {
+    functionTableSelectionElement.style.display = "none";
+  } else {
+    let rowRect = selectedRowElement.getBoundingClientRect();
+    let scrollBoxRect =
+      functionTableSelectionScrollBoxElement.getBoundingClientRect();
+    functionTableSelectionElement.style.left = `${
+      rowRect.left -
+      scrollBoxRect.left +
+      functionTableSelectionScrollBoxElement.scrollLeft
+    }px`;
+    functionTableSelectionElement.style.top = `${
+      rowRect.top -
+      scrollBoxRect.top +
+      functionTableSelectionScrollBoxElement.scrollTop
+    }px`;
+    functionTableSelectionElement.style.width = `${rowRect.width}px`;
+    functionTableSelectionElement.style.height = `${rowRect.height}px`;
+    functionTableSelectionElement.style.display = "block";
+  }
+}
 
 let stackFrameTableElement = document.getElementById("stack-frame-table");
 let stackFrameTableTbodyElement = stackFrameTableElement.querySelector("tbody");
