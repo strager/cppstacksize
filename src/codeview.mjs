@@ -364,7 +364,7 @@ export class CodeViewTypeTable {
   }
 }
 
-export async function parseCodeViewTypesAsync(reader) {
+export async function parseCodeViewTypesAsync(reader, logger = fallbackLogger) {
   return await withLoadScopeAsync(async () => {
     let signature = reader.u32(0);
     if (signature !== CV_SIGNATURE_C13) {
@@ -372,17 +372,24 @@ export async function parseCodeViewTypesAsync(reader) {
         `unrecognized CodeView signature: 0x${signature.toString(16)}`
       );
     }
-    return parseCodeViewTypesWithoutHeader(reader, 4);
+    return parseCodeViewTypesWithoutHeader(reader, 4, logger);
   });
 }
 
-export function parseCodeViewTypesWithoutHeaderAsync(reader) {
+export function parseCodeViewTypesWithoutHeaderAsync(
+  reader,
+  logger = fallbackLogger
+) {
   return withLoadScopeAsync(async () => {
-    return parseCodeViewTypesWithoutHeader(reader, 0);
+    return parseCodeViewTypesWithoutHeader(reader, 0, logger);
   });
 }
 
-export async function parseCodeViewTypesWithoutHeader(reader, offset) {
+export async function parseCodeViewTypesWithoutHeader(
+  reader,
+  offset,
+  logger = fallbackLogger
+) {
   // FIXME[start-type-id]: This should be a parameter. PDB can overwrite the
   // initial type ID.
   let startTypeID = 0x1000;
@@ -400,7 +407,10 @@ export async function parseCodeViewTypesWithoutHeader(reader, offset) {
   return table;
 }
 
-export async function findAllCodeViewFunctionsAsync(reader) {
+export async function findAllCodeViewFunctionsAsync(
+  reader,
+  logger = fallbackLogger
+) {
   return await withLoadScopeAsync(async () => {
     let signature = reader.u32(0);
     if (signature !== CV_SIGNATURE_C13) {
@@ -421,6 +431,7 @@ export async function findAllCodeViewFunctionsAsync(reader) {
         case DEBUG_S_SYMBOLS:
           await findAllCodeViewFunctionsInSubsectionAsync(
             new SubFileReader(reader, offset, subsectionSize),
+            logger,
             functions
           );
           break;
@@ -436,7 +447,10 @@ export async function findAllCodeViewFunctionsAsync(reader) {
 
 // FIXME(strager): Why do we need findAllCodeViewFunctionsAsync with .obj but
 // findAllCodeViewFunctions2Async with .pdb?
-export async function findAllCodeViewFunctions2Async(reader) {
+export async function findAllCodeViewFunctions2Async(
+  reader,
+  logger = fallbackLogger
+) {
   return await withLoadScopeAsync(async () => {
     let signature = reader.u32(0);
     if (signature !== CV_SIGNATURE_C13) {
@@ -448,19 +462,25 @@ export async function findAllCodeViewFunctions2Async(reader) {
     let functions = [];
     await findAllCodeViewFunctionsInSubsectionAsync(
       new SubFileReader(reader, 4, reader.size - 4),
+      logger,
       functions
     );
     return functions;
   });
 }
 
-async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
+async function findAllCodeViewFunctionsInSubsectionAsync(
+  reader,
+  logger,
+  outFunctions
+) {
   let offset = 0;
   while (offset < reader.size) {
     let recordSize = reader.u16(offset + 0);
     if (recordSize < 2) {
-      console.error(
-        `${reader.locate(offset + 0)}: record has unusual size: ${recordSize}`
+      logger.log(
+        `record has unusual size: ${recordSize}`,
+        reader.locate(offset + 0)
       );
       break;
     }
@@ -481,10 +501,9 @@ async function findAllCodeViewFunctionsInSubsectionAsync(reader, outFunctions) {
 
       case S_FRAMEPROC: {
         if (outFunctions.length === 0) {
-          console.error(
-            `${reader.locate(
-              offset + 0
-            )}: found S_FRAMEPROC with no corresponding S_GPROC32`
+          logger.log(
+            `found S_FRAMEPROC with no corresponding S_GPROC32`,
+            reader.locate(offset + 0)
           );
           break;
         }
@@ -618,7 +637,11 @@ export class CodeViewFunctionLocal {
   }
 }
 
-export async function getCodeViewFunctionLocalsAsync(reader, offset) {
+export async function getCodeViewFunctionLocalsAsync(
+  reader,
+  offset,
+  logger = fallbackLogger
+) {
   return await withLoadScopeAsync(async () => {
     let locals = [];
     while (offset < reader.size) {

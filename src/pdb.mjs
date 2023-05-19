@@ -22,7 +22,7 @@ let pdbMagic = [
 ];
 
 /// Parses the superblock.
-export async function parsePDBHeaderAsync(reader) {
+export async function parsePDBHeaderAsync(reader, logger) {
   return await withLoadScopeAsync(() => {
     // TODO(strager): Validate the PDB signature.
     let superBlock = new PDBSuperBlock();
@@ -48,7 +48,7 @@ export async function parsePDBHeaderAsync(reader) {
   });
 }
 
-export async function parsePDBStreamDirectoryAsync(reader, superBlock) {
+export async function parsePDBStreamDirectoryAsync(reader, superBlock, logger) {
   return await withLoadScopeAsync(() => {
     let directoryBlockCount = Math.ceil(
       superBlock.directorySize / superBlock.blockSize
@@ -104,7 +104,7 @@ export async function parsePDBStreamDirectoryAsync(reader, superBlock) {
   });
 }
 
-export async function parsePDBDBIStreamAsync(reader) {
+export async function parsePDBDBIStreamAsync(reader, logger) {
   return withLoadScopeAsync(() => {
     let moduleInfoSize = reader.u32(0x18);
 
@@ -124,7 +124,7 @@ export async function parsePDBDBIStreamAsync(reader) {
         offset + 0x40
       );
       if (moduleNameNullTerminatorOffset === null) {
-        console.error("incomplete module info entry");
+        logger.log("incomplete module info entry", reader.locate(offset));
         break;
       }
       let moduleName = moduleInfosReader.utf8String(
@@ -134,7 +134,7 @@ export async function parsePDBDBIStreamAsync(reader) {
       offset = moduleNameNullTerminatorOffset + 1;
       let objNameNullTerminatorOffset = moduleInfosReader.findU8(0, offset);
       if (objNameNullTerminatorOffset === null) {
-        console.error("incomplete module info entry");
+        logger.log("incomplete module info entry", reader.locate(offset));
         break;
       }
       let objName = moduleInfosReader.utf8String(
@@ -154,7 +154,7 @@ export async function parsePDBDBIStreamAsync(reader) {
   });
 }
 
-export function parsePDBTPIStreamHeaderAsync(reader) {
+export function parsePDBTPIStreamHeaderAsync(reader, logger) {
   return withLoadScopeAsync(() => {
     let headerSize = reader.u32(0x4);
     let typeRecordsSize = reader.u32(0x10);

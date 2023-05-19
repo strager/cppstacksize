@@ -73,18 +73,28 @@ async function onUploadFileAsync(file) {
 }
 
 async function parsePDBAsync(reader) {
-  let superBlock = await parsePDBHeaderAsync(reader);
-  let parsedStreams = await parsePDBStreamDirectoryAsync(reader, superBlock);
-  let dbi = await parsePDBDBIStreamAsync(parsedStreams[3]);
+  let superBlock = await parsePDBHeaderAsync(reader, logger);
+  let parsedStreams = await parsePDBStreamDirectoryAsync(
+    reader,
+    superBlock,
+    logger
+  );
+  let dbi = await parsePDBDBIStreamAsync(parsedStreams[3], logger);
   for (let module of dbi.modules) {
     let codeViewStream = parsedStreams[module.debugInfoStreamIndex];
-    for (let func of await findAllCodeViewFunctions2Async(codeViewStream)) {
+    for (let func of await findAllCodeViewFunctions2Async(
+      codeViewStream,
+      logger
+    )) {
       funcs.push(func);
     }
   }
-  let tpiHeader = await parsePDBTPIStreamHeaderAsync(parsedStreams[2]);
+  let tpiHeader = await parsePDBTPIStreamHeaderAsync(parsedStreams[2], logger);
   // TODO[start-type-id]
-  typeTable = await parseCodeViewTypesWithoutHeaderAsync(tpiHeader.typeReader);
+  typeTable = await parseCodeViewTypesWithoutHeaderAsync(
+    tpiHeader.typeReader,
+    logger
+  );
 }
 
 async function parseCOFFAsync(reader) {
@@ -110,7 +120,10 @@ async function parseCOFFAsync(reader) {
     reader,
     ".debug$S"
   )) {
-    for (let func of await findAllCodeViewFunctionsAsync(sectionReader)) {
+    for (let func of await findAllCodeViewFunctionsAsync(
+      sectionReader,
+      logger
+    )) {
       funcs.push(func);
     }
   }
@@ -124,7 +137,8 @@ async function showFunctionDetailsAsync(func) {
   clearFunctionDetailsAsync();
   let locals = await getCodeViewFunctionLocalsAsync(
     func.reader,
-    func.byteOffset
+    func.byteOffset,
+    logger
   );
   for (let local of locals) {
     let tr = document.createElement("tr");
