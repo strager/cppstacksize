@@ -306,6 +306,14 @@ export class CodeViewFunction {
   }
 }
 
+export class CodeViewType {
+  byteSize;
+
+  constructor(byteSize) {
+    this.byteSize = byteSize;
+  }
+}
+
 // A local variable or parameter in a function.
 export class CodeViewFunctionLocal {
   name;
@@ -323,22 +331,30 @@ export class CodeViewFunctionLocal {
   }
 
   async getByteSizeAsync(typeTable, logger = fallbackLogger) {
+    let type = this.getTypeASync(typeTable, logger);
+    if (type === null) {
+      return -1;
+    }
+    return type.byteSize;
+  }
+
+  async getTypeAsync(typeTable, logger = fallbackLogger) {
     let maybeSize = specialTypeSizeMap[this.typeID];
     if (maybeSize === undefined) {
       logger.log(
         `local has unknown special type: 0x${this.typeID.toString(16)}`,
         this.#reader.locate(this.#recordOffset)
       );
-      return -1;
+      return null;
     }
     if (typeof maybeSize === "string") {
       logger.log(
         `local has unsupported special type: ${maybeSize}`,
         this.#reader.locate(this.#recordOffset)
       );
-      return -1;
+      return null;
     }
-    return maybeSize;
+    return new CodeViewType(maybeSize);
   }
 }
 

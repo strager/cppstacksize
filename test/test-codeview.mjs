@@ -100,22 +100,22 @@ describe("primitives.obj", (t) => {
     let typeTable = null; // Primitive types do not need the type table.
     // prettier-ignore
     {
-      assert.strictEqual(await localsByName.get("c").getByteSizeAsync(typeTable), 1);
-      assert.strictEqual(await localsByName.get("sc").getByteSizeAsync(typeTable), 1);
-      assert.strictEqual(await localsByName.get("uc").getByteSizeAsync(typeTable), 1);
-      assert.strictEqual(await localsByName.get("ss").getByteSizeAsync(typeTable), 2);
-      assert.strictEqual(await localsByName.get("us").getByteSizeAsync(typeTable), 2);
-      assert.strictEqual(await localsByName.get("f").getByteSizeAsync(typeTable), 4);
-      assert.strictEqual(await localsByName.get("si").getByteSizeAsync(typeTable), 4);
-      assert.strictEqual(await localsByName.get("sl").getByteSizeAsync(typeTable), 4);
-      assert.strictEqual(await localsByName.get("ui").getByteSizeAsync(typeTable), 4);
-      assert.strictEqual(await localsByName.get("ul").getByteSizeAsync(typeTable), 4);
-      assert.strictEqual(await localsByName.get("ul").getByteSizeAsync(typeTable), 4);
-      assert.strictEqual(await localsByName.get("wc").getByteSizeAsync(typeTable), 4);
-      assert.strictEqual(await localsByName.get("d").getByteSizeAsync(typeTable), 8);
-      assert.strictEqual(await localsByName.get("ld").getByteSizeAsync(typeTable), 8);
-      assert.strictEqual(await localsByName.get("sll").getByteSizeAsync(typeTable), 8);
-      assert.strictEqual(await localsByName.get("ull").getByteSizeAsync(typeTable), 8);
+      assert.strictEqual((await localsByName.get("c").getTypeAsync(typeTable)).byteSize, 1);
+      assert.strictEqual((await localsByName.get("sc").getTypeAsync(typeTable)).byteSize, 1);
+      assert.strictEqual((await localsByName.get("uc").getTypeAsync(typeTable)).byteSize, 1);
+      assert.strictEqual((await localsByName.get("ss").getTypeAsync(typeTable)).byteSize, 2);
+      assert.strictEqual((await localsByName.get("us").getTypeAsync(typeTable)).byteSize, 2);
+      assert.strictEqual((await localsByName.get("f").getTypeAsync(typeTable)).byteSize, 4);
+      assert.strictEqual((await localsByName.get("si").getTypeAsync(typeTable)).byteSize, 4);
+      assert.strictEqual((await localsByName.get("sl").getTypeAsync(typeTable)).byteSize, 4);
+      assert.strictEqual((await localsByName.get("ui").getTypeAsync(typeTable)).byteSize, 4);
+      assert.strictEqual((await localsByName.get("ul").getTypeAsync(typeTable)).byteSize, 4);
+      assert.strictEqual((await localsByName.get("ul").getTypeAsync(typeTable)).byteSize, 4);
+      assert.strictEqual((await localsByName.get("wc").getTypeAsync(typeTable)).byteSize, 4);
+      assert.strictEqual((await localsByName.get("d").getTypeAsync(typeTable)).byteSize, 8);
+      assert.strictEqual((await localsByName.get("ld").getTypeAsync(typeTable)).byteSize, 8);
+      assert.strictEqual((await localsByName.get("sll").getTypeAsync(typeTable)).byteSize, 8);
+      assert.strictEqual((await localsByName.get("ull").getTypeAsync(typeTable)).byteSize, 8);
     }
   });
 });
