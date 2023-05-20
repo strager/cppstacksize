@@ -98,24 +98,34 @@ describe("primitives.obj", (t) => {
     assert.strictEqual(localsByName.get("ld").spOffset, 64);
 
     let typeTable = null; // Primitive types do not need the type table.
-    // prettier-ignore
-    {
-      assert.strictEqual((await localsByName.get("c").getTypeAsync(typeTable)).byteSize, 1);
-      assert.strictEqual((await localsByName.get("sc").getTypeAsync(typeTable)).byteSize, 1);
-      assert.strictEqual((await localsByName.get("uc").getTypeAsync(typeTable)).byteSize, 1);
-      assert.strictEqual((await localsByName.get("ss").getTypeAsync(typeTable)).byteSize, 2);
-      assert.strictEqual((await localsByName.get("us").getTypeAsync(typeTable)).byteSize, 2);
-      assert.strictEqual((await localsByName.get("f").getTypeAsync(typeTable)).byteSize, 4);
-      assert.strictEqual((await localsByName.get("si").getTypeAsync(typeTable)).byteSize, 4);
-      assert.strictEqual((await localsByName.get("sl").getTypeAsync(typeTable)).byteSize, 4);
-      assert.strictEqual((await localsByName.get("ui").getTypeAsync(typeTable)).byteSize, 4);
-      assert.strictEqual((await localsByName.get("ul").getTypeAsync(typeTable)).byteSize, 4);
-      assert.strictEqual((await localsByName.get("ul").getTypeAsync(typeTable)).byteSize, 4);
-      assert.strictEqual((await localsByName.get("wc").getTypeAsync(typeTable)).byteSize, 4);
-      assert.strictEqual((await localsByName.get("d").getTypeAsync(typeTable)).byteSize, 8);
-      assert.strictEqual((await localsByName.get("ld").getTypeAsync(typeTable)).byteSize, 8);
-      assert.strictEqual((await localsByName.get("sll").getTypeAsync(typeTable)).byteSize, 8);
-      assert.strictEqual((await localsByName.get("ull").getTypeAsync(typeTable)).byteSize, 8);
+    let expectedLocalTypes = {
+      c: { byteSize: 1 },
+      sc: { byteSize: 1 },
+      uc: { byteSize: 1 },
+      ss: { byteSize: 2 },
+      us: { byteSize: 2 },
+      f: { byteSize: 4 },
+      si: { byteSize: 4 },
+      sl: { byteSize: 4 },
+      ui: { byteSize: 4 },
+      ul: { byteSize: 4 },
+      ul: { byteSize: 4 },
+      wc: { byteSize: 4 },
+      d: { byteSize: 8 },
+      ld: { byteSize: 8 },
+      sll: { byteSize: 8 },
+      ull: { byteSize: 8 },
+    };
+    for (let localName in expectedLocalTypes) {
+      let expectedType = expectedLocalTypes[localName];
+      let actualType = await localsByName
+        .get(localName)
+        .getTypeAsync(typeTable);
+      assert.strictEqual(
+        actualType.byteSize,
+        expectedType.byteSize,
+        `actual byte size = ${actualType.byteSize}\nexpected byte size = ${expectedType.byteSize}\nlocalName = '${localName}'`
+      );
     }
   });
 });
