@@ -1,22 +1,7 @@
 import { BlobLoader, LoaderReader, withLoadScopeAsync } from "./loader.mjs";
 import { CapturingLogger, fallbackLogger } from "./logger.mjs";
-import {
-  CodeViewTypeTable,
-  CodeViewTypesInSeparatePDBFileError,
-  findAllCodeViewFunctions2Async,
-  findAllCodeViewFunctionsAsync,
-  getCodeViewFunctionLocalsAsync,
-  parseCodeViewTypesAsync,
-  parseCodeViewTypesWithoutHeaderAsync,
-} from "./codeview.mjs";
-import {
-  PDBMagicMismatchError,
-  parsePDBDBIStreamAsync,
-  parsePDBHeaderAsync,
-  parsePDBStreamDirectoryAsync,
-  parsePDBTPIStreamHeaderAsync,
-} from "./pdb.mjs";
-import { findCOFFSectionsByNameAsync } from "./coff.mjs";
+import { getCodeViewFunctionLocalsAsync } from "./codeview.mjs";
+import { Project } from "./project.mjs";
 
 let funcs = [];
 let typeTable = null;
@@ -33,15 +18,10 @@ async function onUploadFileAsync(file) {
   let loader = new BlobLoader(file);
   let reader = new LoaderReader(loader);
 
-  try {
-    await parsePDBAsync(reader);
-  } catch (e) {
-    if (e instanceof PDBMagicMismatchError) {
-      await parseCOFFAsync(reader);
-    } else {
-      throw e;
-    }
-  }
+  let project = new Project();
+  project.addFile(file.name, reader);
+  funcs.push(...(await project.getAllFunctionsAsync(logger)));
+  typeTable = await project.getTypeTableAsync(logger);
 
   functionTableTbodyElement.innerHTML = "";
   for (let funcIndex = 0; funcIndex < funcs.length; ++funcIndex) {
@@ -66,68 +46,13 @@ async function onUploadFileAsync(file) {
       if (funcLogger.didLogMessage) {
         td.title = funcLogger.getLoggedMessagesStringForToolTip();
       }
-    } else if (typeTableError !== null) {
-      td.title = typeTableError.toString();
+    } else {
+      // TODO(strager): Indicate which PDB file needs to be loaded.
+      td.title =
+        "CodeView types cannot be loaded because they are in a separate PDB file";
     }
     tr.appendChild(td);
     functionTableTbodyElement.appendChild(tr);
-  }
-}
-
-async function parsePDBAsync(reader) {
-  let superBlock = await parsePDBHeaderAsync(reader, logger);
-  let parsedStreams = await parsePDBStreamDirectoryAsync(
-    reader,
-    superBlock,
-    logger
-  );
-  let dbi = await parsePDBDBIStreamAsync(parsedStreams[3], logger);
-  for (let module of dbi.modules) {
-    let codeViewStream = parsedStreams[module.debugInfoStreamIndex];
-    for (let func of await findAllCodeViewFunctions2Async(
-      codeViewStream,
-      logger
-    )) {
-      funcs.push(func);
-    }
-  }
-  let tpiHeader = await parsePDBTPIStreamHeaderAsync(parsedStreams[2], logger);
-  // TODO[start-type-id]
-  typeTable = await parseCodeViewTypesWithoutHeaderAsync(
-    tpiHeader.typeReader,
-    logger
-  );
-}
-
-async function parseCOFFAsync(reader) {
-  for (let sectionReader of await findCOFFSectionsByNameAsync(
-    reader,
-    ".debug$T"
-  )) {
-    try {
-      typeTable = await parseCodeViewTypesAsync(sectionReader);
-    } catch (e) {
-      if (e instanceof CodeViewTypesInSeparatePDBFileError) {
-        // TODO(strager): See if the user attached a .pdb file too.
-        typeTableError = e;
-        console.warn(e);
-      } else {
-        throw e;
-      }
-    }
-    break;
-  }
-
-  for (let sectionReader of await findCOFFSectionsByNameAsync(
-    reader,
-    ".debug$S"
-  )) {
-    for (let func of await findAllCodeViewFunctionsAsync(
-      sectionReader,
-      logger
-    )) {
-      funcs.push(func);
-    }
   }
 }
 
