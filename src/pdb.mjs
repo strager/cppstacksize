@@ -366,7 +366,7 @@ export class PDBBlocksReader extends ReaderBase {
     }
   }
 
-  copyBytesInto(out, offset, size, outOffset = 0) {
+  enumerateBytes(offset, size, callback) {
     this.#checkBounds(offset, size);
     let endOffset = offset + size;
     // TODO(strager): Avoid divisions.
@@ -387,13 +387,11 @@ export class PDBBlocksReader extends ReaderBase {
         (isLastBlock ? endOffset & (this.#blockSize - 1) : this.#blockSize) -
         relativeOffset;
 
-      this.#baseReader.copyBytesInto(
-        out,
+      this.#baseReader.enumerateBytes(
         blockIndex * this.#blockSize + relativeOffset,
         sizeNeededInBlock,
-        outOffset
+        callback
       );
-      outOffset += sizeNeededInBlock;
       relativeOffset = 0;
     }
   }

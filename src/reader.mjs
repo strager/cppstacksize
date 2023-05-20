@@ -43,6 +43,13 @@ export class ReaderBase {
     }
     return this.utf8String(offset, endOffset - offset);
   }
+
+  copyBytesInto(out, offset, size, outOffset = 0) {
+    this.enumerateBytes(offset, size, (chunk) => {
+      out.set(chunk, outOffset);
+      outOffset += chunk.byteLength ?? chunk.length;
+    });
+  }
 }
 
 export class NodeBufferReader extends ReaderBase {
@@ -100,7 +107,7 @@ export class NodeBufferReader extends ReaderBase {
     return this.#buffer.toString("utf-8", offset, offset + length);
   }
 
-  copyBytesInto(out, offset, size, outOffset = 0) {
+  enumerateBytes(offset, size, callback) {
     if (offset + size > this.#buffer.length) {
       throw new RangeError(
         `cannot read out of bounds; offset=0x${offset.toString(
@@ -108,9 +115,7 @@ export class NodeBufferReader extends ReaderBase {
         )} size=0x${size.toString(16)}`
       );
     }
-    console.assert(out instanceof Uint8Array);
-    let data = this.#buffer.subarray(offset, offset + size);
-    out.set(data, outOffset);
+    callback(this.#buffer.subarray(offset, offset + size));
   }
 }
 
@@ -159,14 +164,14 @@ export class ArrayBufferReader extends ReaderBase {
     );
   }
 
-  copyBytesInto(out, offset, size, outOffset = 0) {
-    console.assert(out instanceof Uint8Array);
-    let data = new Uint8Array(
-      this.#dataView.buffer,
-      this.#dataView.byteOffset + offset,
-      size
+  enumerateBytes(offset, size, callback) {
+    callback(
+      new Uint8Array(
+        this.#dataView.buffer,
+        this.#dataView.byteOffset + offset,
+        size
+      )
     );
-    out.set(data, outOffset);
   }
 }
 
@@ -229,15 +234,9 @@ export class SubFileReader extends ReaderBase {
     return i - this.subFileOffset;
   }
 
-  copyBytesInto(out, offset, size, outOffset = 0) {
+  enumerateBytes(offset, size, callback) {
     this.#checkBounds(offset, size);
-    console.assert(out instanceof Uint8Array);
-    this.baseReader.copyBytesInto(
-      out,
-      offset + this.subFileOffset,
-      size,
-      outOffset
-    );
+    this.baseReader.enumerateBytes(offset + this.subFileOffset, size, callback);
   }
 
   #checkBounds(offset, size) {

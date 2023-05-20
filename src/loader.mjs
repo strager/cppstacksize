@@ -185,7 +185,7 @@ export class LoaderReader extends ReaderBase {
     }
   }
 
-  copyBytesInto(out, offset, size, outOffset = 0) {
+  enumerateBytes(offset, size, callback) {
     let endOffset = offset + size;
     let beginChunkIndex = offset >> this.#chunkShift;
     let endChunkIndex = (endOffset - 1) >> this.#chunkShift;
@@ -213,13 +213,13 @@ export class LoaderReader extends ReaderBase {
         sizeNeededInChunk
       );
 
-      let data = new Uint8Array(
-        chunk.buffer,
-        chunk.byteOffset + relativeOffset,
-        sizeNeededInChunk
+      callback(
+        new Uint8Array(
+          chunk.buffer,
+          chunk.byteOffset + relativeOffset,
+          sizeNeededInChunk
+        )
       );
-      out.set(data, outOffset);
-      outOffset += sizeNeededInChunk;
       relativeOffset = 0;
     }
   }
