@@ -7,7 +7,7 @@ let funcs = [];
 let typeTable = null;
 let typeTableError = null;
 
-async function onUploadFileAsync(file) {
+async function onUploadFilesAsync(files) {
   funcs.length = 0;
   typeTable = null;
   typeTableError = null;
@@ -15,11 +15,12 @@ async function onUploadFileAsync(file) {
   showFunctionSelection(null);
   hideLogs();
 
-  let loader = new BlobLoader(file);
-  let reader = new LoaderReader(loader);
-
   let project = new Project();
-  project.addFile(file.name, reader);
+  for (let file of files) {
+    let loader = new BlobLoader(file);
+    let reader = new LoaderReader(loader);
+    project.addFile(file.name, reader);
+  }
   funcs.push(...(await project.getAllFunctionsAsync(logger)));
   typeTable = await project.getTypeTableAsync(logger);
 
@@ -132,8 +133,7 @@ let stackFrameTableTbodyElement = stackFrameTableElement.querySelector("tbody");
 
 let filePickerElement = document.getElementById("file-picker");
 filePickerElement.addEventListener("change", (_event) => {
-  // TODO(strager): Support multiple files.
-  onUploadFileAsync(filePickerElement.files[0]);
+  onUploadFilesAsync(filePickerElement.files);
 });
 
 let logTableTbodyElement = document.querySelector("#log-table tbody");
