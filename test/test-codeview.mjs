@@ -278,6 +278,23 @@ test("CodeView special types", async () => {
     { typeID: 0x71, byteSize: 4, name: "wchar_t" },
     { typeID: 0x74, byteSize: 4, name: "int" },
     { typeID: 0x75, byteSize: 4, name: "unsigned" },
+
+    // 64-bit pointer types:
+    { typeID: 0x603, byteSize: 8, name: "void *" },
+    { typeID: 0x610, byteSize: 8, name: "signed char *" },
+    { typeID: 0x611, byteSize: 8, name: "short *" },
+    { typeID: 0x612, byteSize: 8, name: "long *" },
+    { typeID: 0x613, byteSize: 8, name: "long long *" },
+    { typeID: 0x620, byteSize: 8, name: "unsigned char *" },
+    { typeID: 0x621, byteSize: 8, name: "unsigned short *" },
+    { typeID: 0x622, byteSize: 8, name: "unsigned long *" },
+    { typeID: 0x623, byteSize: 8, name: "unsigned long long *" },
+    { typeID: 0x640, byteSize: 8, name: "float *" },
+    { typeID: 0x641, byteSize: 8, name: "double *" },
+    { typeID: 0x670, byteSize: 8, name: "char *" },
+    { typeID: 0x671, byteSize: 8, name: "wchar_t *" },
+    { typeID: 0x674, byteSize: 8, name: "int *" },
+    { typeID: 0x675, byteSize: 8, name: "unsigned *" },
   ];
   let typeTable = null; // Primitive types do not need the type table.
   for (let testType of testTypes) {

@@ -128,6 +128,7 @@ export let specialTypeSizeMap = {
 };
 
 export let specialTypeNameMap = {
+  [T_VOID]: "void",
   [T_CHAR]: "signed char",
   [T_SHORT]: "short",
   [T_LONG]: "long",
@@ -143,3 +144,13 @@ export let specialTypeNameMap = {
   [T_INT4]: "int",
   [T_UINT4]: "unsigned",
 };
+
+for (let typeID in specialTypeNameMap) {
+  let pointeeTypeID = +typeID;
+
+  let pointer64TypeID = 0x600 | pointeeTypeID;
+  specialTypeSizeMap[pointer64TypeID] = 8;
+  specialTypeNameMap[
+    pointer64TypeID
+  ] = `${specialTypeNameMap[pointeeTypeID]} *`;
+}
