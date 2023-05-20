@@ -1,5 +1,7 @@
+import { GUID } from "./guid.mjs";
 import { Location, ReaderBase, SubFileReader } from "./reader.mjs";
 import { alignUp } from "./util.mjs";
+import { fallbackLogger } from "./logger.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 export class PDBMagicMismatchError extends Error {
@@ -45,6 +47,28 @@ export async function parsePDBHeaderAsync(reader, logger) {
     superBlock.directorySize = reader.u32(0x2c);
     superBlock.directoryMapBlock = reader.u32(0x34);
     return superBlock;
+  });
+}
+
+/// A parsed PDB info stream (stream #1).
+class PDBInfo {
+  #guid;
+
+  constructor(guid) {
+    this.#guid = guid;
+  }
+
+  getGUIDString() {
+    return this.#guid.toString();
+  }
+}
+
+/// Parse a PDB's stream #1.
+export function parsePDBInfoStreamAsync(reader, logger = fallbackLogger) {
+  return withLoadScopeAsync(() => {
+    let guidBytes = new Uint8Array(16);
+    reader.copyBytesInto(guidBytes, 12, 16);
+    return new PDBInfo(new GUID(guidBytes));
   });
 }
 

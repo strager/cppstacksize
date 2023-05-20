@@ -13,6 +13,7 @@ import {
   PDBMagicMismatchError,
   parsePDBDBIStreamAsync,
   parsePDBHeaderAsync,
+  parsePDBInfoStreamAsync,
   parsePDBStreamDirectoryAsync,
   parsePDBTPIStreamHeaderAsync,
 } from "../src/pdb.mjs";
@@ -330,6 +331,23 @@ describe("PDB file", (t) => {
           { blocks: [], size: 4294967295 },
           { blocks: [], size: 0 },
         ]
+      );
+    });
+
+    it("can read info stream", async () => {
+      // Stream #1 from example.pdb.
+      let infoReader = new PDBBlocksReader(
+        await filePromise,
+        [84],
+        /*blockSize=*/ 4096,
+        /*byteSize=*/ 174,
+        /*streamIndex=*/ 0
+      );
+
+      let info = await parsePDBInfoStreamAsync(infoReader);
+      assert.strictEqual(
+        info.getGUIDString(),
+        "597c058d-affe-4abf-a0ea-76a2e3a3d099"
       );
     });
 
