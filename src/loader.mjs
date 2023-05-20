@@ -250,6 +250,8 @@ export class LoaderReader extends ReaderBase {
   #readCopySlow(offset, size) {
     let beginChunkIndex = offset >> this.#chunkShift;
     let endChunkIndex = (offset + size - 1) >> this.#chunkShift;
+    // FIXME(strager): Why do we need to call #requireChunkLoaded ourselves?
+    // Shouldn't this.copyBytesInto do that for us?
     for (
       let chunkIndex = beginChunkIndex;
       chunkIndex <= endChunkIndex;
@@ -257,34 +259,10 @@ export class LoaderReader extends ReaderBase {
     ) {
       this.#requireChunkLoaded(this.#chunks[chunkIndex], offset, size);
     }
-    let endOffset = offset + size;
+
     let data = new Uint8Array(size);
-    let outOffset = 0;
-    for (
-      let chunkIndex = beginChunkIndex;
-      chunkIndex <= endChunkIndex;
-      ++chunkIndex
-    ) {
-      let chunkBeginOffset = chunkIndex << this.#chunkShift;
-      let inBeginOffset =
-        chunkIndex === beginChunkIndex ? offset - chunkBeginOffset : 0;
-      let inEndOffset =
-        chunkIndex === endChunkIndex
-          ? endOffset - chunkBeginOffset
-          : this.#chunkSize;
-      let inLength = inEndOffset - inBeginOffset;
-      let chunk = this.#chunks[chunkIndex];
-      data.set(
-        new Uint8Array(
-          chunk.buffer,
-          chunk.byteOffset + inBeginOffset,
-          inLength
-        ),
-        outOffset
-      );
-      outOffset += inLength;
-    }
-    return new DataView(data.buffer, data.byteOffset, data.byteLength);
+    this.copyBytesInto(data, offset, size);
+    return new DataView(data.buffer);
   }
 
   debugDump() {
