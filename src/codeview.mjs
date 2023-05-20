@@ -334,23 +334,31 @@ export class CodeViewFunctionLocal {
   }
 
   async getTypeAsync(typeTable, logger = fallbackLogger) {
-    let maybeSize = specialTypeSizeMap[this.typeID];
-    if (maybeSize === undefined) {
+    let type = await getCodeViewTypeAsync(this.typeID, typeTable, logger);
+    if (type === null) {
       logger.log(
-        `local has unknown special type: 0x${this.typeID.toString(16)}`,
+        `local has unknown type: 0x${this.typeID.toString(16)}`,
         this.#reader.locate(this.#recordOffset)
       );
       return null;
     }
-    if (typeof maybeSize === "string") {
-      logger.log(
-        `local has unsupported special type: ${maybeSize}`,
-        this.#reader.locate(this.#recordOffset)
-      );
-      return null;
-    }
-    return new CodeViewType(maybeSize, specialTypeNameMap[this.typeID]);
+    return type;
   }
+}
+
+export async function getCodeViewTypeAsync(
+  typeID,
+  typeTable,
+  logger = fallbackLogger
+) {
+  let maybeSize = specialTypeSizeMap[typeID];
+  if (maybeSize === undefined) {
+    return null;
+  }
+  if (typeof maybeSize === "string") {
+    return null;
+  }
+  return new CodeViewType(maybeSize, specialTypeNameMap[typeID]);
 }
 
 export async function getCodeViewFunctionLocalsAsync(

@@ -8,6 +8,7 @@ import {
   CodeViewTypesInSeparatePDBFileError,
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
+  getCodeViewTypeAsync,
   parseCodeViewTypesAsync,
   parseCodeViewTypesWithoutHeaderAsync,
 } from "../src/codeview.mjs";
@@ -258,6 +259,44 @@ describe("split COFF + PDB", (t) => {
       40
     );
   });
+});
+
+test("CodeView special types", async () => {
+  let testTypes = [
+    // Normal non-pointer types:
+    { typeID: 0x10, byteSize: 1, name: "signed char" },
+    { typeID: 0x11, byteSize: 2, name: "short" },
+    { typeID: 0x12, byteSize: 4, name: "long" },
+    { typeID: 0x13, byteSize: 8, name: "long long" },
+    { typeID: 0x20, byteSize: 1, name: "unsigned char" },
+    { typeID: 0x21, byteSize: 2, name: "unsigned short" },
+    { typeID: 0x22, byteSize: 4, name: "unsigned long" },
+    { typeID: 0x23, byteSize: 8, name: "unsigned long long" },
+    { typeID: 0x40, byteSize: 4, name: "float" },
+    { typeID: 0x41, byteSize: 8, name: "double" },
+    { typeID: 0x70, byteSize: 1, name: "char" },
+    { typeID: 0x71, byteSize: 4, name: "wchar_t" },
+    { typeID: 0x74, byteSize: 4, name: "int" },
+    { typeID: 0x75, byteSize: 4, name: "unsigned" },
+  ];
+  let typeTable = null; // Primitive types do not need the type table.
+  for (let testType of testTypes) {
+    let actualType = await getCodeViewTypeAsync(testType.typeID, typeTable);
+    assert.strictEqual(
+      actualType.byteSize,
+      testType.byteSize,
+      `actual byte size = ${actualType.byteSize}\nexpected byte size = ${
+        testType.byteSize
+      }\ntypeID = 0x${testType.typeID.toString(16)}`
+    );
+    assert.strictEqual(
+      actualType.name,
+      testType.name,
+      `actual name = ${actualType.name}\nexpected name = ${
+        testType.name
+      }\ntypeID = 0x${testType.typeID.toString(16)}`
+    );
+  }
 });
 
 function rebaseReaderOffset(reader, offset, desiredReader) {
