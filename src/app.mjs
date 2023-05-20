@@ -12,7 +12,8 @@ async function onUploadFilesAsync(files) {
   typeTable = null;
   typeIndexTable = null;
   clearFunctionDetailsAsync();
-  showFunctionSelection(null);
+  selectedFunctionIndex = null;
+  updateFunctionSelection();
   hideLogs();
 
   let project = new Project();
@@ -120,32 +121,45 @@ functionTableTbodyElement.addEventListener("click", async (event) => {
   if (funcRowElement === null) {
     return;
   }
-  showFunctionSelection(funcRowElement);
-  let func = funcs[funcRowElement.dataset.funcIndex];
+  let funcIndex = funcRowElement.dataset.funcIndex;
+  selectedFunctionIndex = funcIndex;
+  updateFunctionSelection(funcRowElement);
+  let func = funcs[funcIndex];
   await showFunctionDetailsAsync(func);
 });
 
-function showFunctionSelection(selectedRowElement) {
-  if (selectedRowElement === null) {
+let selectedFunctionIndex = null;
+function updateFunctionSelection(selectedRowElementHint = null) {
+  if (selectedFunctionIndex === null) {
     functionTableSelectionElement.style.display = "none";
-  } else {
-    let rowRect = selectedRowElement.getBoundingClientRect();
-    let scrollBoxRect =
-      functionTableSelectionScrollBoxElement.getBoundingClientRect();
-    functionTableSelectionElement.style.left = `${
-      rowRect.left -
-      scrollBoxRect.left +
-      functionTableSelectionScrollBoxElement.scrollLeft
-    }px`;
-    functionTableSelectionElement.style.top = `${
-      rowRect.top -
-      scrollBoxRect.top +
-      functionTableSelectionScrollBoxElement.scrollTop
-    }px`;
-    functionTableSelectionElement.style.width = `${rowRect.width}px`;
-    functionTableSelectionElement.style.height = `${rowRect.height}px`;
-    functionTableSelectionElement.style.display = "block";
+    return;
   }
+
+  if (selectedRowElementHint === null) {
+    selectedRowElementHint = document.querySelector(
+      `tr.func[data-func-index='${selectedFunctionIndex}']`
+    );
+  }
+  console.assert(
+    selectedRowElementHint.dataset.funcIndex === selectedFunctionIndex
+  );
+
+  let rowRect = selectedRowElementHint.getBoundingClientRect();
+  let scrollBoxRect =
+    functionTableSelectionScrollBoxElement.getBoundingClientRect();
+  functionTableSelectionElement.style.left = `${
+    rowRect.left -
+    scrollBoxRect.left +
+    functionTableSelectionScrollBoxElement.scrollLeft
+  }px`;
+  functionTableSelectionElement.style.top = `${
+    rowRect.top -
+    scrollBoxRect.top +
+    functionTableSelectionScrollBoxElement.scrollTop
+  }px`;
+  functionTableSelectionElement.style.width = `${rowRect.width}px`;
+  functionTableSelectionElement.style.height = `${rowRect.height}px`;
+  functionTableSelectionElement.style.display = "block";
 }
 
 let stackFrameTableElement = document.getElementById("stack-frame-table");
