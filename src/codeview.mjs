@@ -330,14 +330,6 @@ export class CodeViewFunctionLocal {
     this.#recordOffset = offset;
   }
 
-  async getByteSizeAsync(typeTable, logger = fallbackLogger) {
-    let type = this.getTypeASync(typeTable, logger);
-    if (type === null) {
-      return -1;
-    }
-    return type.byteSize;
-  }
-
   async getTypeAsync(typeTable, logger = fallbackLogger) {
     let maybeSize = specialTypeSizeMap[this.typeID];
     if (maybeSize === undefined) {
