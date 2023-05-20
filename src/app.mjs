@@ -5,10 +5,12 @@ import { Project } from "./project.mjs";
 
 let funcs = [];
 let typeTable = null;
+let typeIndexTable = null;
 
 async function onUploadFilesAsync(files) {
   funcs.length = 0;
   typeTable = null;
+  typeIndexTable = null;
   clearFunctionDetailsAsync();
   showFunctionSelection(null);
   hideLogs();
@@ -21,6 +23,7 @@ async function onUploadFilesAsync(files) {
   }
   funcs.push(...(await project.getAllFunctionsAsync(logger)));
   typeTable = await project.getTypeTableAsync(logger);
+  typeIndexTable = await project.getTypeIndexTableAsync(logger);
 
   functionTableTbodyElement.innerHTML = "";
   for (let funcIndex = 0; funcIndex < funcs.length; ++funcIndex) {
@@ -39,7 +42,7 @@ async function onUploadFilesAsync(files) {
       let funcLogger = new CapturingLogger(logger);
       td.textContent = `${await func.getCallerStackSizeAsync(
         typeTable,
-        typeTable, // FIXME(strager): This should be the IPI.
+        typeIndexTable,
         funcLogger
       )}`;
       if (funcLogger.didLogMessage) {
