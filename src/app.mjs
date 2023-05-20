@@ -76,7 +76,12 @@ async function showFunctionDetailsAsync(func) {
     tr.appendChild(td);
     td = document.createElement("td");
     let localLogger = new CapturingLogger(logger);
-    td.textContent = `${await local.getByteSizeAsync(typeTable, localLogger)}`;
+    let type = await local.getTypeAsync(typeTable, localLogger);
+    if (type === null) {
+      td.textContent = "?";
+    } else {
+      td.textContent = `${type.byteSize}`;
+    }
     if (localLogger.didLogMessage) {
       td.title = localLogger.getLoggedMessagesStringForToolTip();
     }
