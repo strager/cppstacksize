@@ -185,6 +185,45 @@ export class LoaderReader extends ReaderBase {
     }
   }
 
+  copyBytesInto(out, offset, size, outOffset = 0) {
+    let endOffset = offset + size;
+    let beginChunkIndex = offset >> this.#chunkShift;
+    let endChunkIndex = (endOffset - 1) >> this.#chunkShift;
+    let relativeOffset = offset & (this.#chunkSize - 1);
+    for (
+      let chunkIndex = beginChunkIndex;
+      chunkIndex <= endChunkIndex;
+      ++chunkIndex
+    ) {
+      let chunk = this.#chunks[chunkIndex];
+      let isLastChunk = chunkIndex === endChunkIndex;
+      let sizeNeededInChunk;
+      if (isLastChunk) {
+        sizeNeededInChunk = endOffset & (this.#chunkSize - 1);
+        if (sizeNeededInChunk === 0) {
+          sizeNeededInChunk = this.#chunkSize;
+        }
+        sizeNeededInChunk -= relativeOffset;
+      } else {
+        sizeNeededInChunk = this.#chunkSize - relativeOffset;
+      }
+      this.#requireChunkLoaded(
+        chunk,
+        (chunkIndex << this.#chunkShift) | relativeOffset,
+        sizeNeededInChunk
+      );
+
+      let data = new Uint8Array(
+        chunk.buffer,
+        chunk.byteOffset + relativeOffset,
+        sizeNeededInChunk
+      );
+      out.set(data, outOffset);
+      outOffset += sizeNeededInChunk;
+      relativeOffset = 0;
+    }
+  }
+
   // Searches for a byte equal b starting from offset.
   //
   // Returns the offset of the first match, or null if there is no match.

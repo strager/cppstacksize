@@ -342,6 +342,38 @@ export class PDBBlocksReader extends ReaderBase {
     }
   }
 
+  copyBytesInto(out, offset, size, outOffset = 0) {
+    this.#checkBounds(offset, size);
+    let endOffset = offset + size;
+    // TODO(strager): Avoid divisions.
+    // TODO(strager): Avoid multiplications.
+    let beginBlockIndexIndex = Math.floor(offset / this.#blockSize);
+    let endBlockIndexIndex = Math.floor(endOffset / this.#blockSize);
+    let relativeOffset = offset % this.#blockSize;
+
+    for (
+      let blockIndexIndex = beginBlockIndexIndex;
+      blockIndexIndex <= endBlockIndexIndex;
+      ++blockIndexIndex
+    ) {
+      let blockIndex = this.#blockIndexes[blockIndexIndex];
+
+      let isLastBlock = blockIndexIndex === endBlockIndexIndex;
+      let sizeNeededInBlock =
+        (isLastBlock ? endOffset & (this.#blockSize - 1) : this.#blockSize) -
+        relativeOffset;
+
+      this.#baseReader.copyBytesInto(
+        out,
+        blockIndex * this.#blockSize + relativeOffset,
+        sizeNeededInBlock,
+        outOffset
+      );
+      outOffset += sizeNeededInBlock;
+      relativeOffset = 0;
+    }
+  }
+
   #checkBounds(offset, size) {
     if (offset + size > this.#byteSize) {
       throw new RangeError(

@@ -99,6 +99,19 @@ export class NodeBufferReader extends ReaderBase {
     }
     return this.#buffer.toString("utf-8", offset, offset + length);
   }
+
+  copyBytesInto(out, offset, size, outOffset = 0) {
+    if (offset + size > this.#buffer.length) {
+      throw new RangeError(
+        `cannot read out of bounds; offset=0x${offset.toString(
+          16
+        )} size=0x${size.toString(16)}`
+      );
+    }
+    console.assert(out instanceof Uint8Array);
+    let data = this.#buffer.subarray(offset, offset + size);
+    out.set(data, outOffset);
+  }
 }
 
 export class ArrayBufferReader extends ReaderBase {
@@ -144,6 +157,16 @@ export class ArrayBufferReader extends ReaderBase {
     return new TextDecoder("utf-8").decode(
       new Uint8Array(this.#dataView.buffer, offset, length)
     );
+  }
+
+  copyBytesInto(out, offset, size, outOffset = 0) {
+    console.assert(out instanceof Uint8Array);
+    let data = new Uint8Array(
+      this.#dataView.buffer,
+      this.#dataView.byteOffset + offset,
+      size
+    );
+    out.set(data, outOffset);
   }
 }
 
@@ -204,6 +227,17 @@ export class SubFileReader extends ReaderBase {
       return null;
     }
     return i - this.subFileOffset;
+  }
+
+  copyBytesInto(out, offset, size, outOffset = 0) {
+    this.#checkBounds(offset, size);
+    console.assert(out instanceof Uint8Array);
+    this.baseReader.copyBytesInto(
+      out,
+      offset + this.subFileOffset,
+      size,
+      outOffset
+    );
   }
 
   #checkBounds(offset, size) {

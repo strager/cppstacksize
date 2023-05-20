@@ -248,6 +248,22 @@ function testReader(makeReaderAsync) {
     assert.strictEqual(r.u32(1), 0x05040302);
   });
 
+  it("reads byte array", async () => {
+    let r = await makeReaderAsync([10, 20, 30, 40, 50, 60, 70, 80]);
+
+    let bytes = new Uint8Array(8);
+    r.copyBytesInto(bytes, 0, /*size=*/ 8);
+    assert.deepStrictEqual([...bytes], [10, 20, 30, 40, 50, 60, 70, 80]);
+
+    bytes = new Uint8Array(4);
+    r.copyBytesInto(bytes, 2, /*size=*/ 4);
+    assert.deepStrictEqual([...bytes], [30, 40, 50, 60]);
+
+    bytes = new Uint8Array(4);
+    r.copyBytesInto(bytes, 2, /*size=*/ 2, /*outOffset=*/ 1);
+    assert.deepStrictEqual([...bytes], [0, 30, 40, 0]);
+  });
+
   it("reads fixed with string", async () => {
     let r = await makeReaderAsync([
       // "hello\0\0\0x"
@@ -333,6 +349,19 @@ function testReader(makeReaderAsync) {
     }, RangeError);
     assert.throws(() => {
       r.utf8String(0, 100);
+    }, RangeError);
+  });
+
+  it("out of bounds copyBytesInto fails", async () => {
+    let r = await makeReaderAsync([0x6c, 0x6f, 0x6c]);
+    assert.throws(() => {
+      r.copyBytesInto(new Uint8Array(100), 0, 4);
+    }, RangeError);
+    assert.throws(() => {
+      r.copyBytesInto(new Uint8Array(100), 0, 100);
+    }, RangeError);
+    assert.throws(() => {
+      r.copyBytesInto(new Uint8Array(100), 4, 1);
     }, RangeError);
   });
 }
