@@ -90,7 +90,15 @@ class Project {
         file.reader,
         ".debug$T"
       )) {
-        return await parseCodeViewTypesAsync(sectionReader);
+        try {
+          return await parseCodeViewTypesAsync(sectionReader);
+        } catch (e) {
+          if (e instanceof CodeViewTypesInSeparatePDBFileError) {
+            // Ignore.
+          } else {
+            throw e;
+          }
+        }
       }
     }
     return null;
@@ -117,7 +125,15 @@ class Project {
         file.reader,
         ".debug$T"
       )) {
-        return await parseCodeViewTypesAsync(sectionReader);
+        try {
+          return await parseCodeViewTypesAsync(sectionReader);
+        } catch (e) {
+          if (e instanceof CodeViewTypesInSeparatePDBFileError) {
+            // Ignore.
+          } else {
+            throw e;
+          }
+        }
       }
     }
     return null;
@@ -210,6 +226,34 @@ describe("Project", (t) => {
       "example.obj",
       new NodeBufferReader(
         await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.obj"))
+      )
+    );
+
+    // Function table should load from .obj.
+    let funcs = await project.getAllFunctionsAsync();
+    assert.strictEqual(funcs[0].name, "callee");
+    // Type tables should load from .pdb.
+    let typeTable = await project.getTypeTableAsync();
+    let typeIndexTable = await project.getTypeIndexTableAsync();
+    console.error(typeTable.toString());
+    assert.strictEqual(
+      await funcs[0].getCallerStackSizeAsync(typeTable, typeIndexTable),
+      40
+    );
+  });
+
+  it("loads unlinked .obj and .pdb", async () => {
+    let project = new Project();
+    project.addFile(
+      "example.obj",
+      new NodeBufferReader(
+        await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.obj"))
+      )
+    );
+    project.addFile(
+      "example.pdb",
+      new NodeBufferReader(
+        await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.pdb"))
       )
     );
 
