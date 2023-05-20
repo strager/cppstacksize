@@ -237,18 +237,23 @@ export class CodeViewFunction {
     this.selfStackSize = -1;
   }
 
-  async getCallerStackSizeAsync(typeTable, logger = fallbackLogger) {
+  async getCallerStackSizeAsync(
+    typeTable,
+    typeIndexTable = typeTable,
+    logger = fallbackLogger
+  ) {
     return withLoadScopeAsync(() => {
       let reader = typeTable._reader;
       let typeID = this.#typeID;
       if (this.#hasFuncIDType) {
-        let funcIDTypeOffset = typeTable._getOffsetOfTypeEntry(typeID);
+        let indexReader = typeIndexTable._reader;
+        let funcIDTypeOffset = typeIndexTable._getOffsetOfTypeEntry(typeID);
         // TODO(strager): Check size.
         let funcIDTypeRecordTypeOffset = funcIDTypeOffset + 2;
-        let funcIDTypeRecordType = reader.u16(funcIDTypeRecordTypeOffset);
+        let funcIDTypeRecordType = indexReader.u16(funcIDTypeRecordTypeOffset);
         switch (funcIDTypeRecordType) {
           case LF_FUNC_ID:
-            typeID = reader.u32(funcIDTypeOffset + 8);
+            typeID = indexReader.u32(funcIDTypeOffset + 8);
             break;
           default:
             logger.log(

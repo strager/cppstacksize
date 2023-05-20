@@ -60,6 +60,7 @@ async function onUploadFileAsync(file) {
       let funcLogger = new CapturingLogger(logger);
       td.textContent = `${await func.getCallerStackSizeAsync(
         typeTable,
+        typeTable, // FIXME(strager): This should be the IPI.
         funcLogger
       )}`;
       if (funcLogger.didLogMessage) {

@@ -34,6 +34,7 @@ class ProjectFile {
   pdbStreams = null;
   pdbDBI = null;
   pdbTPIHeader = null;
+  pdbIPIHeader = null;
 
   constructor(name, reader) {
     this.name = name;
@@ -95,6 +96,33 @@ class Project {
     return null;
   }
 
+  async getTypeIndexTableAsync(logger = fallbackLogger) {
+    for (let file of this.#files) {
+      await file.tryLoadPDBGenericHeadersAsync(logger);
+      if (file.pdbStreams !== null) {
+        if (file.pdbIPIHeader === null) {
+          file.pdbIPIHeader = await parsePDBTPIStreamHeaderAsync(
+            file.pdbStreams[4],
+            logger
+          );
+        }
+        // TODO[start-type-id]
+        return await parseCodeViewTypesWithoutHeaderAsync(
+          file.pdbIPIHeader.typeReader,
+          logger
+        );
+      }
+
+      for (let sectionReader of await findCOFFSectionsByNameAsync(
+        file.reader,
+        ".debug$T"
+      )) {
+        return await parseCodeViewTypesAsync(sectionReader);
+      }
+    }
+    return null;
+  }
+
   async getAllFunctionsAsync(logger = fallbackLogger) {
     let funcs = [];
     for (let file of this.#files) {
@@ -142,7 +170,11 @@ describe("Project", (t) => {
     assert.strictEqual(funcs[0].name, "callee");
     // Type table should load.
     let typeTable = await project.getTypeTableAsync();
-    assert.strictEqual(await funcs[0].getCallerStackSizeAsync(typeTable), 32);
+    let typeIndexTable = await project.getTypeIndexTableAsync();
+    assert.strictEqual(
+      await funcs[0].getCallerStackSizeAsync(typeTable, typeIndexTable),
+      32
+    );
   });
 
   it("loads complete .pdb file", async () => {
@@ -157,8 +189,40 @@ describe("Project", (t) => {
     // Function table should load.
     let funcs = await project.getAllFunctionsAsync();
     assert.strictEqual(funcs[0].name, "callee");
-    // Type table should load.
+    // Type tables should load.
     let typeTable = await project.getTypeTableAsync();
-    assert.strictEqual(await funcs[0].getCallerStackSizeAsync(typeTable), 40);
+    let typeIndexTable = await project.getTypeIndexTableAsync();
+    assert.strictEqual(
+      await funcs[0].getCallerStackSizeAsync(typeTable, typeIndexTable),
+      40
+    );
+  });
+
+  it("loads unlinked .pdb and .obj", async () => {
+    let project = new Project();
+    project.addFile(
+      "example.pdb",
+      new NodeBufferReader(
+        await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.pdb"))
+      )
+    );
+    project.addFile(
+      "example.obj",
+      new NodeBufferReader(
+        await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.obj"))
+      )
+    );
+
+    // Function table should load from .obj.
+    let funcs = await project.getAllFunctionsAsync();
+    assert.strictEqual(funcs[0].name, "callee");
+    // Type tables should load from .pdb.
+    let typeTable = await project.getTypeTableAsync();
+    let typeIndexTable = await project.getTypeIndexTableAsync();
+    console.error(typeTable.toString());
+    assert.strictEqual(
+      await funcs[0].getCallerStackSizeAsync(typeTable, typeIndexTable),
+      40
+    );
   });
 });

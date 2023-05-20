@@ -9,7 +9,13 @@ import {
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
   parseCodeViewTypesAsync,
+  parseCodeViewTypesWithoutHeaderAsync,
 } from "../src/codeview.mjs";
+import {
+  parsePDBHeaderAsync,
+  parsePDBStreamDirectoryAsync,
+  parsePDBTPIStreamHeaderAsync,
+} from "../src/pdb.mjs";
 import { assertRejectsAsync } from "./assert-util.mjs";
 import { findCOFFSectionsByNameAsync } from "../src/coff.mjs";
 
@@ -181,7 +187,7 @@ describe("int parameters", (t) => {
 });
 
 describe("split COFF + PDB", (t) => {
-  it("fails to load type info", async () => {
+  it("fails to load type info from COFF", async () => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.obj"))
     );
@@ -199,6 +205,42 @@ describe("split COFF + PDB", (t) => {
     assert.strictEqual(
       error.pdbGUID.toString(),
       "015182d6-09fa-4590-89e2-5abf55ea3c33"
+    );
+  });
+
+  it("COFF can load type info from PDB TPI+IPI", async () => {
+    let objFile = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.obj"))
+    );
+    let pdbFile = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.pdb"))
+    );
+
+    let pdbStreams = await parsePDBStreamDirectoryAsync(
+      pdbFile,
+      await parsePDBHeaderAsync(pdbFile)
+    );
+    let pdbTPIHeader = await parsePDBTPIStreamHeaderAsync(pdbStreams[2]);
+    let pdbTypeTable = await parseCodeViewTypesWithoutHeaderAsync(
+      pdbTPIHeader.typeReader
+    );
+    let pdbIPIHeader = await parsePDBTPIStreamHeaderAsync(pdbStreams[4]);
+    let pdbTypeIndexTable = await parseCodeViewTypesWithoutHeaderAsync(
+      pdbIPIHeader.typeReader
+    );
+
+    let coffFuncs = await findAllCodeViewFunctionsAsync(
+      (
+        await findCOFFSectionsByNameAsync(objFile, ".debug$S")
+      )[0]
+    );
+
+    assert.strictEqual(
+      await coffFuncs[0].getCallerStackSizeAsync(
+        pdbTypeTable,
+        pdbTypeIndexTable
+      ),
+      40
     );
   });
 });

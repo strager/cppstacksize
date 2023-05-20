@@ -268,7 +268,7 @@ describe("PDB file", (t) => {
     );
   });
 
-  describe("example.pdb", (t) => {
+  describe("pdb/example.pdb", (t) => {
     let filePromise = (async () =>
       new NodeBufferReader(
         await fs.promises.readFile(path.join(__dirname, "pdb/example.pdb"))
