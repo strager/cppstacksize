@@ -452,4 +452,10 @@ describe("PDB file", (t) => {
       await parsePDBHeaderAsync(reader);
     }, PDBMagicMismatchError);
   });
+
+  it("empty DBI stream contains no modules", async () => {
+    let dbiReader = new NodeBufferReader(Buffer.from([]));
+    let dbi = await parsePDBDBIStreamAsync(dbiReader);
+    assert.deepStrictEqual(dbi.modules, []);
+  });
 });

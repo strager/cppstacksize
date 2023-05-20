@@ -106,6 +106,10 @@ export async function parsePDBStreamDirectoryAsync(reader, superBlock, logger) {
 
 export async function parsePDBDBIStreamAsync(reader, logger) {
   return withLoadScopeAsync(() => {
+    if (reader.size === 0) {
+      return { modules: [] };
+    }
+
     let moduleInfoSize = reader.u32(0x18);
 
     let modules = [];
