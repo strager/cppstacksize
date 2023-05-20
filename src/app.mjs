@@ -5,12 +5,10 @@ import { Project } from "./project.mjs";
 
 let funcs = [];
 let typeTable = null;
-let typeTableError = null;
 
 async function onUploadFilesAsync(files) {
   funcs.length = 0;
   typeTable = null;
-  typeTableError = null;
   clearFunctionDetailsAsync();
   showFunctionSelection(null);
   hideLogs();
