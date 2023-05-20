@@ -99,22 +99,22 @@ describe("primitives.obj", (t) => {
 
     let typeTable = null; // Primitive types do not need the type table.
     let expectedLocalTypes = {
-      c: { byteSize: 1 },
-      sc: { byteSize: 1 },
-      uc: { byteSize: 1 },
-      ss: { byteSize: 2 },
-      us: { byteSize: 2 },
-      f: { byteSize: 4 },
-      si: { byteSize: 4 },
-      sl: { byteSize: 4 },
-      ui: { byteSize: 4 },
-      ul: { byteSize: 4 },
-      ul: { byteSize: 4 },
-      wc: { byteSize: 4 },
-      d: { byteSize: 8 },
-      ld: { byteSize: 8 },
-      sll: { byteSize: 8 },
-      ull: { byteSize: 8 },
+      c: { byteSize: 1, name: "char" },
+      sc: { byteSize: 1, name: "signed char" },
+      uc: { byteSize: 1, name: "unsigned char" },
+      ss: { byteSize: 2, name: "short" },
+      us: { byteSize: 2, name: "unsigned short" },
+      f: { byteSize: 4, name: "float" },
+      si: { byteSize: 4, name: "int" },
+      sl: { byteSize: 4, name: "long" },
+      ui: { byteSize: 4, name: "unsigned" },
+      ul: { byteSize: 4, name: "unsigned long" },
+      wc: { byteSize: 4, name: "wchar_t" },
+      d: { byteSize: 8, name: "double" },
+      // NOTE(strager): On Microsoft x64, long double is the same as double.
+      ld: { byteSize: 8, name: "double" },
+      sll: { byteSize: 8, name: "long long" },
+      ull: { byteSize: 8, name: "unsigned long long" },
     };
     for (let localName in expectedLocalTypes) {
       let expectedType = expectedLocalTypes[localName];
@@ -125,6 +125,11 @@ describe("primitives.obj", (t) => {
         actualType.byteSize,
         expectedType.byteSize,
         `actual byte size = ${actualType.byteSize}\nexpected byte size = ${expectedType.byteSize}\nlocalName = '${localName}'`
+      );
+      assert.strictEqual(
+        actualType.name,
+        expectedType.name,
+        `actual name = ${actualType.name}\nexpected name = ${expectedType.name}\nlocalName = '${localName}'`
       );
     }
   });

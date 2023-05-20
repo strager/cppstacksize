@@ -15,6 +15,7 @@ import {
   S_GPROC32_ID,
   S_PROC_ID_END,
   S_REGREL32,
+  specialTypeNameMap,
   specialTypeSizeMap,
 } from "./codeview-constants.mjs";
 import { GUID } from "./guid.mjs";
@@ -308,9 +309,11 @@ export class CodeViewFunction {
 
 export class CodeViewType {
   byteSize;
+  name;
 
-  constructor(byteSize) {
+  constructor(byteSize, name) {
     this.byteSize = byteSize;
+    this.name = name;
   }
 }
 
@@ -346,7 +349,7 @@ export class CodeViewFunctionLocal {
       );
       return null;
     }
-    return new CodeViewType(maybeSize);
+    return new CodeViewType(maybeSize, specialTypeNameMap[this.typeID]);
   }
 }
 

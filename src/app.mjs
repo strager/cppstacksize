@@ -70,13 +70,26 @@ async function showFunctionDetailsAsync(func) {
     logger
   );
   for (let local of locals) {
+    let localLogger = new CapturingLogger(logger);
+    let type = await local.getTypeAsync(typeTable, localLogger);
+
     let tr = document.createElement("tr");
     let td = document.createElement("td");
     td.textContent = local.name;
     tr.appendChild(td);
+
     td = document.createElement("td");
-    let localLogger = new CapturingLogger(logger);
-    let type = await local.getTypeAsync(typeTable, localLogger);
+    if (type === null) {
+      td.textContent = "?";
+    } else {
+      td.textContent = type.name;
+    }
+    if (localLogger.didLogMessage) {
+      td.title = localLogger.getLoggedMessagesStringForToolTip();
+    }
+    tr.appendChild(td);
+
+    td = document.createElement("td");
     if (type === null) {
       td.textContent = "?";
     } else {
@@ -86,6 +99,7 @@ async function showFunctionDetailsAsync(func) {
       td.title = localLogger.getLoggedMessagesStringForToolTip();
     }
     tr.appendChild(td);
+
     stackFrameTableTbodyElement.appendChild(tr);
   }
 }

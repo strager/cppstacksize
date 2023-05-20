@@ -622,3 +622,20 @@ export let specialTypeSizeMap = {
   [T_64PCHAR32]: "T_64PCHAR32",
   [T_64NCVPTR]: "T_64NCVPTR",
 };
+
+export let specialTypeNameMap = {
+  [T_CHAR]: "signed char",
+  [T_SHORT]: "short",
+  [T_LONG]: "long",
+  [T_QUAD]: "long long",
+  [T_UCHAR]: "unsigned char",
+  [T_USHORT]: "unsigned short",
+  [T_ULONG]: "unsigned long",
+  [T_UQUAD]: "unsigned long long",
+  [T_REAL32]: "float",
+  [T_REAL64]: "double",
+  [T_RCHAR]: "char",
+  [T_WCHAR]: "wchar_t",
+  [T_INT4]: "int",
+  [T_UINT4]: "unsigned",
+};
