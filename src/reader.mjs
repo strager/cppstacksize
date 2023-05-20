@@ -44,6 +44,16 @@ export class ReaderBase {
     return this.utf8String(offset, endOffset - offset);
   }
 
+  utf8String(offset, length) {
+    let decoder = new TextDecoder("utf-8");
+    let result = "";
+    this.enumerateBytes(offset, length, (bytes) => {
+      result += decoder.decode(bytes, { stream: true });
+    });
+    result += decoder.decode(new Uint8Array(0), { stream: false });
+    return result;
+  }
+
   copyBytesInto(out, offset, size, outOffset = 0) {
     this.enumerateBytes(offset, size, (chunk) => {
       out.set(chunk, outOffset);

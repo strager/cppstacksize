@@ -151,40 +151,6 @@ export class LoaderReader extends ReaderBase {
     return data.getUint32(relativeOffset, /*littleEndian=*/ true);
   }
 
-  utf8String(offset, length) {
-    let endOffset = offset + length;
-    let beginChunkIndex = offset >> this.#chunkShift;
-    let endChunkIndex = endOffset >> this.#chunkShift;
-    let relativeOffset = offset & (this.#chunkSize - 1);
-    let decoder = new TextDecoder("utf-8");
-    let result = "";
-    for (let chunkIndex = beginChunkIndex; ; ++chunkIndex) {
-      let chunk = this.#chunks[chunkIndex];
-      let isLastChunk = chunkIndex === endChunkIndex;
-      let sizeNeededInChunk =
-        (isLastChunk ? endOffset & (this.#chunkSize - 1) : this.#chunkSize) -
-        relativeOffset;
-      this.#requireChunkLoaded(
-        chunk,
-        (chunkIndex << this.#chunkShift) | relativeOffset,
-        sizeNeededInChunk
-      );
-
-      let data = new Uint8Array(
-        chunk.buffer,
-        chunk.byteOffset + relativeOffset,
-        sizeNeededInChunk
-      );
-      if (isLastChunk) {
-        result += decoder.decode(data /*options={stream: false}*/);
-        return result;
-      } else {
-        result += decoder.decode(data, { stream: true });
-        relativeOffset = 0;
-      }
-    }
-  }
-
   enumerateBytes(offset, size, callback) {
     let endOffset = offset + size;
     let beginChunkIndex = offset >> this.#chunkShift;

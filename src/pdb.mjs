@@ -316,56 +316,6 @@ export class PDBBlocksReader extends ReaderBase {
     return null;
   }
 
-  utf8String(offset, length) {
-    this.#checkBounds(offset, length);
-    let endOffset = offset + length;
-    // TODO(strager): Avoid divisions.
-    // TODO(strager): Avoid multiplications.
-    let beginBlockIndexIndex = Math.floor(offset / this.#blockSize);
-    let endBlockIndexIndex = Math.floor(endOffset / this.#blockSize);
-    let relativeOffset = offset % this.#blockSize;
-    let decoder = new TextDecoder("utf-8");
-    let result = "";
-
-    let buffer = new Uint8Array(this.#blockSize);
-    for (
-      let blockIndexIndex = beginBlockIndexIndex;
-      blockIndexIndex <= endBlockIndexIndex;
-      ++blockIndexIndex
-    ) {
-      let blockIndex = this.#blockIndexes[blockIndexIndex];
-
-      let isLastBlock = blockIndexIndex === endBlockIndexIndex;
-      let sizeNeededInBlock =
-        (isLastBlock ? endOffset & (this.#blockSize - 1) : this.#blockSize) -
-        relativeOffset;
-
-      for (
-        let i = relativeOffset;
-        i < relativeOffset + sizeNeededInBlock;
-        ++i
-      ) {
-        // FIXME(strager): This is inefficient and silly. At the time of writing,
-        // our Reader abstractions are too weak to make this elegant.
-        let word = this.#baseReader.u16(blockIndex * this.#blockSize + i);
-        buffer[i] = word & 0xff;
-      }
-
-      let data = new Uint8Array(
-        buffer.buffer,
-        relativeOffset,
-        sizeNeededInBlock
-      );
-      if (isLastBlock) {
-        result += decoder.decode(data /*options={stream: false}*/);
-        return result;
-      } else {
-        result += decoder.decode(data, { stream: true });
-        relativeOffset = 0;
-      }
-    }
-  }
-
   enumerateBytes(offset, size, callback) {
     this.#checkBounds(offset, size);
     let endOffset = offset + size;
