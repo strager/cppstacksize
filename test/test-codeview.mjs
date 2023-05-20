@@ -196,6 +196,10 @@ describe("split COFF + PDB", (t) => {
       error.pdbPath,
       "C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\coff-pdb\\example.pdb"
     );
+    assert.strictEqual(
+      error.pdbGUID.toString(),
+      "015182d6-09fa-4590-89e2-5abf55ea3c33"
+    );
   });
 });
 

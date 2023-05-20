@@ -17,14 +17,17 @@ import {
   S_REGREL32,
   specialTypeSizeMap,
 } from "./codeview-constants.mjs";
+import { GUID } from "./guid.mjs";
 
 export class CodeViewTypesInSeparatePDBFileError extends Error {
+  pdbGUID;
   pdbPath;
 
-  constructor(pdbPath) {
+  constructor(pdbPath, pdbGUID) {
     super(
       "CodeView types cannot be loaded because they are in a separate PDB file"
     );
+    this.pdbGUID = pdbGUID;
     this.pdbPath = pdbPath;
   }
 }
@@ -91,7 +94,12 @@ export async function parseCodeViewTypesWithoutHeader(
     let recordType = reader.u16(offset + 2);
     if (recordType === LF_TYPESERVER2) {
       let pdbPath = reader.utf8CString(offset + 24);
-      throw new CodeViewTypesInSeparatePDBFileError(pdbPath);
+      let pdbGUIDBytes = new Uint8Array(16);
+      reader.copyBytesInto(pdbGUIDBytes, 8, 16);
+      throw new CodeViewTypesInSeparatePDBFileError(
+        pdbPath,
+        new GUID(pdbGUIDBytes)
+      );
     }
     table._addTypeEntryAtOffset(offset);
     offset += recordSize + 2;
