@@ -162,6 +162,11 @@ function updateFunctionSelection(selectedRowElementHint = null) {
   functionTableSelectionElement.style.display = "block";
 }
 
+let selectedFunctionResizeObserver = new ResizeObserver((_entries) => {
+  updateFunctionSelection();
+});
+selectedFunctionResizeObserver.observe(functionTableSelectionScrollBoxElement);
+
 let stackFrameTableElement = document.getElementById("stack-frame-table");
 let stackFrameTableTbodyElement = stackFrameTableElement.querySelector("tbody");
 
