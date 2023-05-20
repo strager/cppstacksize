@@ -207,9 +207,7 @@ export class PDBBlocksReader extends ReaderBase {
 
   u16(offset) {
     let size = 2;
-    if (offset + size >= this.#byteSize) {
-      // TODO(strager): Report out of range error.
-    }
+    this.#checkBounds(offset, size);
 
     // TODO(strager): Avoid divisions.
     // TODO(strager): Avoid multiplications.
@@ -233,9 +231,7 @@ export class PDBBlocksReader extends ReaderBase {
 
   u32(offset) {
     let size = 4;
-    if (offset + size >= this.#byteSize) {
-      // TODO(strager): Report out of range error.
-    }
+    this.#checkBounds(offset, size);
 
     // TODO(strager): Avoid divisions.
     // TODO(strager): Avoid multiplications.
@@ -293,6 +289,7 @@ export class PDBBlocksReader extends ReaderBase {
   }
 
   utf8String(offset, length) {
+    this.#checkBounds(offset, length);
     let endOffset = offset + length;
     // TODO(strager): Avoid divisions.
     // TODO(strager): Avoid multiplications.
@@ -338,6 +335,16 @@ export class PDBBlocksReader extends ReaderBase {
         result += decoder.decode(data, { stream: true });
         relativeOffset = 0;
       }
+    }
+  }
+
+  #checkBounds(offset, size) {
+    if (offset + size > this.#byteSize) {
+      throw new RangeError(
+        `cannot read out of bounds; offset=0x${offset.toString(
+          16
+        )} size=0x${size.toString(16)}`
+      );
     }
   }
 }

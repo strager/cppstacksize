@@ -52,6 +52,36 @@ describe("PDBBlocksReader(blockSize=4) + NodeBufferReader", (t) => {
   });
 });
 
+describe("PDBBlocksReader(blockSize=4) subset of NodeBufferReader", (t) => {
+  testReader(async (bytes) => {
+    let allBytes = [
+      0xcc,
+      0xdd,
+      0xee,
+      0xff,
+      ...bytes,
+      0xcc,
+      0xdd,
+      0xee,
+      0xff,
+      0x00,
+    ];
+    let baseReader = new NodeBufferReader(Buffer.from(allBytes));
+    let blockSize = 4;
+    let blockIndexes = [];
+    for (let i = 0; i * blockSize < bytes.length; ++i) {
+      blockIndexes.push(i + 1);
+    }
+    return new PDBBlocksReader(
+      baseReader,
+      blockIndexes,
+      blockSize,
+      bytes.length,
+      /*streamIndex=*/ 0
+    );
+  });
+});
+
 describe("SubFileReader with full NodeBufferReader", (t) => {
   testReader((bytes) => {
     let baseReader = new NodeBufferReader(Buffer.from(bytes));
