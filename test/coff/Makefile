@@ -5,7 +5,8 @@ all: call.obj small.obj multiple-functions.obj primitives.obj primitive-paramete
 	parameters-int-3-callee.obj parameters-int-3-caller.obj \
 	parameters-int-4-callee.obj parameters-int-4-caller.obj \
 	parameters-int-5-callee.obj parameters-int-5-caller.obj \
-	parameters-int-6-callee.obj parameters-int-6-caller.obj
+	parameters-int-6-callee.obj parameters-int-6-caller.obj \
+	pointer.obj
 
 call.obj: call.cpp Makefile
 	cl /c /O2 /Zi /Fo:$(@) /Fd:$(@).pdb %s
@@ -65,3 +66,6 @@ parameters-int-6-callee.obj: parameters-int.cpp Makefile
 	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=6 /DCALLEE %s
 parameters-int-6-caller.obj: parameters-int.cpp Makefile
 	cl /c /O2 /Z7 /Fo:$(@) /DPARAM_COUNT=6 /DCALLER %s
+
+pointer.obj: pointer.cpp Makefile
+	cl /c /Od /Z7 /Fo:$(@) %s
