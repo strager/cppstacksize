@@ -7,7 +7,12 @@ export let DEBUG_S_SYMBOLS = 0xf1;
 // Calling conventions:
 export let CV_CALL_NEAR_C = 0x00;
 
+// Pointer types:
+export let CV_PTR_64 = 0xc;
+
 // Type types:
+export let LF_MODIFIER = 0x1001;
+export let LF_POINTER = 0x1002;
 export let LF_PROCEDURE = 0x1008;
 export let LF_TYPESERVER2 = 0x1515;
 export let LF_FUNC_ID = 0x1601;
@@ -78,7 +83,7 @@ export let specialTypeSizeMap = {
   [T_NOTYPE]: "T_NOTYPE",
   [T_ABS]: "T_ABS",
   [T_SEGMENT]: "T_SEGMENT",
-  [T_VOID]: "T_VOID",
+  [T_VOID]: 0,
   [T_CURRENCY]: "T_CURRENCY",
   [T_NBASICSTR]: "T_NBASICSTR",
   [T_FBASICSTR]: "T_FBASICSTR",

@@ -4,9 +4,12 @@ import { fallbackLogger } from "./logger.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 import {
   CV_CALL_NEAR_C,
+  CV_PTR_64,
   CV_SIGNATURE_C13,
   DEBUG_S_SYMBOLS,
   LF_FUNC_ID,
+  LF_MODIFIER,
+  LF_POINTER,
   LF_PROCEDURE,
   LF_TYPESERVER2,
   S_END,
@@ -57,6 +60,15 @@ export class CodeViewTypeTable {
       return null;
     }
     return this.#typeEntryOffsets[index];
+  }
+
+  _getReaderForTypeEntry(typeID) {
+    let offset = this._getOffsetOfTypeEntry(typeID);
+    if (offset === null) {
+      return null;
+    }
+    let size = this.#reader.u16(offset);
+    return new SubFileReader(this.#reader, offset, size + 2);
   }
 }
 
@@ -351,14 +363,91 @@ export async function getCodeViewTypeAsync(
   typeTable,
   logger = fallbackLogger
 ) {
+  return withLoadScopeAsync(() => {
+    return getCodeViewType(typeID, typeTable, logger);
+  });
+}
+
+export function getCodeViewType(typeID, typeTable, logger) {
   let maybeSize = specialTypeSizeMap[typeID];
-  if (maybeSize === undefined) {
-    return null;
+  if (maybeSize !== undefined) {
+    if (typeof maybeSize === "string") {
+      logger.log(
+        `unsupported special type: 0x${typeID.toString(16)} (${maybeSize})`,
+        null
+      );
+      return null;
+    }
+    return new CodeViewType(maybeSize, specialTypeNameMap[typeID]);
   }
-  if (typeof maybeSize === "string") {
-    return null;
+
+  let typeEntryReader = typeTable._getReaderForTypeEntry(typeID);
+  let typeEntryType = typeEntryReader.u16(2);
+  switch (typeEntryType) {
+    case LF_POINTER: {
+      let pointeeTypeID = typeEntryReader.u32(4);
+      let pointerAttributes = typeEntryReader.u32(8);
+      let isConst = (pointerAttributes & (1 << 10)) !== 0;
+      let pointerType = pointerAttributes & 0x1f;
+
+      let byteSize;
+      switch (pointerType) {
+        case CV_PTR_64:
+          byteSize = 8;
+          break;
+
+        default:
+          logger.log(
+            `unsupported pointer type: 0x${pointerType.toString(16)}`,
+            typeEntryReader.locate(0)
+          );
+          break;
+      }
+
+      let pointeeType = getCodeViewType(pointeeTypeID, typeTable, logger);
+      let name = pointeeType === null ? "<unknown>" : pointeeType.name;
+      if (name.endsWith("*")) {
+        name += "*";
+      } else {
+        name += " *";
+      }
+      if (isConst) {
+        name += "const";
+      }
+      return new CodeViewType(byteSize, name);
+    }
+
+    case LF_MODIFIER: {
+      let modifiedTypeID = typeEntryReader.u32(4);
+      let modifiers = typeEntryReader.u16(8);
+      let isConst = (modifiers & (1 << 0)) !== 0;
+      let isVolatile = (modifiers & (1 << 1)) !== 0;
+      let isUnaligned = (modifiers & (1 << 2)) !== 0;
+
+      let modifiedType = getCodeViewType(modifiedTypeID, typeTable, logger);
+      if (modifiedType === null) {
+        return null;
+      }
+      let name = modifiedType.name;
+      if (isVolatile) {
+        name = "volatile " + name;
+      }
+      if (isConst) {
+        name = "const " + name;
+      }
+      // TODO(strager): isUnaligned
+      return new CodeViewType(modifiedType.byteSize, name);
+    }
+
+    default:
+      logger.log(
+        `unknown entry kind 0x${typeEntryType.toString(
+          16
+        )} for type ID 0x${typeID.toString(16)}`,
+        typeEntryReader.locate(0)
+      );
+      return null;
   }
-  return new CodeViewType(maybeSize, specialTypeNameMap[typeID]);
 }
 
 export async function getCodeViewFunctionLocalsAsync(
