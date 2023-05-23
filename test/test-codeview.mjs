@@ -359,6 +359,51 @@ describe("getCodeViewTypeAsync", () => {
       );
     }
   });
+
+  it("struct.obj", async () => {
+    let file = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "coff/struct.obj"))
+    );
+    let typeTable = await parseCodeViewTypesAsync(
+      (
+        await findCOFFSectionsByNameAsync(file, ".debug$T")
+      )[0]
+    );
+
+    let testTypes = [
+      // Pointers:
+      { typeID: 0x101e, byteSize: 8, name: "Empty_Struct *" },
+      { typeID: 0x1028, byteSize: 8, name: "Forward_Declared_Struct *" },
+      { typeID: 0x102d, byteSize: 8, name: "Struct_With_One_Int *" },
+      { typeID: 0x102e, byteSize: 8, name: "Struct_With_Vtable *" },
+      { typeID: 0x1030, byteSize: 8, name: "Struct_With_Bit_Field *" },
+      { typeID: 0x1032, byteSize: 8, name: "Struct_With_Two_Ints *" },
+
+      // Non-pointers:
+      { typeID: 0x1015, byteSize: 8, name: "Struct_With_Vtable" },
+      { typeID: 0x101c, byteSize: 1, name: "Empty_Struct" },
+      { typeID: 0x1020, byteSize: 8, name: "Struct_With_Two_Ints" },
+      { typeID: 0x1025, byteSize: 1, name: "Struct_With_Bit_Field" },
+      { typeID: 0x102b, byteSize: 4, name: "Struct_With_One_Int" },
+    ];
+    for (let testType of testTypes) {
+      let actualType = await getCodeViewTypeAsync(testType.typeID, typeTable);
+      assert.strictEqual(
+        actualType.byteSize,
+        testType.byteSize,
+        `actual byte size = ${actualType.byteSize}\nexpected byte size = ${
+          testType.byteSize
+        }\ntypeID = 0x${testType.typeID.toString(16)}`
+      );
+      assert.strictEqual(
+        actualType.name,
+        testType.name,
+        `actual name = ${actualType.name}\nexpected name = ${
+          testType.name
+        }\ntypeID = 0x${testType.typeID.toString(16)}`
+      );
+    }
+  });
 });
 
 function rebaseReaderOffset(reader, offset, desiredReader) {

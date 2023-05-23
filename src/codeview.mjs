@@ -11,6 +11,7 @@ import {
   LF_MODIFIER,
   LF_POINTER,
   LF_PROCEDURE,
+  LF_STRUCTURE,
   LF_TYPESERVER2,
   S_END,
   S_FRAMEPROC,
@@ -414,6 +415,16 @@ export function getCodeViewType(typeID, typeTable, logger) {
       if (isConst) {
         name += "const";
       }
+      return new CodeViewType(byteSize, name);
+    }
+
+    case LF_STRUCTURE: {
+      let properties = typeEntryReader.u16(6);
+      let isForwardDeclaration = (properties & (1 << 7)) !== 0;
+      // TODO(strager): Support big structs (size >= 0x8000). I think these are
+      // encoded with LF_LONG.
+      let byteSize = typeEntryReader.u16(20);
+      let name = typeEntryReader.utf8CString(22);
       return new CodeViewType(byteSize, name);
     }
 
