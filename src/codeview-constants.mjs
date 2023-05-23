@@ -72,6 +72,7 @@ export let T_INT16 = 0x78;
 export let T_UINT16 = 0x79;
 export let T_CHAR16 = 0x7a;
 export let T_CHAR32 = 0x7b;
+export let T_PVOID = 0x0103;
 
 export let specialTypeSizeMap = {
   [T_NOTYPE]: "T_NOTYPE",
@@ -125,6 +126,8 @@ export let specialTypeSizeMap = {
   [T_UINT16]: "T_UINT16",
   [T_CHAR16]: "T_CHAR16",
   [T_CHAR32]: "T_CHAR32",
+
+  [T_PVOID]: 8, // FIXME(strager): sizeof(std::nullptr_t) is arch-dependent.
 };
 
 export let specialTypeNameMap = {
@@ -143,14 +146,16 @@ export let specialTypeNameMap = {
   [T_WCHAR]: "wchar_t",
   [T_INT4]: "int",
   [T_UINT4]: "unsigned",
+
+  [T_PVOID]: "std::nullptr_t",
 };
 
 for (let typeID in specialTypeNameMap) {
-  let pointeeTypeID = +typeID;
-
-  let pointer64TypeID = 0x600 | pointeeTypeID;
-  specialTypeSizeMap[pointer64TypeID] = 8;
-  specialTypeNameMap[
-    pointer64TypeID
-  ] = `${specialTypeNameMap[pointeeTypeID]} *`;
+  typeID = +typeID;
+  let isNonPointerType = typeID < 0x80;
+  if (isNonPointerType) {
+    let pointer64TypeID = 0x600 | typeID;
+    specialTypeSizeMap[pointer64TypeID] = 8;
+    specialTypeNameMap[pointer64TypeID] = `${specialTypeNameMap[typeID]} *`;
+  }
 }

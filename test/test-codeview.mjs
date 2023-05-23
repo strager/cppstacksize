@@ -295,6 +295,9 @@ test("CodeView special types", async () => {
     { typeID: 0x671, byteSize: 8, name: "wchar_t *" },
     { typeID: 0x674, byteSize: 8, name: "int *" },
     { typeID: 0x675, byteSize: 8, name: "unsigned *" },
+
+    // Special types:
+    { typeID: 0x103, byteSize: 8, name: "std::nullptr_t" },
   ];
   let typeTable = null; // Primitive types do not need the type table.
   for (let testType of testTypes) {
