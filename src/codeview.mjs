@@ -7,6 +7,7 @@ import {
   CV_PTR_64,
   CV_SIGNATURE_C13,
   DEBUG_S_SYMBOLS,
+  LF_ARRAY,
   LF_ENUM,
   LF_FUNC_ID,
   LF_MODIFIER,
@@ -441,6 +442,16 @@ export function getCodeViewType(typeID, typeTable, logger) {
       // encoded with LF_LONG.
       let byteSize = typeEntryReader.u16(12);
       let name = typeEntryReader.utf8CString(14);
+      return new CodeViewType(byteSize, name);
+    }
+
+    case LF_ARRAY: {
+      let elementTypeID = typeEntryReader.u32(4);
+      let elementType = getCodeViewType(elementTypeID, typeTable, logger);
+      // TODO(strager): Support big arrays (size >= 0x8000). I think these are
+      // encoded with LF_LONG.
+      let byteSize = typeEntryReader.u16(12);
+      let name = elementType === null ? "<unknown>[]" : `${elementType.name}[]`;
       return new CodeViewType(byteSize, name);
     }
 

@@ -386,6 +386,12 @@ describe("getCodeViewTypeAsync", () => {
       { typeID: 0x100f, byteSize: 8, name: "<func> *" },
       { typeID: 0x1010, byteSize: 8, name: "<func> *" },
     ],
+
+    "coff/array.obj": [
+      { typeID: 0x1004, byteSize: 4 * 2 * 3, name: "int[][]" },
+      { typeID: 0x1005, byteSize: 8, name: "int[]" },
+      { typeID: 0x1006, byteSize: 4, name: "int[]" },
+    ],
   };
 
   for (let fileName in typesByFileName) {
