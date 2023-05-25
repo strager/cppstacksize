@@ -23,7 +23,7 @@ import { findCOFFSectionsByNameAsync } from "../src/coff.mjs";
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
 
-describe("primitives.obj", (t) => {
+describe("primitives.obj", () => {
   it("has one function", async () => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "coff/primitives.obj"))
@@ -136,7 +136,7 @@ describe("primitives.obj", (t) => {
   });
 });
 
-describe("int parameters", (t) => {
+describe("int parameters", () => {
   async function loadAsync(name) {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, name))
@@ -202,7 +202,7 @@ describe("int parameters", (t) => {
   });
 });
 
-describe("split COFF + PDB", (t) => {
+describe("split COFF + PDB", () => {
   it("fails to load type info from COFF", async () => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "coff-pdb/example.obj"))
