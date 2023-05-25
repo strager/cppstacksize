@@ -320,17 +320,8 @@ describe("getCodeViewTypeAsync", () => {
     }
   });
 
-  it("pointer.obj", async () => {
-    let file = new NodeBufferReader(
-      await fs.promises.readFile(path.join(__dirname, "coff/pointer.obj"))
-    );
-    let typeTable = await parseCodeViewTypesAsync(
-      (
-        await findCOFFSectionsByNameAsync(file, ".debug$T")
-      )[0]
-    );
-
-    let testTypes = [
+  let typesByFileName = {
+    "coff/pointer.obj": [
       { typeID: 0x1004, byteSize: 8, name: "const volatile int *" },
       { typeID: 0x1005, byteSize: 8, name: "int **" },
       { typeID: 0x1008, byteSize: 8, name: "const int *const *" },
@@ -340,37 +331,9 @@ describe("getCodeViewTypeAsync", () => {
       { typeID: 0x100e, byteSize: 8, name: "const int **" },
       { typeID: 0x1010, byteSize: 8, name: "const void *" },
       { typeID: 0x1011, byteSize: 8, name: "int ***" },
-    ];
-    for (let testType of testTypes) {
-      let actualType = await getCodeViewTypeAsync(testType.typeID, typeTable);
-      assert.strictEqual(
-        actualType.byteSize,
-        testType.byteSize,
-        `actual byte size = ${actualType.byteSize}\nexpected byte size = ${
-          testType.byteSize
-        }\ntypeID = 0x${testType.typeID.toString(16)}`
-      );
-      assert.strictEqual(
-        actualType.name,
-        testType.name,
-        `actual name = ${actualType.name}\nexpected name = ${
-          testType.name
-        }\ntypeID = 0x${testType.typeID.toString(16)}`
-      );
-    }
-  });
+    ],
 
-  it("struct.obj", async () => {
-    let file = new NodeBufferReader(
-      await fs.promises.readFile(path.join(__dirname, "coff/struct.obj"))
-    );
-    let typeTable = await parseCodeViewTypesAsync(
-      (
-        await findCOFFSectionsByNameAsync(file, ".debug$T")
-      )[0]
-    );
-
-    let testTypes = [
+    "coff/struct.obj": [
       // Pointers:
       { typeID: 0x101e, byteSize: 8, name: "Empty_Struct *" },
       { typeID: 0x1028, byteSize: 8, name: "Forward_Declared_Struct *" },
@@ -385,61 +348,47 @@ describe("getCodeViewTypeAsync", () => {
       { typeID: 0x1020, byteSize: 8, name: "Struct_With_Two_Ints" },
       { typeID: 0x1025, byteSize: 1, name: "Struct_With_Bit_Field" },
       { typeID: 0x102b, byteSize: 4, name: "Struct_With_One_Int" },
-    ];
-    for (let testType of testTypes) {
-      let actualType = await getCodeViewTypeAsync(testType.typeID, typeTable);
-      assert.strictEqual(
-        actualType.byteSize,
-        testType.byteSize,
-        `actual byte size = ${actualType.byteSize}\nexpected byte size = ${
-          testType.byteSize
-        }\ntypeID = 0x${testType.typeID.toString(16)}`
-      );
-      assert.strictEqual(
-        actualType.name,
-        testType.name,
-        `actual name = ${actualType.name}\nexpected name = ${
-          testType.name
-        }\ntypeID = 0x${testType.typeID.toString(16)}`
-      );
-    }
-  });
+    ],
 
-  it("enum.obj", async () => {
-    let file = new NodeBufferReader(
-      await fs.promises.readFile(path.join(__dirname, "coff/enum.obj"))
-    );
-    let typeTable = await parseCodeViewTypesAsync(
-      (
-        await findCOFFSectionsByNameAsync(file, ".debug$T")
-      )[0]
-    );
-
-    let testTypes = [
+    "coff/enum.obj": [
       { typeID: 0x1004, byteSize: 4, name: "Basic_Enum" },
       { typeID: 0x1008, byteSize: 4, name: "Enum_Class" },
       { typeID: 0x100b, byteSize: 1, name: "Enum_Class_One_Byte" },
       { typeID: 0x100d, byteSize: 8, name: "Basic_Enum *" },
       { typeID: 0x100f, byteSize: 4, name: "Empty_Enum" },
-    ];
-    for (let testType of testTypes) {
-      let actualType = await getCodeViewTypeAsync(testType.typeID, typeTable);
-      assert.strictEqual(
-        actualType.byteSize,
-        testType.byteSize,
-        `actual byte size = ${actualType.byteSize}\nexpected byte size = ${
-          testType.byteSize
-        }\ntypeID = 0x${testType.typeID.toString(16)}`
+    ],
+  };
+
+  for (let fileName in typesByFileName) {
+    it(fileName, async () => {
+      let file = new NodeBufferReader(
+        await fs.promises.readFile(path.join(__dirname, fileName))
       );
-      assert.strictEqual(
-        actualType.name,
-        testType.name,
-        `actual name = ${actualType.name}\nexpected name = ${
-          testType.name
-        }\ntypeID = 0x${testType.typeID.toString(16)}`
+      let typeTable = await parseCodeViewTypesAsync(
+        (
+          await findCOFFSectionsByNameAsync(file, ".debug$T")
+        )[0]
       );
-    }
-  });
+
+      for (let testType of typesByFileName[fileName]) {
+        let actualType = await getCodeViewTypeAsync(testType.typeID, typeTable);
+        assert.strictEqual(
+          actualType.byteSize,
+          testType.byteSize,
+          `actual byte size = ${actualType.byteSize}\nexpected byte size = ${
+            testType.byteSize
+          }\ntypeID = 0x${testType.typeID.toString(16)}`
+        );
+        assert.strictEqual(
+          actualType.name,
+          testType.name,
+          `actual name = ${actualType.name}\nexpected name = ${
+            testType.name
+          }\ntypeID = 0x${testType.typeID.toString(16)}`
+        );
+      }
+    });
+  }
 });
 
 describe("findAllCodeViewFunctionsAsync", () => {
