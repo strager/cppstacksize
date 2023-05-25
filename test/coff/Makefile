@@ -11,7 +11,9 @@ all: call.obj small.obj multiple-functions.obj primitives.obj primitive-paramete
 	union.obj \
 	enum.obj \
 	typedef.obj \
-	function-type.obj
+	function-type.obj \
+	array.obj \
+	alloca.obj
 
 call.obj: call.cpp Makefile
 	cl /c /O2 /Zi /Fo:$(@) /Fd:$(@).pdb %s
@@ -88,4 +90,10 @@ typedef.obj: typedef.cpp Makefile
 	cl /c /Od /Z7 /Fo:$(@) %s
 
 function-type.obj: function-type.cpp Makefile
+	cl /c /Od /Z7 /Fo:$(@) %s
+
+array.obj: array.cpp Makefile
+	cl /c /Od /Z7 /Fo:$(@) %s
+
+alloca.obj: alloca.cpp Makefile
 	cl /c /Od /Z7 /Fo:$(@) %s
