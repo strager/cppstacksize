@@ -320,7 +320,7 @@ export class CodeViewFunction {
           return -1;
       }
 
-      let callingConvention = reader.u16(callingConventionOffset);
+      let callingConvention = reader.u8(callingConventionOffset);
       switch (callingConvention) {
         case CV_CALL_NEAR_C: {
           if (thisTypeID !== T_NOTYPE) {
