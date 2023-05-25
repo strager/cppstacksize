@@ -7,7 +7,11 @@ all: call.obj small.obj multiple-functions.obj primitives.obj primitive-paramete
 	parameters-int-5-callee.obj parameters-int-5-caller.obj \
 	parameters-int-6-callee.obj parameters-int-6-caller.obj \
 	pointer.obj \
-	struct.obj
+	struct.obj \
+	union.obj \
+	enum.obj \
+	typedef.obj \
+	function-type.obj
 
 call.obj: call.cpp Makefile
 	cl /c /O2 /Zi /Fo:$(@) /Fd:$(@).pdb %s
@@ -72,4 +76,16 @@ pointer.obj: pointer.cpp Makefile
 	cl /c /Od /Z7 /Fo:$(@) %s
 
 struct.obj: struct.cpp Makefile
+	cl /c /Od /Z7 /Fo:$(@) %s
+
+union.obj: union.cpp Makefile
+	cl /c /Od /Z7 /Fo:$(@) %s
+
+enum.obj: enum.cpp Makefile
+	cl /c /Od /Z7 /Fo:$(@) %s
+
+typedef.obj: typedef.cpp Makefile
+	cl /c /Od /Z7 /Fo:$(@) %s
+
+function-type.obj: function-type.cpp Makefile
 	cl /c /Od /Z7 /Fo:$(@) %s
