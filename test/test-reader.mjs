@@ -230,6 +230,15 @@ describe("Reader location", () => {
 });
 
 function testReader(makeReaderAsync) {
+  it("reads u8", async () => {
+    let r = await makeReaderAsync([10, 20, 30, 40, 50]);
+    assert.strictEqual(r.u8(0), 10);
+    assert.strictEqual(r.u8(1), 20);
+    assert.strictEqual(r.u8(2), 30);
+    assert.strictEqual(r.u8(3), 40);
+    assert.strictEqual(r.u8(4), 50);
+  });
+
   it("reads u16", async () => {
     let r = await makeReaderAsync([1, 2, 3, 4, 5]);
     assert.strictEqual(r.u16(0), 0x0201);

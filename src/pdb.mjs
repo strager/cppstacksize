@@ -233,6 +233,16 @@ export class PDBBlocksReader extends ReaderBase {
     return location;
   }
 
+  u8(offset) {
+    this.#checkBounds(offset, 1);
+
+    // TODO(strager): Avoid divisions.
+    // TODO(strager): Avoid multiplications.
+    let blockIndex = this.#blockIndexes[Math.floor(offset / this.#blockSize)];
+    let relativeOffset = offset % this.#blockSize;
+    return this.#baseReader.u8(blockIndex * this.#blockSize + relativeOffset);
+  }
+
   u16(offset) {
     let size = 2;
     this.#checkBounds(offset, size);

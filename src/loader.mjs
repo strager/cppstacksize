@@ -123,6 +123,15 @@ export class LoaderReader extends ReaderBase {
     return new Location(offset, null, null);
   }
 
+  u8(offset) {
+    let size = 1;
+    let relativeOffset = offset & (this.#chunkSize - 1);
+    let chunkIndex = offset >> this.#chunkShift;
+    let data = this.#chunks[chunkIndex];
+    this.#requireChunkLoaded(data, offset, size);
+    return data.getUint8(relativeOffset);
+  }
+
   u16(offset) {
     let size = 2;
     let relativeOffset = offset & (this.#chunkSize - 1);

@@ -86,6 +86,10 @@ export class NodeBufferReader extends ReaderBase {
     return new Location(offset, null, null);
   }
 
+  u8(offset) {
+    return this.#buffer.readUInt8(offset);
+  }
+
   u16(offset) {
     return this.#buffer.readUInt16LE(offset);
   }
@@ -141,6 +145,10 @@ export class ArrayBufferReader extends ReaderBase {
 
   locate(offset) {
     return new Location(offset, null, null);
+  }
+
+  u8(offset) {
+    return this.#dataView.getUint8(offset);
   }
 
   u16(offset) {
@@ -203,6 +211,11 @@ export class SubFileReader extends ReaderBase {
 
   locate(offset) {
     return this.baseReader.locate(offset + this.subFileOffset);
+  }
+
+  u8(offset) {
+    this.#checkBounds(offset, 1);
+    return this.baseReader.u8(offset + this.subFileOffset);
   }
 
   u16(offset) {
