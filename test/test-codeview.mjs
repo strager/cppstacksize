@@ -357,6 +357,19 @@ describe("getCodeViewTypeAsync", () => {
       { typeID: 0x100d, byteSize: 8, name: "Basic_Enum *" },
       { typeID: 0x100f, byteSize: 4, name: "Empty_Enum" },
     ],
+
+    "coff/union.obj": [
+      // Pointers:
+      { typeID: 0x1004, byteSize: 8, name: "Forward_Declared_Union *" },
+      { typeID: 0x100a, byteSize: 8, name: "Empty_Union *" },
+      { typeID: 0x100f, byteSize: 8, name: "Union_With_Int *" },
+      { typeID: 0x1014, byteSize: 8, name: "Union_With_Int_And_Double *" },
+
+      // Non-pointers:
+      { typeID: 0x1007, byteSize: 1, name: "Empty_Union" },
+      { typeID: 0x100d, byteSize: 4, name: "Union_With_Int" },
+      { typeID: 0x1012, byteSize: 8, name: "Union_With_Int_And_Double" },
+    ],
   };
 
   for (let fileName in typesByFileName) {

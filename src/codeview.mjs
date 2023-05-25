@@ -14,6 +14,7 @@ import {
   LF_PROCEDURE,
   LF_STRUCTURE,
   LF_TYPESERVER2,
+  LF_UNION,
   S_END,
   S_FRAMEPROC,
   S_GPROC32,
@@ -422,12 +423,24 @@ export function getCodeViewType(typeID, typeTable, logger) {
     }
 
     case LF_STRUCTURE: {
+      // TODO(strager): Deduplicate code with LF_UNION.
       let properties = typeEntryReader.u16(6);
       let isForwardDeclaration = (properties & (1 << 7)) !== 0;
       // TODO(strager): Support big structs (size >= 0x8000). I think these are
       // encoded with LF_LONG.
       let byteSize = typeEntryReader.u16(20);
       let name = typeEntryReader.utf8CString(22);
+      return new CodeViewType(byteSize, name);
+    }
+
+    case LF_UNION: {
+      // TODO(strager): Deduplicate code with LF_STRUCTURE.
+      let properties = typeEntryReader.u16(6);
+      let isForwardDeclaration = (properties & (1 << 7)) !== 0;
+      // TODO(strager): Support big unions (size >= 0x8000). I think these are
+      // encoded with LF_LONG.
+      let byteSize = typeEntryReader.u16(12);
+      let name = typeEntryReader.utf8CString(14);
       return new CodeViewType(byteSize, name);
     }
 
