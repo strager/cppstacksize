@@ -14,12 +14,14 @@ export let CV_PTR_64 = 0xc;
 export let LF_MODIFIER = 0x1001;
 export let LF_POINTER = 0x1002;
 export let LF_PROCEDURE = 0x1008;
+export let LF_MFUNCTION = 0x1009;
 export let LF_ARRAY = 0x1503;
 export let LF_STRUCTURE = 0x1505;
 export let LF_UNION = 0x1506;
 export let LF_ENUM = 0x1507;
 export let LF_TYPESERVER2 = 0x1515;
 export let LF_FUNC_ID = 0x1601;
+export let LF_MFUNC_ID = 0x1602;
 
 // Symbol types:
 export let S_END = 0x0006;

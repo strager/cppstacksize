@@ -10,6 +10,8 @@ import {
   LF_ARRAY,
   LF_ENUM,
   LF_FUNC_ID,
+  LF_MFUNCTION,
+  LF_MFUNC_ID,
   LF_MODIFIER,
   LF_POINTER,
   LF_PROCEDURE,
@@ -22,6 +24,7 @@ import {
   S_GPROC32_ID,
   S_PROC_ID_END,
   S_REGREL32,
+  T_NOTYPE,
   specialTypeNameMap,
   specialTypeSizeMap,
 } from "./codeview-constants.mjs";
@@ -273,6 +276,7 @@ export class CodeViewFunction {
         let funcIDTypeRecordType = indexReader.u16(funcIDTypeRecordTypeOffset);
         switch (funcIDTypeRecordType) {
           case LF_FUNC_ID:
+          case LF_MFUNC_ID:
             typeID = indexReader.u32(funcIDTypeOffset + 8);
             break;
           default:
@@ -290,27 +294,21 @@ export class CodeViewFunction {
       let funcTypeRecordTypeOffset = funcTypeOffset + 2;
       // TODO(strager): Check size.
       let funcTypeRecordType = reader.u16(funcTypeRecordTypeOffset);
-      switch (funcTypeRecordType) {
-        case LF_PROCEDURE: {
-          let callingConventionOffset = funcTypeOffset + 8;
-          let callingConvention = reader.u16(callingConventionOffset);
-          switch (callingConvention) {
-            case CV_CALL_NEAR_C: {
-              let parameterCount = reader.u16(funcTypeOffset + 10);
-              return Math.max(parameterCount, 4) * 8;
-            }
 
-            default:
-              logger.log(
-                `unrecognized function calling convention: 0x${callingConvention.toString(
-                  16
-                )}`,
-                reader.locate(callingConventionOffset)
-              );
-              break;
-          }
+      let thisTypeID = T_NOTYPE;
+      let callingConventionOffset;
+      let parameterCount;
+      switch (funcTypeRecordType) {
+        case LF_PROCEDURE:
+          callingConventionOffset = funcTypeOffset + 8;
+          parameterCount = reader.u16(funcTypeOffset + 10);
           break;
-        }
+
+        case LF_MFUNCTION:
+          thisTypeID = reader.u32(funcTypeOffset + 12);
+          callingConventionOffset = funcTypeOffset + 16;
+          parameterCount = reader.u16(funcTypeOffset + 18);
+          break;
 
         default:
           logger.log(
@@ -319,9 +317,30 @@ export class CodeViewFunction {
             )}`,
             reader.locate(funcTypeRecordTypeOffset)
           );
-          break;
+          return -1;
       }
-      return -1;
+
+      let callingConvention = reader.u16(callingConventionOffset);
+      switch (callingConvention) {
+        case CV_CALL_NEAR_C: {
+          if (thisTypeID !== T_NOTYPE) {
+            // HACK(strager): Assume that thisTypeID refers to a pointer type.
+            // The 'this' parameter would thus be one register (u64) wide like
+            // other parameters.
+            parameterCount += 1;
+          }
+          return Math.max(parameterCount, 4) * 8;
+        }
+
+        default:
+          logger.log(
+            `unrecognized function calling convention: 0x${callingConvention.toString(
+              16
+            )}`,
+            reader.locate(callingConventionOffset)
+          );
+          return -1;
+      }
     });
   }
 }

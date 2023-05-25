@@ -202,6 +202,73 @@ describe("int parameters", () => {
   });
 });
 
+describe("member functions", () => {
+  async function loadAsync(name) {
+    let file = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, name))
+    );
+
+    let typeTable = await parseCodeViewTypesAsync(
+      (
+        await findCOFFSectionsByNameAsync(file, ".debug$T")
+      )[0]
+    );
+
+    let funcs = await findAllCodeViewFunctionsAsync(
+      (
+        await findCOFFSectionsByNameAsync(file, ".debug$S")
+      )[0]
+    );
+
+    let funcByName = {};
+    for (let func of funcs) {
+      funcByName[func.name] = func;
+    }
+
+    return { funcByName, typeTable };
+  }
+
+  it("non-static void f() has shadow space for four registers", async () => {
+    let { funcByName, typeTable } = await loadAsync("coff/member-function.obj");
+    assert.strictEqual(
+      await funcByName["S::v"].getCallerStackSizeAsync(typeTable),
+      32
+    );
+  });
+
+  it("non-static void f(int) has shadow space for four registers", async () => {
+    let { funcByName, typeTable } = await loadAsync("coff/member-function.obj");
+    assert.strictEqual(
+      await funcByName["S::v_i"].getCallerStackSizeAsync(typeTable),
+      32
+    );
+  });
+
+  it("non-static void f(int, int, int) has shadow space for four registers", async () => {
+    let { funcByName, typeTable } = await loadAsync("coff/member-function.obj");
+    assert.strictEqual(
+      await funcByName["S::v_iii"].getCallerStackSizeAsync(typeTable),
+      32
+    );
+  });
+
+  it("non-static void f(int, int, int, int) has shadow space for four registers plus space for int on stack (implicit 'this')", async () => {
+    let { funcByName, typeTable } = await loadAsync("coff/member-function.obj");
+    assert.strictEqual(
+      await funcByName["S::v_iiii"].getCallerStackSizeAsync(typeTable),
+      40
+    );
+  });
+
+  it("static void f(int, int, int, int) has shadow space for four registers (no implicit 'this')", async () => {
+    let { funcByName, typeTable } = await loadAsync("coff/member-function.obj");
+    assert.strictEqual(
+      await funcByName["S::static_v_iiii"].getCallerStackSizeAsync(typeTable),
+      32
+    );
+  });
+});
+
 describe("split COFF + PDB", () => {
   it("fails to load type info from COFF", async () => {
     let file = new NodeBufferReader(
