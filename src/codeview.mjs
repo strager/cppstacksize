@@ -8,6 +8,7 @@ import {
   CV_SIGNATURE_C13,
   DEBUG_S_SYMBOLS,
   LF_ARRAY,
+  LF_CLASS,
   LF_ENUM,
   LF_FUNC_ID,
   LF_MFUNCTION,
@@ -442,6 +443,7 @@ export function getCodeViewType(typeID, typeTable, logger) {
       return new CodeViewType(byteSize, name);
     }
 
+    case LF_CLASS:
     case LF_STRUCTURE: {
       // TODO(strager): Deduplicate code with LF_UNION.
       let properties = typeEntryReader.u16(6);
