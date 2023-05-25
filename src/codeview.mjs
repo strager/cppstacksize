@@ -7,6 +7,7 @@ import {
   CV_PTR_64,
   CV_SIGNATURE_C13,
   DEBUG_S_SYMBOLS,
+  LF_ENUM,
   LF_FUNC_ID,
   LF_MODIFIER,
   LF_POINTER,
@@ -427,6 +428,14 @@ export function getCodeViewType(typeID, typeTable, logger) {
       // encoded with LF_LONG.
       let byteSize = typeEntryReader.u16(20);
       let name = typeEntryReader.utf8CString(22);
+      return new CodeViewType(byteSize, name);
+    }
+
+    case LF_ENUM: {
+      let underlyingTypeID = typeEntryReader.u32(8);
+      let underlyingType = getCodeViewType(underlyingTypeID, typeTable, logger);
+      let byteSize = underlyingType === null ? -1 : underlyingType.byteSize;
+      let name = typeEntryReader.utf8CString(16);
       return new CodeViewType(byteSize, name);
     }
 

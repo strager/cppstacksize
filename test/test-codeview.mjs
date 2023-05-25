@@ -404,6 +404,42 @@ describe("getCodeViewTypeAsync", () => {
       );
     }
   });
+
+  it("enum.obj", async () => {
+    let file = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "coff/enum.obj"))
+    );
+    let typeTable = await parseCodeViewTypesAsync(
+      (
+        await findCOFFSectionsByNameAsync(file, ".debug$T")
+      )[0]
+    );
+
+    let testTypes = [
+      { typeID: 0x1004, byteSize: 4, name: "Basic_Enum" },
+      { typeID: 0x1008, byteSize: 4, name: "Enum_Class" },
+      { typeID: 0x100b, byteSize: 1, name: "Enum_Class_One_Byte" },
+      { typeID: 0x100d, byteSize: 8, name: "Basic_Enum *" },
+      { typeID: 0x100f, byteSize: 4, name: "Empty_Enum" },
+    ];
+    for (let testType of testTypes) {
+      let actualType = await getCodeViewTypeAsync(testType.typeID, typeTable);
+      assert.strictEqual(
+        actualType.byteSize,
+        testType.byteSize,
+        `actual byte size = ${actualType.byteSize}\nexpected byte size = ${
+          testType.byteSize
+        }\ntypeID = 0x${testType.typeID.toString(16)}`
+      );
+      assert.strictEqual(
+        actualType.name,
+        testType.name,
+        `actual name = ${actualType.name}\nexpected name = ${
+          testType.name
+        }\ntypeID = 0x${testType.typeID.toString(16)}`
+      );
+    }
+  });
 });
 
 describe("findAllCodeViewFunctionsAsync", () => {
