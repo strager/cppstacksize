@@ -13,7 +13,8 @@ all: call.obj small.obj multiple-functions.obj primitives.obj primitive-paramete
 	typedef.obj \
 	function-type.obj \
 	array.obj \
-	alloca.obj
+	alloca.obj \
+	member-function.obj
 
 call.obj: call.cpp Makefile
 	cl /c /O2 /Zi /Fo:$(@) /Fd:$(@).pdb %s
@@ -96,4 +97,7 @@ array.obj: array.cpp Makefile
 	cl /c /Od /Z7 /Fo:$(@) %s
 
 alloca.obj: alloca.cpp Makefile
+	cl /c /Od /Z7 /Fo:$(@) %s
+
+member-function.obj: member-function.cpp Makefile
 	cl /c /Od /Z7 /Fo:$(@) %s
