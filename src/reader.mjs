@@ -63,9 +63,9 @@ export class ReaderBase {
 
   _raiseOutOfBoundsError(offset, size) {
     throw new RangeError(
-      `cannot read out of bounds; offset=0x${offset.toString(
-        16
-      )} size=0x${size.toString(16)}`
+      `${this.locate(
+        offset
+      )}: cannot read out of bounds; size=0x${size.toString(16)}`
     );
   }
 }
