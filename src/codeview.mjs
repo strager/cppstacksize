@@ -19,6 +19,7 @@ import {
   LF_STRUCTURE,
   LF_TYPESERVER2,
   LF_UNION,
+  S_BLOCK32,
   S_END,
   S_FRAMEPROC,
   S_GPROC32,
@@ -527,7 +528,9 @@ export async function getCodeViewFunctionLocalsAsync(
 ) {
   return await withLoadScopeAsync(async () => {
     let locals = [];
-    while (offset < reader.size) {
+    let done = false;
+    let depth = 1;
+    while (!done && offset < reader.size) {
       let recordSize = reader.u16(offset + 0);
       let recordType = reader.u16(offset + 2);
       switch (recordType) {
@@ -543,9 +546,18 @@ export async function getCodeViewFunctionLocalsAsync(
           locals.push(local);
           break;
         }
+        case S_BLOCK32:
+          depth += 1;
+          break;
         case S_END:
+          depth -= 1;
+          if (depth === 0) {
+            done = true;
+            break;
+          }
+          break;
         case S_PROC_ID_END:
-          offset = reader.size;
+          done = true;
           break;
         default:
           break;

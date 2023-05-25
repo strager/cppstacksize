@@ -26,6 +26,7 @@ export let LF_MFUNC_ID = 0x1602;
 
 // Symbol types:
 export let S_END = 0x0006;
+export let S_BLOCK32 = 0x1103;
 export let S_FRAMEPROC = 0x1012;
 export let S_REGREL32 = 0x1111;
 export let S_GPROC32 = 0x1110;

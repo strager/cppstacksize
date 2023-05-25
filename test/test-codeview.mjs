@@ -136,6 +136,37 @@ describe("primitives.obj", () => {
   });
 });
 
+describe("blocks in functions", () => {
+  it("loads all variables in all blocks", async () => {
+    let file = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "coff/block.obj"))
+    );
+    let sectionReader = (
+      await findCOFFSectionsByNameAsync(file, ".debug$S")
+    )[0];
+
+    let func = (await findAllCodeViewFunctionsAsync(sectionReader))[0];
+    let locals = await getCodeViewFunctionLocalsAsync(
+      func.reader,
+      func.byteOffset
+    );
+
+    let localNames = locals.map((local) => local.name).sort();
+    assert.deepStrictEqual(
+      localNames,
+      [
+        "before_blocks",
+        "before_innermost_blocks",
+        "inside_first_innermost_block",
+        "between_innermost_blocks",
+        "inside_second_innermost_block",
+        "after_innermost_blocks",
+        "after_blocks",
+      ].sort()
+    );
+  });
+});
+
 describe("int parameters", () => {
   async function loadAsync(name) {
     let file = new NodeBufferReader(
