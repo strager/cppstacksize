@@ -370,6 +370,18 @@ describe("getCodeViewTypeAsync", () => {
       { typeID: 0x100d, byteSize: 4, name: "Union_With_Int" },
       { typeID: 0x1012, byteSize: 8, name: "Union_With_Int_And_Double" },
     ],
+
+    "coff/function-type.obj": [
+      { typeID: 0x1003, byteSize: 8, name: "<func> *" },
+      { typeID: 0x1005, byteSize: 8, name: "<func> *" },
+      { typeID: 0x1006, byteSize: 8, name: "<func> *" },
+      { typeID: 0x1009, byteSize: 8, name: "<func> *" },
+      { typeID: 0x100b, byteSize: 8, name: "<func> *" },
+      { typeID: 0x100d, byteSize: 8, name: "<func> *" },
+      { typeID: 0x100e, byteSize: 8, name: "<func> *" },
+      { typeID: 0x100f, byteSize: 8, name: "<func> *" },
+      { typeID: 0x1010, byteSize: 8, name: "<func> *" },
+    ],
   };
 
   for (let fileName in typesByFileName) {

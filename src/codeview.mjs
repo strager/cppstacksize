@@ -474,6 +474,9 @@ export function getCodeViewType(typeID, typeTable, logger) {
       return new CodeViewType(modifiedType.byteSize, name);
     }
 
+    case LF_PROCEDURE:
+      return new CodeViewType(-1, "<func>");
+
     default:
       logger.log(
         `unknown entry kind 0x${typeEntryType.toString(
