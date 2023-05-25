@@ -373,9 +373,8 @@ export function getCodeViewType(typeID, typeTable, logger) {
   let maybeSize = specialTypeSizeMap[typeID];
   if (maybeSize !== undefined) {
     if (typeof maybeSize === "string") {
-      logger.log(
-        `unsupported special type: 0x${typeID.toString(16)} (${maybeSize})`,
-        null
+      console.warn(
+        `unsupported special type: 0x${typeID.toString(16)} (${maybeSize})`
       );
       return null;
     }
