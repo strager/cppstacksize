@@ -135,8 +135,11 @@ export async function findAllCodeViewFunctionsAsync(
 
     let functions = [];
     let offset = 4;
-    while (offset < reader.size) {
+    for (;;) {
       offset = alignUp(offset, 4);
+      if (offset >= reader.size) {
+        break;
+      }
       let subsectionType = reader.u32(offset);
       offset += 4;
       let subsectionSize = reader.u32(offset);

@@ -406,6 +406,36 @@ describe("getCodeViewTypeAsync", () => {
   });
 });
 
+describe("findAllCodeViewFunctionsAsync", () => {
+  it("doesn't crash if byte after last entry is not 4-byte aligned", async () => {
+    let reader = new NodeBufferReader(
+      Buffer.from([
+        // CV_SIGNATURE_C13
+        0x04, 0x00, 0x00, 0x00,
+
+        // DEBUG_S_SYMBOLS type
+        0xf1, 0x00, 0x00, 0x00,
+        // DEBUG_S_SYMBOLS size
+        0x09, 0x00, 0x00, 0x00,
+
+        // S_COMPILE size
+        0x07, 0x00,
+        // S_COMPILE type
+        0x01, 0x00,
+        // S_COMPILE flags
+        0x00, 0x00, 0x00, 0x00,
+        // S_COMPILE version (0-terminated string)
+        0x00,
+
+        // Padding
+        0x00, 0x00, 0x00,
+      ])
+    );
+    let funcs = await findAllCodeViewFunctionsAsync(reader);
+    assert.deepStrictEqual(funcs, []);
+  });
+});
+
 function rebaseReaderOffset(reader, offset, desiredReader) {
   while (reader !== desiredReader) {
     if (reader instanceof SubFileReader) {
