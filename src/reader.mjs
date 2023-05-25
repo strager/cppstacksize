@@ -60,6 +60,14 @@ export class ReaderBase {
       outOffset += chunk.byteLength ?? chunk.length;
     });
   }
+
+  _raiseOutOfBoundsError(offset, size) {
+    throw new RangeError(
+      `cannot read out of bounds; offset=0x${offset.toString(
+        16
+      )} size=0x${size.toString(16)}`
+    );
+  }
 }
 
 export class NodeBufferReader extends ReaderBase {
@@ -108,22 +116,14 @@ export class NodeBufferReader extends ReaderBase {
 
   utf8String(offset, length) {
     if (offset + length > this.#buffer.length) {
-      throw new RangeError(
-        `cannot read out of bounds; offset=0x${offset.toString(
-          16
-        )} length=0x${length.toString(16)}`
-      );
+      this._raiseOutOfBoundsError(offset, length);
     }
     return this.#buffer.toString("utf-8", offset, offset + length);
   }
 
   enumerateBytes(offset, size, callback) {
     if (offset + size > this.#buffer.length) {
-      throw new RangeError(
-        `cannot read out of bounds; offset=0x${offset.toString(
-          16
-        )} size=0x${size.toString(16)}`
-      );
+      this._raiseOutOfBoundsError(offset, size);
     }
     callback(this.#buffer.subarray(offset, offset + size));
   }
@@ -251,11 +251,7 @@ export class SubFileReader extends ReaderBase {
 
   #checkBounds(offset, size) {
     if (offset + size > this.subFileSize) {
-      throw new RangeError(
-        `cannot read out of bounds; offset=0x${offset.toString(
-          16
-        )} size=0x${size.toString(16)}`
-      );
+      this._raiseOutOfBoundsError(offset, size);
     }
   }
 }

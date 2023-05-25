@@ -348,11 +348,7 @@ export class PDBBlocksReader extends ReaderBase {
 
   #checkBounds(offset, size) {
     if (offset + size > this.#byteSize) {
-      throw new RangeError(
-        `cannot read out of bounds; offset=0x${offset.toString(
-          16
-        )} size=0x${size.toString(16)}`
-      );
+      this._raiseOutOfBoundsError(offset, size);
     }
   }
 }
