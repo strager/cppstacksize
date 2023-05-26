@@ -128,5 +128,29 @@ TEST(Test_ASM_Stack_Map, rsp_relative_load_touches) {
 
   // clang-format on
 }
+
+TEST(Test_ASM_Stack_Map, offset_is_byte_of_start_of_instruction) {
+  // clang-format off
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // nop
+    // mov (%rsp), %rax
+    0x90,
+    0x48, 0x8b, 0x04, 0x24,
+  ), {
+    Stack_Map_Touch::read(1, 0, 8),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // test %rax, %rax
+    // mov (%rsp), %rax
+    0x48, 0x85, 0xc0,
+    0x48, 0x8b, 0x04, 0x24,
+  ), {
+    Stack_Map_Touch::read(3, 0, 8),
+  });
+
+  // clang-format on
+}
 }
 }

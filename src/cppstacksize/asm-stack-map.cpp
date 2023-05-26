@@ -2,6 +2,11 @@
 #include <cppstacksize/asm-stack-map.h>
 
 namespace cppstacksize {
+template<class Out, class In>
+Out narrow_cast(In value) {
+  return static_cast<Out>(value);
+}
+
 Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   ::csh handle;
   if (::cs_open(::CS_ARCH_X86, ::CS_MODE_64, &handle) != ::CS_ERR_OK) {
@@ -28,7 +33,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
           ::cs_x86_op* other_operand =
               &details->x86.operands[1 - operand_index];
           map.touches.push_back(Stack_Map_Touch{
-              .offset = 0,
+              .offset = narrow_cast<U32>(instruction.address),
               .entry_rsp_relative_address = operand->mem.disp,
               .byte_count = other_operand->size,
               .access_kind = operand->access == ::CS_AC_WRITE
