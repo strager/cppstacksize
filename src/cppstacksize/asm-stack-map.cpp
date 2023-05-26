@@ -4,11 +4,11 @@
 namespace cppstacksize {
 Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   ::csh handle;
-  if (::cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) {
+  if (::cs_open(::CS_ARCH_X86, ::CS_MODE_64, &handle) != ::CS_ERR_OK) {
     // TODO(strager): Log an error.
     return Stack_Map();
   }
-  ::cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
+  ::cs_option(handle, ::CS_OPT_DETAIL, ::CS_OPT_ON);
 
   ::cs_insn* instructions;
   U64 base_address = 0;
