@@ -1,6 +1,6 @@
 struct S {
-    void f();
-    static void static_f();
+  void f();
+  static void static_f();
 };
 
 void S::f() {}
