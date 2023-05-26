@@ -27,8 +27,14 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
           // mov (%rsp), other_operand
           ::cs_x86_op* other_operand =
               &details->x86.operands[1 - operand_index];
-          map.touches.push_back(
-              Stack_Map_Touch(0, operand->mem.disp, other_operand->size));
+          map.touches.push_back(Stack_Map_Touch{
+              .offset = 0,
+              .entry_rsp_relative_address = operand->mem.disp,
+              .byte_count = other_operand->size,
+              .access_kind = operand->access == ::CS_AC_WRITE
+                                 ? Stack_Access_Kind::write
+                                 : Stack_Access_Kind::read,
+          });
         }
       }
     }
