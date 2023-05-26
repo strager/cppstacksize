@@ -135,5 +135,4 @@ describe("update test ASM", () => {
       "// @asm-end\n";
     assert.strictEqual(await updateTestASMAsync(source), expected);
   });
-
 });

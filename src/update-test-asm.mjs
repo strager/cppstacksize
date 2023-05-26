@@ -58,7 +58,7 @@ export async function updateTestASMAsync(source) {
           let bytes = instructionsBytes[i];
           if (bytes.length > 0) {
             let prefix = bufferedLinePrefixes[i];
-            let numbersLength = 6 * bytes.length -1;
+            let numbersLength = 6 * bytes.length - 1;
             let thisLineWidthBeforeComment = prefix.length + numbersLength + 2;
             if (thisLineWidthBeforeComment > widthBeforeComment) {
               widthBeforeComment = thisLineWidthBeforeComment;
@@ -71,14 +71,13 @@ export async function updateTestASMAsync(source) {
           let suffix = bufferedLineSuffixes[i];
           if (bytes.length > 0) {
             outLines.push(
-              (prefix +
-                makeCxxNumberLiterals(bytes)).padEnd(widthBeforeComment, ' ') +
-                suffix
+              (prefix + makeCxxNumberLiterals(bytes)).padEnd(
+                widthBeforeComment,
+                " "
+              ) + suffix
             );
           } else {
-            outLines.push(
-              prefix + suffix
-            );
+            outLines.push(prefix + suffix);
           }
         }
         assembleOptions = null;
@@ -102,7 +101,10 @@ export async function updateTestASMAsync(source) {
 }
 
 function makeCxxNumberLiterals(numbers) {
-  return numbers.map((n) => `0x${n.toString(16).padStart(2, "0")}, `).join("").trim();
+  return numbers
+    .map((n) => `0x${n.toString(16).padStart(2, "0")}, `)
+    .join("")
+    .trim();
 }
 
 export async function assembleAsync(assemblyLines, { arch }) {
@@ -176,14 +178,16 @@ function hexStringToByteArray(hexes) {
 async function mainAsync() {
   let files = process.argv.slice(2);
   if (files.length === 0) {
-    console.error(`usage: ${process.argv[0]} ${process.argv[1]} file.cpp [file.cpp ...]`);
+    console.error(
+      `usage: ${process.argv[0]} ${process.argv[1]} file.cpp [file.cpp ...]`
+    );
     process.exit(2);
   }
   for (let file of files) {
-    let source = fs.readFileSync(file, 'utf-8');
+    let source = fs.readFileSync(file, "utf-8");
     let newSource = await updateTestASMAsync(source);
     if (source !== newSource) {
-      fs.writeFileSync(file, newSource, 'utf-8');
+      fs.writeFileSync(file, newSource, "utf-8");
     }
   }
 }
