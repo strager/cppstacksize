@@ -20,11 +20,12 @@ cppstacksize_lib_dep = declare_dependency(
   include_directories : [cppstacksize_includes],
 )
 
+test_sources = [
+  'test/test-hello.cpp',
+]
 tests = executable(
   'cppstacksize-test',
-  [
-    'test/test-hello.cpp',
-  ],
+  test_sources,
   dependencies: [
     cppstacksize_lib_dep,
     gtest_proj.get_variable('gtest_dep'),
@@ -32,3 +33,8 @@ tests = executable(
   ],
 )
 test('tests', tests)
+
+run_target(
+  'update-test-asm',
+  command: ['contrib/update-test-asm.sh'] + test_sources,
+)
