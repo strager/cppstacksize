@@ -5,6 +5,7 @@ project(
   default_options: ['warning_level=3', 'cpp_std=c++20'],
 )
 
+capstone_proj = import('cmake').subproject('capstone')
 gtest_proj = subproject('gtest')
 
 cppstacksize_includes = include_directories('src/')
@@ -14,6 +15,9 @@ cppstacksize_lib = library(
     'src/cppstacksize/hello.cpp',
   ],
   include_directories: [cppstacksize_includes],
+  dependencies: [
+    capstone_proj.dependency('capstone-shared'),
+  ],
 )
 cppstacksize_lib_dep = declare_dependency(
   link_with: cppstacksize_lib,
