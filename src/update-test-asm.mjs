@@ -4,100 +4,41 @@ import { isModuleNodeMain } from "./is-main.mjs";
 
 export async function updateTestASMAsync(source) {
   let asmDirectiveRE =
-    /^(?<prefix>\s*?)(?<oldCode>\S.*?)?(?<comment>\/\/ (?<tag>@asm(?:-\S+)?)\s*(?<payload>.*))$/;
-  let lines = source.split("\n");
+    /\b(?<head>ASM_X86_64\((?:\s*\n)?)(?<body>(?:[ \t]*[^)\n]*(?:\/\/[^\n]*)?\n)*)(?<tail>\s*\))/g;
+  let commentRE = /^(?<indentation>[ \t]*)\/\/\s*(?<asm>[^\n]*)/gm;
 
-  let outLines = [];
-
-  // If assembleOptions is not null, we are between @asm-begin and @asm-end.
-  let assembleOptions = null;
-  let assemblyLines = [];
-  let bufferedLinePrefixes = [];
-  let bufferedLineSuffixes = [];
-
-  for (let line of lines) {
-    let match = line.match(asmDirectiveRE);
-    if (match === null) {
-      if (assembleOptions !== null) {
-        assemblyLines.push("");
-        bufferedLinePrefixes.push(line);
-        bufferedLineSuffixes.push("");
-      } else {
-        outLines.push(line);
+  let outParts = [];
+  let lastIndex = 0;
+  for (let directiveMatch of source.matchAll(asmDirectiveRE)) {
+    outParts.push(source.slice(lastIndex, directiveMatch.index));
+    outParts.push(directiveMatch.groups.head);
+    let indentation = "";
+    let assemblyLines = [];
+    for (let commentMatch of directiveMatch.groups.body.matchAll(commentRE)) {
+      let commentIndentation = commentMatch.groups.indentation;
+      if (commentIndentation.length > indentation.length) {
+        indentation = commentIndentation;
       }
-      continue;
+      assemblyLines.push(commentMatch.groups.asm);
+      outParts.push(commentMatch[0]);
+      outParts.push("\n");
     }
-
-    let payload = match.groups.payload;
-    switch (match.groups.tag) {
-      case "@asm-begin":
-        if (assembleOptions !== null) {
-          throw new Error(
-            "unterminated @asm-begin; expected @asm-end before @asm-begin directive"
-          );
-        }
-        assembleOptions = { arch: payload };
-        assemblyLines.length = 0;
-        bufferedLinePrefixes.length = 0;
-        bufferedLineSuffixes.length = 0;
-        assemblyLines.push("");
-        bufferedLinePrefixes.push(line);
-        bufferedLineSuffixes.push("");
-        break;
-
-      case "@asm-end": {
-        assemblyLines.push("");
-        bufferedLinePrefixes.push(line);
-        bufferedLineSuffixes.push("");
-        let instructionsBytes = await assembleAsync(
-          assemblyLines,
-          assembleOptions
-        );
-        let widthBeforeComment = 0;
-        for (let i = 0; i < instructionsBytes.length; ++i) {
-          let bytes = instructionsBytes[i];
-          if (bytes.length > 0) {
-            let prefix = bufferedLinePrefixes[i];
-            let numbersLength = 6 * bytes.length - 1;
-            let thisLineWidthBeforeComment = prefix.length + numbersLength + 2;
-            if (thisLineWidthBeforeComment > widthBeforeComment) {
-              widthBeforeComment = thisLineWidthBeforeComment;
-            }
-          }
-        }
-        for (let i = 0; i < instructionsBytes.length; ++i) {
-          let bytes = instructionsBytes[i];
-          let prefix = bufferedLinePrefixes[i];
-          let suffix = bufferedLineSuffixes[i];
-          if (bytes.length > 0) {
-            outLines.push(
-              (prefix + makeCxxNumberLiterals(bytes)).padEnd(
-                widthBeforeComment,
-                " "
-              ) + suffix
-            );
-          } else {
-            outLines.push(prefix + suffix);
-          }
-        }
-        assembleOptions = null;
-        break;
+    let instructionsBytes = await assembleAsync(assemblyLines, {
+      arch: "x86_64",
+    });
+    for (let i = 0; i < instructionsBytes.length; ++i) {
+      let bytes = instructionsBytes[i];
+      if (bytes.length > 0) {
+        outParts.push(indentation);
+        outParts.push(makeCxxNumberLiterals(bytes));
+        outParts.push("\n");
       }
-
-      case "@asm":
-        assemblyLines.push(payload);
-        bufferedLinePrefixes.push(match.groups.prefix);
-        bufferedLineSuffixes.push(match.groups.comment);
-        break;
     }
+    outParts.push(directiveMatch.groups.tail);
+    lastIndex = directiveMatch.index + directiveMatch[0].length;
   }
-  if (assembleOptions !== null) {
-    throw new Error(
-      "unterminated @asm-begin; expected @asm-end before end of file"
-    );
-  }
-
-  return outLines.join("\n");
+  outParts.push(source.slice(lastIndex));
+  return outParts.join("");
 }
 
 function makeCxxNumberLiterals(numbers) {

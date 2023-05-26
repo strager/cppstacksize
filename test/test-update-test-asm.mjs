@@ -62,77 +62,87 @@ describe("update test ASM", () => {
     assert.strictEqual(await updateTestASMAsync(source), source);
   });
 
-  it("should add bytes before single x86_64 code line", async () => {
+  it("should add bytes after single x86_64 code line", async () => {
     let source =
-      "// @asm-begin x86_64\n" + //
-      "// @asm xor %eax, %eax\n" + //
-      "// @asm-end\n";
+      "ASM_X86_64(\n" + //
+      "  // xor %eax, %eax\n" + //
+      ")\n";
     let expected =
-      "// @asm-begin x86_64\n" + //
-      "0x31, 0xc0,  // @asm xor %eax, %eax\n" + //
-      "// @asm-end\n";
+      "ASM_X86_64(\n" + //
+      "  // xor %eax, %eax\n" + //
+      "  0x31, 0xc0,\n" + //
+      ")\n";
     assert.strictEqual(await updateTestASMAsync(source), expected);
   });
 
-  it("should add bytes before multiple x86_64 code lines as needed", async () => {
+  it("should add bytes after multiple x86_64 code lines", async () => {
     let source =
-      "// @asm-begin x86_64\n" + //
-      "// @asm xor %eax, %eax\n" + //
-      "// @asm .loop:\n" + //
-      "// @asm jmp .loop\n" + //
-      "// @asm-end\n";
+      "ASM_X86_64(\n" + //
+      "  // xor %eax, %eax\n" + //
+      "  // .loop:\n" + //
+      "  // jmp .loop\n" + //
+      ")\n";
     let expected =
-      "// @asm-begin x86_64\n" + //
-      "0x31, 0xc0,  // @asm xor %eax, %eax\n" + //
-      "// @asm .loop:\n" + //
-      "0xeb, 0xfc,  // @asm jmp .loop\n" + //
-      "// @asm-end\n";
+      "ASM_X86_64(\n" + //
+      "  // xor %eax, %eax\n" + //
+      "  // .loop:\n" + //
+      "  // jmp .loop\n" + //
+      "  0x31, 0xc0,\n" + //
+      "  0xeb, 0xfc,\n" + //
+      ")\n";
     assert.strictEqual(await updateTestASMAsync(source), expected);
   });
 
-  it("leaves non-@asm lines as-is", async () => {
+  it("should replace bytes after single x86_64 code line", async () => {
     let source =
-      "// @asm-begin x86_64\n" + //
-      "hello\n" + //
-      "// @asm xor %eax, %eax\n" + //
-      "// world\n" + //
-      "// @asm-end\n";
+      "ASM_X86_64(\n" + //
+      "  // xor %eax, %eax\n" + //
+      "  0x69,\n" + //
+      ")\n";
     let expected =
-      "// @asm-begin x86_64\n" + //
-      "hello\n" + //
-      "0x31, 0xc0,  // @asm xor %eax, %eax\n" + //
-      "// world\n" + //
-      "// @asm-end\n";
+      "ASM_X86_64(\n" + //
+      "  // xor %eax, %eax\n" + //
+      "  0x31, 0xc0,\n" + //
+      ")\n";
     assert.strictEqual(await updateTestASMAsync(source), expected);
   });
 
-  it("should replace bytes before single x86_64 code line", async () => {
+  it("should update ASM_X86_64 blocks independently", async () => {
     let source =
-      "// @asm-begin x86_64\n" + //
-      "0x69,  // @asm xor %eax, %eax\n" + //
-      "// @asm-end\n";
+      "ASM_X86_64(\n" + //
+      "  // .loop:\n" + //
+      "  // jmp .loop\n" + //
+      "  0x69,\n" + //
+      ")\n" + //
+      "ASM_X86_64(\n" + //
+      "  // .loop:\n" + //
+      "  // jne .loop\n" + //
+      "  0x69,\n" + //
+      ")\n";
     let expected =
-      "// @asm-begin x86_64\n" + //
-      "0x31, 0xc0,  // @asm xor %eax, %eax\n" + //
-      "// @asm-end\n";
+      "ASM_X86_64(\n" + //
+      "  // .loop:\n" + //
+      "  // jmp .loop\n" + //
+      "  0xeb, 0xfc,\n" + //
+      ")\n" + //
+      "ASM_X86_64(\n" + //
+      "  // .loop:\n" + //
+      "  // jne .loop\n" + //
+      "  0x75, 0xfc,\n" + //
+      ")\n";
     assert.strictEqual(await updateTestASMAsync(source), expected);
   });
 
-  it("aligns @asm comments", async () => {
+  it("should preserve leading indentation after last byte", async () => {
     let source =
-      "// @asm-begin x86_64\n" + //
-      "0x31, 0xc0,  // @asm xor %eax, %eax\n" + //
-      "// @asm mov %rbp, %rsp\n" + //
-      "// don't touch this line\n" + //
-      "// @asm hlt\n" + //
-      "// @asm-end\n";
+      "    ASM_X86_64(\n" + //
+      "        // xor %eax, %eax\n" + //
+      "    )\n";
     let expected =
-      "// @asm-begin x86_64\n" + //
-      "0x31, 0xc0,        // @asm xor %eax, %eax\n" + //
-      "0x48, 0x89, 0xec,  // @asm mov %rbp, %rsp\n" + //
-      "// don't touch this line\n" + //
-      "0xf4,              // @asm hlt\n" + //
-      "// @asm-end\n";
+      "    ASM_X86_64(\n" + //
+      "        // xor %eax, %eax\n" + //
+      "        0x31, 0xc0,\n" + //
+      "    )\n";
     assert.strictEqual(await updateTestASMAsync(source), expected);
   });
 });
