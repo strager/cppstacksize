@@ -12,7 +12,8 @@ cppstacksize_includes = include_directories('src/')
 cppstacksize_lib = library(
   'cppstacksize-lib',
   [
-    'src/cppstacksize/hello.cpp',
+    'src/cppstacksize/asm-stack-map.cpp',
+    'src/cppstacksize/asm-stack-map.h',
   ],
   include_directories: [cppstacksize_includes],
   dependencies: [
@@ -25,16 +26,18 @@ cppstacksize_lib_dep = declare_dependency(
 )
 
 test_sources = [
-  'test/test-hello.cpp',
+  'test/test-asm-stack-map.cpp',
 ]
 tests = executable(
   'cppstacksize-test',
   test_sources,
   dependencies: [
     cppstacksize_lib_dep,
-    gtest_proj.get_variable('gtest_dep'),
-    gtest_proj.get_variable('gtest_main_dep'),
+    gtest_proj.get_variable('gmock_dep'),
+    gtest_proj.get_variable('gmock_main_dep'),
   ],
+  override_options: ['cpp_std=c++20'],
+  cpp_pch: ['test/pch.h'],
 )
 test('tests', tests)
 
