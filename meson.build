@@ -12,6 +12,7 @@ cppstacksize_includes = include_directories('src/')
 cppstacksize_lib = library(
   'cppstacksize-lib',
   [
+    'src/cppstacksize/asm-stack-map-debug.cpp',
     'src/cppstacksize/asm-stack-map.cpp',
     'src/cppstacksize/asm-stack-map.h',
     'src/cppstacksize/base.h',
