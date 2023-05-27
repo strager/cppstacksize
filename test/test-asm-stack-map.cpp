@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+using ::testing::ElementsAreArray;
 using ::testing::IsEmpty;
 
 #define CHECK_TOUCHES(code, ...)                               \
@@ -20,11 +21,9 @@ TEST(Test_ASM_Stack_Map, function_not_touching_stack) {
       // mov %rax, %rbx
       // nop
       // add %rax, %rax
-      // ret
       0x48, 0x89, 0xc3,
       0x90,
       0x48, 0x01, 0xc0,
-      0xc3,
   );
   // clang-format on
   Stack_Map sm = analyze_x86_64_stack_map(code);
@@ -329,6 +328,20 @@ TEST(Test_ASM_Stack_Map,
   });
 
   // clang-format on
+}
+
+TEST(Test_ASM_Stack_Map, ret_reads_return_address_and_adjusts_stack) {
+  {
+    static constexpr U8 code[] = ASM_X86_64(
+        // ret
+        0xc3, );
+    Stack_Map sm = analyze_x86_64_stack_map(code);
+    EXPECT_EQ(sm.registers.values[Register_Name::rsp],
+              Register_Value::make_entry_rsp_relative(8));
+    EXPECT_THAT(sm.touches, ElementsAreArray({
+                                Stack_Map_Touch::read(0, 0, 8),
+                            }));
+  }
 }
 }
 }
