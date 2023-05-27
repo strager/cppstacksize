@@ -29,7 +29,9 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
     ::cs_detail* details = instruction.detail;
 
     switch (instruction.id) {
+      case ::X86_INS_ADD:
       case ::X86_INS_SUB: {
+        bool add = instruction.id == ::X86_INS_ADD;
         CSS_ASSERT(details->x86.op_count == 2);
         ::cs_x86_op* src = &details->x86.operands[1];
         ::cs_x86_op* dest = &details->x86.operands[0];
@@ -37,8 +39,14 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
           if (src->type == ::X86_OP_IMM) {
             // Examples:
             // sub $0x18, %rsp
-            // TODO(strager): Checked addition.
-            rsp_adjustment -= src->imm;
+            // add $0x18, %rsp
+            S64 increment = src->imm;
+            // TODO(strager): Checked addition/subtraction.
+            if (add) {
+              rsp_adjustment += increment;
+            } else {
+              rsp_adjustment -= increment;
+            }
           }
         }
         break;

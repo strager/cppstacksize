@@ -232,6 +232,15 @@ TEST(Test_ASM_Stack_Map, rsp_relative_mov_after_stack_adjustment) {
     Stack_Map_Touch::write(4, -0x50 + 0x30, 8),
   });
 
+  CHECK_TOUCHES(ASM_X86_64(
+    // add $0x50, %rsp
+    // mov %rax, 0x30(%rsp)
+    0x48, 0x83, 0xc4, 0x50,
+    0x48, 0x89, 0x44, 0x24, 0x30,
+  ), {
+    Stack_Map_Touch::write(4, +0x50 + 0x30, 8),
+  });
+
   // clang-format on
 }
 
