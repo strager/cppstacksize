@@ -152,5 +152,20 @@ TEST(Test_ASM_Stack_Map, offset_is_byte_of_start_of_instruction) {
 
   // clang-format on
 }
+
+TEST(Test_ASM_Stack_Map, rsp_relative_mov_after_stack_adjustment) {
+  // clang-format off
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // sub $0x50, %rsp
+    // mov %rax, 0x30(%rsp)
+    0x48, 0x83, 0xec, 0x50,
+    0x48, 0x89, 0x44, 0x24, 0x30,
+  ), {
+    Stack_Map_Touch::write(4, -0x50 + 0x30, 8),
+  });
+
+  // clang-format on
+}
 }
 }
