@@ -160,7 +160,7 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
                   break;
                 }
                 default:
-                  this->values[Register_Name::rax] = Register_Value();
+                  this->values[name] = Register_Value();
                   break;
               }
               break;
