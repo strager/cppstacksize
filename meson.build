@@ -32,10 +32,12 @@ cppstacksize_lib_dep = declare_dependency(
 
 test_sources = [
   'test/test-asm-stack-map.cpp',
+  'test/test-register.cpp',
 ]
 tests = executable(
   'cppstacksize-test',
   test_sources,
+  include_directories: include_directories('test/'),
   dependencies: [
     cppstacksize_lib_dep,
     gtest_proj.get_variable('gmock_dep'),
