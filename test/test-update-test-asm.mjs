@@ -145,4 +145,16 @@ describe("update test ASM", () => {
       "    )\n";
     assert.strictEqual(await updateTestASMAsync(source), expected);
   });
+
+  it("updates if closing paren is on same line as bytes", async () => {
+    let source =
+      "    ASM_X86_64(\n" + //
+      "        // xor %eax, %eax\n" + //
+      "        0x00, )\n";
+    let expected =
+      "    ASM_X86_64(\n" + //
+      "        // xor %eax, %eax\n" + //
+      "        0x31, 0xc0, )\n";
+    assert.strictEqual(await updateTestASMAsync(source), expected);
+  });
 });

@@ -4,7 +4,7 @@ import { isModuleNodeMain } from "./is-main.mjs";
 
 export async function updateTestASMAsync(source) {
   let asmDirectiveRE =
-    /\b(?<head>ASM_X86_64\((?:\s*\n)?)(?<body>(?:[ \t]*[^)\n]*(?:\/\/[^\n]*)?\n)*)(?<tail>\s*\))/g;
+    /\b(?<head>ASM_X86_64\((?:\s*\n)?)(?<body>(?:[ \t]*[^)\n]*(?:\/\/[^\n]*)?\n)*(?<bodyLastLine>[ \t]*?[^)\n]*?))(?<tail>\s*\))/g;
   let commentRE = /^(?<indentation>[ \t]*)\/\/\s*(?<asm>[^\n]*)/gm;
 
   let outParts = [];
@@ -26,13 +26,20 @@ export async function updateTestASMAsync(source) {
     let instructionsBytes = await assembleAsync(assemblyLines, {
       arch: "x86_64",
     });
+    let wroteInstructionBytes = false;
     for (let i = 0; i < instructionsBytes.length; ++i) {
       let bytes = instructionsBytes[i];
       if (bytes.length > 0) {
         outParts.push(indentation);
         outParts.push(makeCxxNumberLiterals(bytes));
         outParts.push("\n");
+        wroteInstructionBytes = true;
       }
+    }
+    if (directiveMatch.groups.bodyLastLine && wroteInstructionBytes) {
+      // Don't add an extra \n between ',' and ')'.
+      console.assert(outParts.at(-1) === '\n');
+      outParts.pop();
     }
     outParts.push(directiveMatch.groups.tail);
     lastIndex = directiveMatch.index + directiveMatch[0].length;
