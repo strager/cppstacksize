@@ -153,6 +153,49 @@ TEST(Test_ASM_Stack_Map, offset_is_byte_of_start_of_instruction) {
   // clang-format on
 }
 
+TEST(Test_ASM_Stack_Map, push_touches_stack) {
+  // clang-format off
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // pushq %rax
+    0x50,
+  ), {
+    Stack_Map_Touch::write(0, -8, 8),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // pushw %bx
+    0x66, 0x53,
+  ), {
+    Stack_Map_Touch::write(0, -2, 2),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // pushw (%rbp)
+    0x66, 0xff, 0x75, 0x00,
+  ), {
+    Stack_Map_Touch::write(0, -2, 2),
+  });
+
+  // clang-format on
+}
+
+TEST(Test_ASM_Stack_Map, push_updates_rsp) {
+  // clang-format off
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // pushq %rax
+    // movq $69, (%rsp)
+    0x50,
+    0x48, 0xc7, 0x04, 0x24, 0x45, 0x00, 0x00, 0x00,
+  ), {
+    Stack_Map_Touch::write(0, -8, 8),
+    Stack_Map_Touch::write(1, -8, 8),
+  });
+
+  // clang-format on
+}
+
 TEST(Test_ASM_Stack_Map, rsp_relative_mov_after_stack_adjustment) {
   // clang-format off
 
@@ -163,6 +206,21 @@ TEST(Test_ASM_Stack_Map, rsp_relative_mov_after_stack_adjustment) {
     0x48, 0x89, 0x44, 0x24, 0x30,
   ), {
     Stack_Map_Touch::write(4, -0x50 + 0x30, 8),
+  });
+
+  // clang-format on
+}
+
+TEST(Test_ASM_Stack_Map, push_after_stack_adjustment) {
+  // clang-format off
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // sub $0x50, %rsp
+    // pushq (%rdi)
+    0x48, 0x83, 0xec, 0x50,
+    0xff, 0x37,
+  ), {
+    Stack_Map_Touch::write(4, -0x50 - 8, 8),
   });
 
   // clang-format on
