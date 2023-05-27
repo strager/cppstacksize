@@ -126,6 +126,48 @@ TEST(Test_ASM_Stack_Map, rsp_relative_load_touches) {
     Stack_Map_Touch::read(0, 0x20, 1),
   });
 
+  CHECK_TOUCHES(ASM_X86_64(
+    // movzbl 0x20(%rsp), %eax
+    0x0f, 0xb6, 0x44, 0x24, 0x20,
+  ), {
+    Stack_Map_Touch::read(0, 0x20, 1),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // movzbq 0x20(%rsp), %rax
+    0x48, 0x0f, 0xb6, 0x44, 0x24, 0x20,
+  ), {
+    Stack_Map_Touch::read(0, 0x20, 1),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // movzwq 0x20(%rsp), %rax
+    0x48, 0x0f, 0xb7, 0x44, 0x24, 0x20,
+  ), {
+    Stack_Map_Touch::read(0, 0x20, 2),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // movslq 0x20(%rsp), %rax
+    0x48, 0x63, 0x44, 0x24, 0x20,
+  ), {
+    Stack_Map_Touch::read(0, 0x20, 4),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // movsbq 0x20(%rsp), %rbx
+    0x48, 0x0f, 0xbe, 0x5c, 0x24, 0x20,
+  ), {
+    Stack_Map_Touch::read(0, 0x20, 1),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // movswq 0x20(%rsp), %rbx
+    0x48, 0x0f, 0xbf, 0x5c, 0x24, 0x20,
+  ), {
+    Stack_Map_Touch::read(0, 0x20, 2),
+  });
+
   // clang-format on
 }
 

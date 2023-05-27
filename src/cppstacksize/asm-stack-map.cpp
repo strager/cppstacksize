@@ -81,12 +81,11 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
           // Examples:
           // mov other_operand, (%rsp)
           // mov (%rsp), other_operand
-          ::cs_x86_op* other_operand =
-              &details->x86.operands[1 - operand_index];
+          // movzbl (%rsp), other_operand
           map.touches.push_back(Stack_Map_Touch{
               .offset = narrow_cast<U32>(instruction.address),
               .entry_rsp_relative_address = rsp_adjustment + operand->mem.disp,
-              .byte_count = other_operand->size,
+              .byte_count = operand->size,
               .access_kind = operand->access == ::CS_AC_WRITE
                                  ? Stack_Access_Kind::write
                                  : Stack_Access_Kind::read,
