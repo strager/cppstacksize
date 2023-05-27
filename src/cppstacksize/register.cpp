@@ -27,6 +27,7 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
     // mov $0, %rax
     // mov $69, %ah
     switch (static_cast<::x86_reg>(dest)) {
+      case ::X86_REG_EAX:
       case ::X86_REG_RAX:
         this->values[Register_Name::rax] =
             Register_Value::make_literal(src.imm);
