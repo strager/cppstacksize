@@ -33,6 +33,48 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
             Register_Value::make_literal(src.imm);
         break;
 
+      case ::X86_REG_AX: {
+        Register_Value old_value = this->values[Register_Name::rax];
+        switch (old_value.kind) {
+          case Register_Value_Kind::literal:
+            this->values[Register_Name::rax] = Register_Value::make_literal(
+                (old_value.literal & ~U64(0xffff)) | src.imm);
+            break;
+          default:
+            this->values[Register_Name::rax] = Register_Value();
+            break;
+        }
+        break;
+      }
+
+      case ::X86_REG_AL: {
+        Register_Value old_value = this->values[Register_Name::rax];
+        switch (old_value.kind) {
+          case Register_Value_Kind::literal:
+            this->values[Register_Name::rax] = Register_Value::make_literal(
+                (old_value.literal & ~U64(0xff)) | src.imm);
+            break;
+          default:
+            this->values[Register_Name::rax] = Register_Value();
+            break;
+        }
+        break;
+      }
+
+      case ::X86_REG_AH: {
+        Register_Value old_value = this->values[Register_Name::rax];
+        switch (old_value.kind) {
+          case Register_Value_Kind::literal:
+            this->values[Register_Name::rax] = Register_Value::make_literal(
+                (old_value.literal & ~U64(0xff00)) | (src.imm << 8));
+            break;
+          default:
+            this->values[Register_Name::rax] = Register_Value();
+            break;
+        }
+        break;
+      }
+
       default:
         // TODO(strager)
         break;
