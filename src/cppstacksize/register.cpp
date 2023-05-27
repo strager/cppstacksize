@@ -1,9 +1,40 @@
-#include "cppstacksize/asm-stack-map.h"
+#include <array>
 #include <capstone/capstone.h>
+#include <cppstacksize/asm-stack-map.h>
 #include <cppstacksize/base.h>
 #include <cppstacksize/register.h>
 
 namespace cppstacksize {
+namespace {
+constexpr std::array<Register_Name, ::X86_REG_ENDING>
+make_capstone_x86_reg_to_register_name() {
+  std::array<Register_Name, ::X86_REG_ENDING> names;
+  for (Register_Name& name : names) {
+    name = Register_Name::max_register_name;
+  }
+  names[::X86_REG_RAX] = Register_Name::rax;
+  names[::X86_REG_RBX] = Register_Name::rbx;
+  names[::X86_REG_RCX] = Register_Name::rcx;
+  names[::X86_REG_RDX] = Register_Name::rdx;
+  names[::X86_REG_RSI] = Register_Name::rsi;
+  names[::X86_REG_RDI] = Register_Name::rdi;
+  names[::X86_REG_RBP] = Register_Name::rbp;
+  names[::X86_REG_R8] = Register_Name::r8;
+  names[::X86_REG_R9] = Register_Name::r9;
+  names[::X86_REG_R10] = Register_Name::r10;
+  names[::X86_REG_R11] = Register_Name::r11;
+  names[::X86_REG_R12] = Register_Name::r12;
+  names[::X86_REG_R13] = Register_Name::r13;
+  names[::X86_REG_R14] = Register_Name::r14;
+  names[::X86_REG_R15] = Register_Name::r15;
+  return names;
+}
+
+constexpr std::array<Register_Name, ::X86_REG_ENDING>
+    capstone_x86_reg_to_register_name =
+        make_capstone_x86_reg_to_register_name();
+}
+
 bool operator==(const Register_Value& lhs, const Register_Value& rhs) {
   if (lhs.kind != rhs.kind) return false;
   switch (lhs.kind) {
@@ -27,8 +58,17 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
     // mov $0, %rax
     // mov $69, %ah
     switch (static_cast<::x86_reg>(dest)) {
+      default: {
+        Register_Name name = capstone_x86_reg_to_register_name[dest];
+        if (name == Register_Name::max_register_name) {
+          // TODO(strager)
+        } else {
+          this->values[name] = Register_Value::make_literal(src.imm);
+        }
+        break;
+      }
+
       case ::X86_REG_EAX:
-      case ::X86_REG_RAX:
         this->values[Register_Name::rax] =
             Register_Value::make_literal(src.imm);
         break;
@@ -62,10 +102,6 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
         }
         break;
       }
-
-      default:
-        // TODO(strager)
-        break;
     }
   }
 }

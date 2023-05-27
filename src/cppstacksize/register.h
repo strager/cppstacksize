@@ -15,6 +15,20 @@ enum class Register_Value_Kind : U8 {
 
 enum Register_Name : U8 {
   rax,
+  rbx,
+  rcx,
+  rdx,
+  rsi,
+  rdi,
+  rbp,
+  r8,
+  r9,
+  r10,
+  r11,
+  r12,
+  r13,
+  r14,
+  r15,
 
   max_register_name,
 };

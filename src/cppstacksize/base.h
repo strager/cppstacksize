@@ -1,7 +1,10 @@
 #ifndef CPPSTACKSIZE_BASE_H
 #define CPPSTACKSIZE_BASE_H
 
+#include <cassert>
 #include <cstdint>
+
+#define CSS_ASSERT(cond) assert(cond)
 
 namespace cppstacksize {
 using S32 = std::int32_t;

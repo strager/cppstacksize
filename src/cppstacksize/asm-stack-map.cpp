@@ -1,9 +1,6 @@
 #include <capstone/capstone.h>
-#include <cassert>
 #include <cppstacksize/asm-stack-map.h>
 #include <cppstacksize/register.h>
-
-#define CSS_ASSERT(cond) assert(cond)
 
 namespace cppstacksize {
 template <class Out, class In>
