@@ -33,41 +33,29 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
             Register_Value::make_literal(src.imm);
         break;
 
+      case ::X86_REG_AH:
+      case ::X86_REG_AL:
       case ::X86_REG_AX: {
         Register_Value old_value = this->values[Register_Name::rax];
         switch (old_value.kind) {
-          case Register_Value_Kind::literal:
-            this->values[Register_Name::rax] = Register_Value::make_literal(
-                (old_value.literal & ~U64(0xffff)) | src.imm);
+          case Register_Value_Kind::literal: {
+            U64 value = old_value.literal;
+            switch (static_cast<::x86_reg>(dest)) {
+              case ::X86_REG_AX:
+                value = (value & ~U64(0xffff)) | src.imm;
+                break;
+              case ::X86_REG_AL:
+                value = (value & ~U64(0xff)) | src.imm;
+                break;
+              case ::X86_REG_AH:
+                value = (value & ~U64(0xff00)) | (src.imm << 8);
+                break;
+              default:
+                __builtin_unreachable();
+            }
+            this->values[Register_Name::rax].literal = value;
             break;
-          default:
-            this->values[Register_Name::rax] = Register_Value();
-            break;
-        }
-        break;
-      }
-
-      case ::X86_REG_AL: {
-        Register_Value old_value = this->values[Register_Name::rax];
-        switch (old_value.kind) {
-          case Register_Value_Kind::literal:
-            this->values[Register_Name::rax] = Register_Value::make_literal(
-                (old_value.literal & ~U64(0xff)) | src.imm);
-            break;
-          default:
-            this->values[Register_Name::rax] = Register_Value();
-            break;
-        }
-        break;
-      }
-
-      case ::X86_REG_AH: {
-        Register_Value old_value = this->values[Register_Name::rax];
-        switch (old_value.kind) {
-          case Register_Value_Kind::literal:
-            this->values[Register_Name::rax] = Register_Value::make_literal(
-                (old_value.literal & ~U64(0xff00)) | (src.imm << 8));
-            break;
+          }
           default:
             this->values[Register_Name::rax] = Register_Value();
             break;
