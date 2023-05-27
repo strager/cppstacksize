@@ -124,49 +124,44 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
     // Examples:
     // mov $0, %rax
     // mov $69, %ah
-    switch (static_cast<::x86_reg>(dest)) {
-      default: {
-        Register_Name name = capstone_x86_reg_to_register_name[dest];
-        if (name == Register_Name::max_register_name) {
-          // TODO(strager)
-        } else {
-          switch (capstone_x86_reg_to_register_piece[dest]) {
-            case Register_Piece::low_32:
-            case Register_Piece::low_64:
-              this->values[name] = Register_Value::make_literal(src.imm);
-              break;
+    Register_Name name = capstone_x86_reg_to_register_name[dest];
+    if (name == Register_Name::max_register_name) {
+      // TODO(strager)
+    } else {
+      switch (capstone_x86_reg_to_register_piece[dest]) {
+        case Register_Piece::low_32:
+        case Register_Piece::low_64:
+          this->values[name] = Register_Value::make_literal(src.imm);
+          break;
 
-            case Register_Piece::low_16:
-            case Register_Piece::low_16_high_8:
-            case Register_Piece::low_8:
-              Register_Value old_value = this->values[name];
-              switch (old_value.kind) {
-                case Register_Value_Kind::literal: {
-                  U64 value = old_value.literal;
-                  switch (capstone_x86_reg_to_register_piece[dest]) {
-                    case Register_Piece::low_16:
-                      value = (value & ~U64(0xffff)) | src.imm;
-                      break;
-                    case Register_Piece::low_8:
-                      value = (value & ~U64(0xff)) | src.imm;
-                      break;
-                    case Register_Piece::low_16_high_8:
-                      value = (value & ~U64(0xff00)) | (src.imm << 8);
-                      break;
-                    default:
-                      __builtin_unreachable();
-                  }
-                  this->values[name].literal = value;
+        case Register_Piece::low_16:
+        case Register_Piece::low_16_high_8:
+        case Register_Piece::low_8:
+          Register_Value old_value = this->values[name];
+          switch (old_value.kind) {
+            case Register_Value_Kind::literal: {
+              U64 value = old_value.literal;
+              switch (capstone_x86_reg_to_register_piece[dest]) {
+                case Register_Piece::low_16:
+                  value = (value & ~U64(0xffff)) | src.imm;
                   break;
-                }
+                case Register_Piece::low_8:
+                  value = (value & ~U64(0xff)) | src.imm;
+                  break;
+                case Register_Piece::low_16_high_8:
+                  value = (value & ~U64(0xff00)) | (src.imm << 8);
+                  break;
                 default:
-                  this->values[name] = Register_Value();
-                  break;
+                  __builtin_unreachable();
               }
+              this->values[name].literal = value;
+              break;
+            }
+            default:
+              this->values[name] = Register_Value();
               break;
           }
-        }
-        break;
+          break;
       }
     }
   }
@@ -202,38 +197,33 @@ Register_Value Register_File::load(const ::cs_x86_op& src) {
 }
 
 void Register_File::add(/*::x86_reg*/ U32 dest, U64 addend) {
-  switch (static_cast<::x86_reg>(dest)) {
-    default: {
-      Register_Name name = capstone_x86_reg_to_register_name[dest];
-      if (name == Register_Name::max_register_name) {
-        // TODO(strager)
-      } else {
-        Register_Value& value = this->values[name];
-        switch (capstone_x86_reg_to_register_piece[dest]) {
-          case Register_Piece::low_64: {
-            switch (value.kind) {
-              case Register_Value_Kind::unknown:
-                // Do nothing.
-                break;
-              case Register_Value_Kind::entry_rsp_relative:
-                value.entry_rsp_relative_offset += addend;
-                break;
-              case Register_Value_Kind::literal:
-                value.literal += addend;
-                break;
-            }
+  Register_Name name = capstone_x86_reg_to_register_name[dest];
+  if (name == Register_Name::max_register_name) {
+    // TODO(strager)
+  } else {
+    Register_Value& value = this->values[name];
+    switch (capstone_x86_reg_to_register_piece[dest]) {
+      case Register_Piece::low_64: {
+        switch (value.kind) {
+          case Register_Value_Kind::unknown:
+            // Do nothing.
             break;
-          }
-
-          case Register_Piece::low_32:
-          case Register_Piece::low_16:
-          case Register_Piece::low_16_high_8:
-          case Register_Piece::low_8:
-            // TODO(strager)
+          case Register_Value_Kind::entry_rsp_relative:
+            value.entry_rsp_relative_offset += addend;
+            break;
+          case Register_Value_Kind::literal:
+            value.literal += addend;
             break;
         }
+        break;
       }
-      break;
+
+      case Register_Piece::low_32:
+      case Register_Piece::low_16:
+      case Register_Piece::low_16_high_8:
+      case Register_Piece::low_8:
+        // TODO(strager)
+        break;
     }
   }
 }
