@@ -34,9 +34,23 @@ test_sources = [
   'test/test-asm-stack-map.cpp',
   'test/test-register.cpp',
 ]
+# TODO(strager): Commit the generated file into source control and make this
+# step optional.
+test_asm_generated_src = custom_target(
+  'test-asm-generated',
+  input: ['src/update-test-asm.mjs', test_sources],
+  output: ['test-asm-generated.cpp'],
+  command: [
+    'node', '@SOURCE_ROOT@/src/update-test-asm.mjs',
+    '@OUTPUT@',
+    # TODO(strager): Auto-fill this based on test_sources.
+    '@INPUT1@', '@INPUT2@',
+  ],
+)
+
 tests = executable(
   'cppstacksize-test',
-  test_sources,
+  [test_sources, test_asm_generated_src],
   include_directories: include_directories('test/'),
   dependencies: [
     cppstacksize_lib_dep,
@@ -47,8 +61,3 @@ tests = executable(
   cpp_pch: ['test/pch.h'],
 )
 test('tests', tests)
-
-run_target(
-  'update-test-asm',
-  command: ['contrib/update-test-asm.sh'] + test_sources,
-)

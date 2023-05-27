@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { assembleAsync, updateTestASMAsync } from "../src/update-test-asm.mjs";
+import { assembleAsync, assembleTestASMsAsync } from "../src/update-test-asm.mjs";
 
 describe("assemble", () => {
   it("should give bytes of one instruction", async () => {
@@ -59,102 +59,59 @@ describe("assemble", () => {
 describe("update test ASM", () => {
   it("should do nothing with no directives", async () => {
     let source = "";
-    assert.strictEqual(await updateTestASMAsync(source), source);
+    let asms = await assembleTestASMsAsync(source);
+    assert.deepStrictEqual(asms, new Map());
   });
 
-  it("should add bytes after single x86_64 code line", async () => {
+  it("should make data for single x86_64 code line", async () => {
     let source =
       "ASM_X86_64(\n" + //
-      "  // xor %eax, %eax\n" + //
+      '  "xor %eax, %eax"\n' + //
       ")\n";
-    let expected =
-      "ASM_X86_64(\n" + //
-      "  // xor %eax, %eax\n" + //
-      "  0x31, 0xc0,\n" + //
-      ")\n";
-    assert.strictEqual(await updateTestASMAsync(source), expected);
+    let asms = await assembleTestASMsAsync(source);
+    assert.deepStrictEqual(asms, new Map([
+      ["xor %eax, %eax", [0x31, 0xc0]],
+    ]));
   });
 
-  it("should add bytes after multiple x86_64 code lines", async () => {
+  it("should make data for multiple x86_64 code lines", async () => {
     let source =
       "ASM_X86_64(\n" + //
-      "  // xor %eax, %eax\n" + //
-      "  // .loop:\n" + //
-      "  // jmp .loop\n" + //
+      '  "xor %eax, %eax"\n' + //
+      '  ".loop:"\n' + //
+      '  "jmp .loop"\n' + //
       ")\n";
-    let expected =
-      "ASM_X86_64(\n" + //
-      "  // xor %eax, %eax\n" + //
-      "  // .loop:\n" + //
-      "  // jmp .loop\n" + //
-      "  0x31, 0xc0,\n" + //
-      "  0xeb, 0xfc,\n" + //
-      ")\n";
-    assert.strictEqual(await updateTestASMAsync(source), expected);
+    let asms = await assembleTestASMsAsync(source);
+    assert.deepStrictEqual(asms, new Map([
+      ["xor %eax, %eax.loop:jmp .loop", [0x31, 0xc0, 0xeb, 0xfc]],
+    ]));
   });
 
-  it("should replace bytes after single x86_64 code line", async () => {
+  it("should make data for ASM_X86_64 blocks independently", async () => {
     let source =
       "ASM_X86_64(\n" + //
-      "  // xor %eax, %eax\n" + //
-      "  0x69,\n" + //
-      ")\n";
-    let expected =
-      "ASM_X86_64(\n" + //
-      "  // xor %eax, %eax\n" + //
-      "  0x31, 0xc0,\n" + //
-      ")\n";
-    assert.strictEqual(await updateTestASMAsync(source), expected);
-  });
-
-  it("should update ASM_X86_64 blocks independently", async () => {
-    let source =
-      "ASM_X86_64(\n" + //
-      "  // .loop:\n" + //
-      "  // jmp .loop\n" + //
-      "  0x69,\n" + //
+      '  ".loop:"\n' + //
+      '  "jmp .loop"\n' + //
       ")\n" + //
       "ASM_X86_64(\n" + //
-      "  // .loop:\n" + //
-      "  // jne .loop\n" + //
-      "  0x69,\n" + //
+      '  ".loop:"\n' + //
+      '  "jne .loop"\n' + //
       ")\n";
-    let expected =
-      "ASM_X86_64(\n" + //
-      "  // .loop:\n" + //
-      "  // jmp .loop\n" + //
-      "  0xeb, 0xfc,\n" + //
-      ")\n" + //
-      "ASM_X86_64(\n" + //
-      "  // .loop:\n" + //
-      "  // jne .loop\n" + //
-      "  0x75, 0xfc,\n" + //
-      ")\n";
-    assert.strictEqual(await updateTestASMAsync(source), expected);
+    let asms = await assembleTestASMsAsync(source);
+    assert.deepStrictEqual(asms, new Map([
+      [".loop:jmp .loop", [0xeb, 0xfc]],
+      [".loop:jne .loop", [0x75, 0xfc]],
+    ]));
   });
 
-  it("should preserve leading indentation after last byte", async () => {
+  it("allows ')' inside strings", async () => {
     let source =
-      "    ASM_X86_64(\n" + //
-      "        // xor %eax, %eax\n" + //
-      "    )\n";
-    let expected =
-      "    ASM_X86_64(\n" + //
-      "        // xor %eax, %eax\n" + //
-      "        0x31, 0xc0,\n" + //
-      "    )\n";
-    assert.strictEqual(await updateTestASMAsync(source), expected);
-  });
-
-  it("updates if closing paren is on same line as bytes", async () => {
-    let source =
-      "    ASM_X86_64(\n" + //
-      "        // xor %eax, %eax\n" + //
-      "        0x00, )\n";
-    let expected =
-      "    ASM_X86_64(\n" + //
-      "        // xor %eax, %eax\n" + //
-      "        0x31, 0xc0, )\n";
-    assert.strictEqual(await updateTestASMAsync(source), expected);
+      "ASM_X86_64(\n" + //
+      '  "mov (%rsp), %rbx"\n' + //
+      ")\n";
+    let asms = await assembleTestASMsAsync(source);
+    assert.deepStrictEqual(asms, new Map([
+      ["mov (%rsp), %rbx", [0x48, 0x8b, 0x1c, 0x24]],
+    ]));
   });
 });
