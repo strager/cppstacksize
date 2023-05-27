@@ -19,8 +19,6 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   }
   ::cs_option(handle, ::CS_OPT_DETAIL, ::CS_OPT_ON);
 
-  Register_File registers;
-
   ::cs_insn* instructions;
   U64 base_address = 0;
   U64 instruction_count = ::cs_disasm(handle, code.data(), code.size(),
@@ -32,12 +30,13 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
     ::cs_detail* details = instruction.detail;
 
     switch (instruction.id) {
-      case ::X86_INS_MOV: {
+      case ::X86_INS_MOV:
+      case ::X86_INS_MOVABS: {
         CSS_ASSERT(details->x86.op_count == 2);
         ::cs_x86_op* src = &details->x86.operands[1];
         ::cs_x86_op* dest = &details->x86.operands[0];
         if (dest->type == ::X86_OP_REG) {
-          registers.store(dest->reg, *src);
+          map.registers.store(dest->reg, *src);
         }
         break;
       }
@@ -49,7 +48,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
         ::cs_x86_op* src = &details->x86.operands[1];
         ::cs_x86_op* dest = &details->x86.operands[0];
         if (dest->type == ::X86_OP_REG && dest->reg == ::X86_REG_RSP) {
-          Register_Value src_value = registers.load(*src);
+          Register_Value src_value = map.registers.load(*src);
           if (src_value.kind == Register_Value_Kind::literal) {
             S64 increment = src_value.literal;
             // TODO(strager): Checked addition/subtraction.

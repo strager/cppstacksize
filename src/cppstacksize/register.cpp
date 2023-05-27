@@ -1,8 +1,26 @@
+#include "cppstacksize/asm-stack-map.h"
 #include <capstone/capstone.h>
 #include <cppstacksize/base.h>
 #include <cppstacksize/register.h>
 
 namespace cppstacksize {
+bool operator==(const Register_Value& lhs, const Register_Value& rhs) {
+  if (lhs.kind != rhs.kind) return false;
+  switch (lhs.kind) {
+    case Register_Value_Kind::unknown:
+      return true;
+    case Register_Value_Kind::entry_rsp_relative:
+      return lhs.entry_rsp_relative_offset == rhs.entry_rsp_relative_offset;
+    case Register_Value_Kind::literal:
+      return lhs.literal == rhs.literal;
+  }
+  __builtin_unreachable();
+}
+
+bool operator!=(const Register_Value& lhs, const Register_Value& rhs) {
+  return !(lhs == rhs);
+}
+
 void Register_File::store(U32 dest, const ::cs_x86_op& src) {
   if (src.type == ::X86_OP_IMM) {
     // Examples:

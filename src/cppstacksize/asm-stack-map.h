@@ -2,6 +2,7 @@
 #define CPPSTACKSIZE_ASM_STACK_MAP_H
 
 #include <cppstacksize/base.h>
+#include <cppstacksize/register.h>
 #include <iosfwd>
 #include <span>
 #include <vector>
@@ -43,6 +44,7 @@ struct Stack_Map_Touch {
 };
 
 struct Stack_Map {
+  Register_File registers;
   std::vector<Stack_Map_Touch> touches;
 };
 

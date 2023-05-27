@@ -2,6 +2,7 @@
 #define CPPSTACKSIZE_REGISTER_H
 
 #include <cppstacksize/base.h>
+#include <iosfwd>
 
 typedef struct cs_x86_op cs_x86_op;
 
@@ -29,6 +30,10 @@ struct Register_Value {
     S64 entry_rsp_relative_offset;
   };
 
+  static Register_Value make_literal(S32 value) {
+    return make_literal(static_cast<U64>(value));
+  }
+
   static Register_Value make_literal(S64 value) {
     return make_literal(static_cast<U64>(value));
   }
@@ -39,6 +44,9 @@ struct Register_Value {
         .literal = value,
     };
   }
+
+  friend bool operator==(const Register_Value&, const Register_Value&);
+  friend bool operator!=(const Register_Value&, const Register_Value&);
 };
 
 struct Register_File {
@@ -49,6 +57,8 @@ struct Register_File {
   Register_Value load(/*::x86_reg*/ U32 src);
   Register_Value load(const ::cs_x86_op& src);
 };
+
+std::ostream& operator<<(std::ostream& out, const Register_Value&);
 }
 
 #endif
