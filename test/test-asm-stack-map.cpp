@@ -196,6 +196,30 @@ TEST(Test_ASM_Stack_Map, push_updates_rsp) {
   // clang-format on
 }
 
+TEST(Test_ASM_Stack_Map, pop_updates_rsp) {
+  // clang-format off
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // pop %rax
+    // movq $69, (%rsp)
+    0x58,
+    0x48, 0xc7, 0x04, 0x24, 0x45, 0x00, 0x00, 0x00,
+  ), {
+    Stack_Map_Touch::write(1, 8, 8),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // pop %di
+    // movq $69, (%rsp)
+    0x66, 0x5f,
+    0x48, 0xc7, 0x04, 0x24, 0x45, 0x00, 0x00, 0x00,
+  ), {
+    Stack_Map_Touch::write(2, 2, 8),
+  });
+
+  // clang-format on
+}
+
 TEST(Test_ASM_Stack_Map, rsp_relative_mov_after_stack_adjustment) {
   // clang-format off
 
