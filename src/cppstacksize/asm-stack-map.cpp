@@ -21,8 +21,17 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   U64 instruction_count = ::cs_disasm(handle, code.data(), code.size(),
                                       base_address, 0, &instructions);
 
-  S64 rsp_adjustment = 0;
   Stack_Map map;
+  map.registers.values[Register_Name::rsp] =
+      Register_Value::make_entry_rsp_relative(0);
+  auto get_rsp_adjustment = [&map]() -> S64 {
+    Register_Value& rsp_value = map.registers.values[Register_Name::rsp];
+    if (rsp_value.kind != Register_Value_Kind::entry_rsp_relative) {
+      // TODO(strager)
+      return 0xcccccccc;
+    }
+    return rsp_value.entry_rsp_relative_offset;
+  };
   for (::cs_insn& instruction : std::span(instructions, instruction_count)) {
     ::cs_detail* details = instruction.detail;
 
@@ -50,9 +59,9 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
             S64 increment = src_value.literal;
             // TODO(strager): Checked addition/subtraction.
             if (add) {
-              rsp_adjustment += increment;
+              map.registers.add(dest->reg, increment);
             } else {
-              rsp_adjustment -= increment;
+              map.registers.add(dest->reg, -increment);
             }
           }
         }
@@ -62,17 +71,17 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
       case ::X86_INS_POP: {
         CSS_ASSERT(details->x86.op_count == 1);
         ::cs_x86_op* src = &details->x86.operands[0];
-        rsp_adjustment += src->size;
+        map.registers.add(::X86_REG_RSP, src->size);
         break;
       }
 
       case ::X86_INS_PUSH: {
         CSS_ASSERT(details->x86.op_count == 1);
         ::cs_x86_op* src = &details->x86.operands[0];
-        rsp_adjustment -= src->size;
+        map.registers.add(::X86_REG_RSP, -src->size);
         map.touches.push_back(Stack_Map_Touch{
             .offset = narrow_cast<U32>(instruction.address),
-            .entry_rsp_relative_address = rsp_adjustment,
+            .entry_rsp_relative_address = get_rsp_adjustment(),
             .byte_count = src->size,
             .access_kind = Stack_Access_Kind::write,
         });
@@ -91,7 +100,8 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
           // movzbl (%rsp), other_operand
           map.touches.push_back(Stack_Map_Touch{
               .offset = narrow_cast<U32>(instruction.address),
-              .entry_rsp_relative_address = rsp_adjustment + operand->mem.disp,
+              .entry_rsp_relative_address =
+                  get_rsp_adjustment() + operand->mem.disp,
               .byte_count = operand->size,
               .access_kind = operand->access == ::CS_AC_WRITE
                                  ? Stack_Access_Kind::write

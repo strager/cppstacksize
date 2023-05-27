@@ -21,6 +21,7 @@ enum Register_Name : U8 {
   rsi,
   rdi,
   rbp,
+  rsp,
   r8,
   r9,
   r10,
@@ -41,8 +42,16 @@ struct Register_Value {
     U64 literal;
 
     // If kind == Register_Value_Kind::entry_rsp_relative:
+    // TODO(strager): Make this U64.
     S64 entry_rsp_relative_offset;
   };
+
+  static Register_Value make_entry_rsp_relative(S64 offset) {
+    return Register_Value{
+        .kind = Register_Value_Kind::entry_rsp_relative,
+        .entry_rsp_relative_offset = offset,
+    };
+  }
 
   static Register_Value make_literal(S32 value) {
     return make_literal(static_cast<U64>(value));
@@ -74,6 +83,8 @@ struct Register_File {
 
   Register_Value load(/*::x86_reg*/ U32 src);
   Register_Value load(const ::cs_x86_op& src);
+
+  void add(/*::x86_reg*/ U32 dest, U64 addend);
 };
 
 std::ostream& operator<<(std::ostream& out, const Register_Value&);

@@ -33,6 +33,7 @@ make_capstone_x86_reg_to_register_name() {
   set(Register_Name::rsi, {::X86_REG_RSI, ::X86_REG_ESI,  ::X86_REG_SI,   ::X86_REG_SIL});
   set(Register_Name::rdi, {::X86_REG_RDI, ::X86_REG_EDI,  ::X86_REG_DI,   ::X86_REG_DIL});
   set(Register_Name::rbp, {::X86_REG_RBP, ::X86_REG_EBP,  ::X86_REG_BP,   ::X86_REG_BPL});
+  set(Register_Name::rsp, {::X86_REG_RSP, ::X86_REG_ESP,  ::X86_REG_SP,   ::X86_REG_SPL});
   set(Register_Name::r8,  {::X86_REG_R8,  ::X86_REG_R8D,  ::X86_REG_R8W,  ::X86_REG_R8B});
   set(Register_Name::r9,  {::X86_REG_R9,  ::X86_REG_R9D,  ::X86_REG_R9W,  ::X86_REG_R9B});
   set(Register_Name::r10, {::X86_REG_R10, ::X86_REG_R10D, ::X86_REG_R10W, ::X86_REG_R10B});
@@ -59,7 +60,7 @@ make_capstone_x86_reg_to_register_piece() {
 
   for (::x86_reg r :
        {::X86_REG_RAX, ::X86_REG_RBX, ::X86_REG_RCX, ::X86_REG_RDX,  //
-        ::X86_REG_RSI, ::X86_REG_RDI, ::X86_REG_RBP,                 //
+        ::X86_REG_RSI, ::X86_REG_RDI, ::X86_REG_RBP, ::X86_REG_RSP,  //
         ::X86_REG_R8, ::X86_REG_R9, ::X86_REG_R10, ::X86_REG_R11,    //
         ::X86_REG_R12, ::X86_REG_R13, ::X86_REG_R14, ::X86_REG_R15}) {
     pieces[r] = Register_Piece::low_64;
@@ -67,7 +68,7 @@ make_capstone_x86_reg_to_register_piece() {
 
   for (::x86_reg r :
        {::X86_REG_EAX, ::X86_REG_EBX, ::X86_REG_ECX, ::X86_REG_EDX,    //
-        ::X86_REG_ESI, ::X86_REG_EDI, ::X86_REG_EBP,                   //
+        ::X86_REG_ESI, ::X86_REG_EDI, ::X86_REG_EBP, ::X86_REG_ESP,    //
         ::X86_REG_R8D, ::X86_REG_R9D, ::X86_REG_R10D, ::X86_REG_R11D,  //
         ::X86_REG_R12D, ::X86_REG_R13D, ::X86_REG_R14D, ::X86_REG_R15D}) {
     pieces[r] = Register_Piece::low_32;
@@ -75,7 +76,7 @@ make_capstone_x86_reg_to_register_piece() {
 
   for (::x86_reg r :
        {::X86_REG_AX, ::X86_REG_BX, ::X86_REG_CX, ::X86_REG_DX,        //
-        ::X86_REG_SI, ::X86_REG_DI, ::X86_REG_BP,                      //
+        ::X86_REG_SI, ::X86_REG_DI, ::X86_REG_BP, ::X86_REG_SP,        //
         ::X86_REG_R8W, ::X86_REG_R9W, ::X86_REG_R10W, ::X86_REG_R11W,  //
         ::X86_REG_R12W, ::X86_REG_R13W, ::X86_REG_R14W, ::X86_REG_R15W}) {
     pieces[r] = Register_Piece::low_16;
@@ -83,7 +84,7 @@ make_capstone_x86_reg_to_register_piece() {
 
   for (::x86_reg r :
        {::X86_REG_AL, ::X86_REG_BL, ::X86_REG_CL, ::X86_REG_DL,        //
-        ::X86_REG_SIL, ::X86_REG_DIL, ::X86_REG_BPL,                   //
+        ::X86_REG_SIL, ::X86_REG_DIL, ::X86_REG_BPL, ::X86_REG_SPL,    //
         ::X86_REG_R8B, ::X86_REG_R9B, ::X86_REG_R10B, ::X86_REG_R11B,  //
         ::X86_REG_R12B, ::X86_REG_R13B, ::X86_REG_R14B, ::X86_REG_R15B}) {
     pieces[r] = Register_Piece::low_8;
@@ -198,5 +199,42 @@ Register_Value Register_File::load(const ::cs_x86_op& src) {
       return Register_Value();
   }
   __builtin_unreachable();
+}
+
+void Register_File::add(/*::x86_reg*/ U32 dest, U64 addend) {
+  switch (static_cast<::x86_reg>(dest)) {
+    default: {
+      Register_Name name = capstone_x86_reg_to_register_name[dest];
+      if (name == Register_Name::max_register_name) {
+        // TODO(strager)
+      } else {
+        Register_Value& value = this->values[name];
+        switch (capstone_x86_reg_to_register_piece[dest]) {
+          case Register_Piece::low_64: {
+            switch (value.kind) {
+              case Register_Value_Kind::unknown:
+                // Do nothing.
+                break;
+              case Register_Value_Kind::entry_rsp_relative:
+                value.entry_rsp_relative_offset += addend;
+                break;
+              case Register_Value_Kind::literal:
+                value.literal += addend;
+                break;
+            }
+            break;
+          }
+
+          case Register_Piece::low_32:
+          case Register_Piece::low_16:
+          case Register_Piece::low_16_high_8:
+          case Register_Piece::low_8:
+            // TODO(strager)
+            break;
+        }
+      }
+      break;
+    }
+  }
 }
 }
