@@ -71,6 +71,12 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
       case ::X86_INS_POP: {
         CSS_ASSERT(details->x86.op_count == 1);
         ::cs_x86_op* src = &details->x86.operands[0];
+        map.touches.push_back(Stack_Map_Touch{
+            .offset = narrow_cast<U32>(instruction.address),
+            .entry_rsp_relative_address = get_rsp_adjustment(),
+            .byte_count = src->size,
+            .access_kind = Stack_Access_Kind::read,
+        });
         map.registers.add(::X86_REG_RSP, src->size);
         break;
       }

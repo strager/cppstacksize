@@ -258,6 +258,7 @@ TEST(Test_ASM_Stack_Map, pop_updates_rsp) {
     0x58,
     0x48, 0xc7, 0x04, 0x24, 0x45, 0x00, 0x00, 0x00,
   ), {
+    Stack_Map_Touch::read(0, 0, 8),
     Stack_Map_Touch::write(1, 8, 8),
   });
 
@@ -267,6 +268,7 @@ TEST(Test_ASM_Stack_Map, pop_updates_rsp) {
     0x66, 0x5f,
     0x48, 0xc7, 0x04, 0x24, 0x45, 0x00, 0x00, 0x00,
   ), {
+    Stack_Map_Touch::read(0, 0, 2),
     Stack_Map_Touch::write(2, 2, 8),
   });
 
