@@ -314,5 +314,23 @@ TEST(Test_ASM_Stack_Map, push_after_stack_adjustment) {
 
   // clang-format on
 }
+
+TEST(Test_ASM_Stack_Map,
+     mov_immediate_to_register_then_adjust_rsp_by_register) {
+  // clang-format off
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // mov $0x50, %rax
+    // sub %rax, %rsp
+    // mov %rbx, (%rsp)
+    0x48, 0xc7, 0xc0, 0x50, 0x00, 0x00, 0x00,
+    0x48, 0x29, 0xc4,
+    0x48, 0x89, 0x1c, 0x24,
+  ), {
+    Stack_Map_Touch::write(10, -0x50, 8),
+  });
+
+  // clang-format on
+}
 }
 }

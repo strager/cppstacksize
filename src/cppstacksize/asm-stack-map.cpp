@@ -10,6 +10,41 @@ Out narrow_cast(In value) {
   return static_cast<Out>(value);
 }
 
+enum class Register_Value_Kind : U8 {
+  unknown,
+  literal,
+  entry_rsp_relative,
+};
+
+enum Register_Name : U8 {
+  rax,
+
+  max_register_name,
+};
+
+struct Register_Value {
+  Register_Value_Kind kind = Register_Value_Kind::unknown;
+
+  union {
+    // If kind == Register_Value_Kind::literal:
+    U64 literal;
+
+    // If kind == Register_Value_Kind::entry_rsp_relative:
+    S64 entry_rsp_relative_offset;
+  };
+
+  static Register_Value make_literal(S64 value) {
+    return make_literal(static_cast<U64>(value));
+  }
+
+  static Register_Value make_literal(U64 value) {
+    return Register_Value{
+        .kind = Register_Value_Kind::literal,
+        .literal = value,
+    };
+  }
+};
+
 Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   ::csh handle;
   if (::cs_open(::CS_ARCH_X86, ::CS_MODE_64, &handle) != ::CS_ERR_OK) {
@@ -17,6 +52,8 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
     return Stack_Map();
   }
   ::cs_option(handle, ::CS_OPT_DETAIL, ::CS_OPT_ON);
+
+  Register_Value register_values[Register_Name::max_register_name];
 
   ::cs_insn* instructions;
   U64 base_address = 0;
@@ -29,6 +66,30 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
     ::cs_detail* details = instruction.detail;
 
     switch (instruction.id) {
+      case ::X86_INS_MOV: {
+        CSS_ASSERT(details->x86.op_count == 2);
+        ::cs_x86_op* src = &details->x86.operands[1];
+        ::cs_x86_op* dest = &details->x86.operands[0];
+        if (dest->type == ::X86_OP_REG) {
+          if (src->type == ::X86_OP_IMM) {
+            // Examples:
+            // mov $0, %rax
+            // mov $69, %ah
+            switch (dest->reg) {
+              case ::X86_REG_RAX:
+                register_values[Register_Name::rax] =
+                    Register_Value::make_literal(src->imm);
+                break;
+
+              default:
+                // TODO(strager)
+                break;
+            }
+          }
+        }
+        break;
+      }
+
       case ::X86_INS_ADD:
       case ::X86_INS_SUB: {
         bool add = instruction.id == ::X86_INS_ADD;
@@ -36,11 +97,34 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
         ::cs_x86_op* src = &details->x86.operands[1];
         ::cs_x86_op* dest = &details->x86.operands[0];
         if (dest->type == ::X86_OP_REG && dest->reg == ::X86_REG_RSP) {
-          if (src->type == ::X86_OP_IMM) {
-            // Examples:
-            // sub $0x18, %rsp
-            // add $0x18, %rsp
-            S64 increment = src->imm;
+          Register_Value src_value;
+
+          switch (src->type) {
+            case ::X86_OP_IMM:
+              // Examples:
+              // sub $0x18, %rsp
+              // add $0x18, %rsp
+              src_value = Register_Value::make_literal(src->imm);
+              break;
+
+            case ::X86_OP_REG: {
+              // Examples:
+              // sub %rax, %rsp
+              if (src->reg == ::X86_REG_RAX) {
+                src_value = register_values[Register_Name::rax];
+              } else {
+                // TODO(strager)
+              }
+              break;
+            }
+
+            default:
+              // TODO(strager)
+              break;
+          }
+
+          if (src_value.kind == Register_Value_Kind::literal) {
+            S64 increment = src_value.literal;
             // TODO(strager): Checked addition/subtraction.
             if (add) {
               rsp_adjustment += increment;
