@@ -14,6 +14,9 @@ cppstacksize_lib = library(
   [
     'src/cppstacksize/asm-stack-map.cpp',
     'src/cppstacksize/asm-stack-map.h',
+    'src/cppstacksize/base.h',
+    'src/cppstacksize/register.cpp',
+    'src/cppstacksize/register.h',
   ],
   include_directories: [cppstacksize_includes],
   dependencies: [

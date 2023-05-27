@@ -1,6 +1,7 @@
 #include <capstone/capstone.h>
 #include <cassert>
 #include <cppstacksize/asm-stack-map.h>
+#include <cppstacksize/register.h>
 
 #define CSS_ASSERT(cond) assert(cond)
 
@@ -9,92 +10,6 @@ template <class Out, class In>
 Out narrow_cast(In value) {
   return static_cast<Out>(value);
 }
-
-enum class Register_Value_Kind : U8 {
-  unknown,
-  literal,
-  entry_rsp_relative,
-};
-
-enum Register_Name : U8 {
-  rax,
-
-  max_register_name,
-};
-
-struct Register_Value {
-  Register_Value_Kind kind = Register_Value_Kind::unknown;
-
-  union {
-    // If kind == Register_Value_Kind::literal:
-    U64 literal;
-
-    // If kind == Register_Value_Kind::entry_rsp_relative:
-    S64 entry_rsp_relative_offset;
-  };
-
-  static Register_Value make_literal(S64 value) {
-    return make_literal(static_cast<U64>(value));
-  }
-
-  static Register_Value make_literal(U64 value) {
-    return Register_Value{
-        .kind = Register_Value_Kind::literal,
-        .literal = value,
-    };
-  }
-};
-
-struct Register_File {
-  Register_Value values[Register_Name::max_register_name];
-
-  void store(::x86_reg dest, const ::cs_x86_op& src) {
-    if (src.type == ::X86_OP_IMM) {
-      // Examples:
-      // mov $0, %rax
-      // mov $69, %ah
-      switch (dest) {
-        case ::X86_REG_RAX:
-          this->values[Register_Name::rax] =
-              Register_Value::make_literal(src.imm);
-          break;
-
-        default:
-          // TODO(strager)
-          break;
-      }
-    }
-  }
-
-  Register_Value load(::x86_reg src) {
-    if (src == ::X86_REG_RAX) {
-      return this->values[Register_Name::rax];
-    } else {
-      // TODO(strager)
-      return Register_Value();
-    }
-  }
-
-  Register_Value load(const ::cs_x86_op& src) {
-    switch (src.type) {
-      case ::X86_OP_IMM:
-        // Examples:
-        // sub $0x18, %rsp
-        // add $0x18, %rsp
-        return Register_Value::make_literal(src.imm);
-
-      case ::X86_OP_REG:
-        // Examples:
-        // sub %rax, %rsp
-        return this->load(src.reg);
-
-      default:
-        // TODO(strager)
-        return Register_Value();
-    }
-    __builtin_unreachable();
-  }
-};
 
 Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   ::csh handle;

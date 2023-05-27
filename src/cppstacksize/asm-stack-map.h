@@ -1,18 +1,12 @@
 #ifndef CPPSTACKSIZE_ASM_STACK_MAP_H
 #define CPPSTACKSIZE_ASM_STACK_MAP_H
 
-#include <cstdint>
+#include <cppstacksize/base.h>
 #include <ostream>
 #include <span>
 #include <vector>
 
 namespace cppstacksize {
-using S32 = std::int32_t;
-using S64 = std::int64_t;
-using U32 = std::uint32_t;
-using U64 = std::uint64_t;
-using U8 = std::uint8_t;
-
 enum class Stack_Access_Kind : U8 {
   read,
   write,
