@@ -34,6 +34,10 @@ struct Register_Value {
     return make_literal(static_cast<U64>(value));
   }
 
+  static Register_Value make_literal(U32 value) {
+    return make_literal(static_cast<U64>(value));
+  }
+
   static Register_Value make_literal(S64 value) {
     return make_literal(static_cast<U64>(value));
   }
