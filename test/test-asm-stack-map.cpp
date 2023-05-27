@@ -168,6 +168,20 @@ TEST(Test_ASM_Stack_Map, rsp_relative_load_touches) {
     Stack_Map_Touch::read(0, 0x20, 2),
   });
 
+  CHECK_TOUCHES(ASM_X86_64(
+    // cmp 0x20(%rsp), %rbx
+    0x48, 0x3b, 0x5c, 0x24, 0x20,
+  ), {
+    Stack_Map_Touch::read(0, 0x20, 8),
+  });
+
+  CHECK_TOUCHES(ASM_X86_64(
+    // cmp 0x20(%rsp), %bh
+    0x3a, 0x7c, 0x24, 0x20,
+  ), {
+    Stack_Map_Touch::read(0, 0x20, 1),
+  });
+
   // clang-format on
 }
 
