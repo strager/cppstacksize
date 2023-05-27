@@ -42,11 +42,10 @@ struct Register_Value {
     U64 literal;
 
     // If kind == Register_Value_Kind::entry_rsp_relative:
-    // TODO(strager): Make this U64.
-    S64 entry_rsp_relative_offset;
+    U64 entry_rsp_relative_offset;
   };
 
-  static Register_Value make_entry_rsp_relative(S64 offset) {
+  static Register_Value make_entry_rsp_relative(U64 offset) {
     return Register_Value{
         .kind = Register_Value_Kind::entry_rsp_relative,
         .entry_rsp_relative_offset = offset,
