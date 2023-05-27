@@ -52,22 +52,30 @@ struct Register_Value {
     };
   }
 
-  static Register_Value make_literal(S32 value) {
+  static Register_Value make_literal(int value) {
     return make_literal(static_cast<U64>(value));
   }
 
-  static Register_Value make_literal(U32 value) {
+  static Register_Value make_literal(unsigned value) {
     return make_literal(static_cast<U64>(value));
   }
 
-  static Register_Value make_literal(S64 value) {
+  static Register_Value make_literal(long value) {
     return make_literal(static_cast<U64>(value));
   }
 
-  static Register_Value make_literal(U64 value) {
+  static Register_Value make_literal(unsigned long value) {
+    return make_literal(static_cast<unsigned long long>(value));
+  }
+
+  static Register_Value make_literal(long long value) {
+    return make_literal(static_cast<U64>(value));
+  }
+
+  static Register_Value make_literal(unsigned long long value) {
     return Register_Value{
         .kind = Register_Value_Kind::literal,
-        .literal = value,
+        .literal = static_cast<U64>(value),
     };
   }
 
