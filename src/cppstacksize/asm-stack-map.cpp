@@ -1,6 +1,6 @@
 #include <capstone/capstone.h>
-#include <cppstacksize/asm-stack-map.h>
 #include <cassert>
+#include <cppstacksize/asm-stack-map.h>
 
 #define CSS_ASSERT(cond) assert(cond)
 
