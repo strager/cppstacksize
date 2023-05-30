@@ -9,8 +9,9 @@
 
 namespace cppstacksize {
 enum class Stack_Access_Kind : U8 {
-  read,
-  write,
+  read_only,
+  write_only,
+  read_or_write,
 };
 
 struct Stack_Map_Touch {
@@ -20,7 +21,7 @@ struct Stack_Map_Touch {
         .offset = offset,
         .entry_rsp_relative_address = entry_rsp_relative_address,
         .byte_count = byte_count,
-        .access_kind = Stack_Access_Kind::read,
+        .access_kind = Stack_Access_Kind::read_only,
     };
   }
 
@@ -30,7 +31,18 @@ struct Stack_Map_Touch {
         .offset = offset,
         .entry_rsp_relative_address = entry_rsp_relative_address,
         .byte_count = byte_count,
-        .access_kind = Stack_Access_Kind::write,
+        .access_kind = Stack_Access_Kind::write_only,
+    };
+  }
+
+  static Stack_Map_Touch read_or_write(U32 offset,
+                                       S64 entry_rsp_relative_address,
+                                       U32 byte_count) {
+    return Stack_Map_Touch{
+        .offset = offset,
+        .entry_rsp_relative_address = entry_rsp_relative_address,
+        .byte_count = byte_count,
+        .access_kind = Stack_Access_Kind::read_or_write,
     };
   }
 

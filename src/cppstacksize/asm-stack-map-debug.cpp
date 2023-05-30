@@ -4,11 +4,14 @@
 namespace cppstacksize {
 std::ostream& operator<<(std::ostream& out, Stack_Access_Kind sak) {
   switch (sak) {
-    case Stack_Access_Kind::read:
-      out << "read";
+    case Stack_Access_Kind::read_only:
+      out << "read_only";
       break;
-    case Stack_Access_Kind::write:
-      out << "write";
+    case Stack_Access_Kind::write_only:
+      out << "write_only";
+      break;
+    case Stack_Access_Kind::read_or_write:
+      out << "read_or_write";
       break;
   }
   return out;

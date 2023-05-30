@@ -78,7 +78,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
             .offset = narrow_cast<U32>(instruction.address),
             .entry_rsp_relative_address = get_rsp_adjustment(),
             .byte_count = src->size,
-            .access_kind = Stack_Access_Kind::read,
+            .access_kind = Stack_Access_Kind::read_only,
         });
         map.registers.add(::X86_REG_RSP, src->size);
         break;
@@ -89,7 +89,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
             .offset = narrow_cast<U32>(instruction.address),
             .entry_rsp_relative_address = get_rsp_adjustment(),
             .byte_count = 8,
-            .access_kind = Stack_Access_Kind::read,
+            .access_kind = Stack_Access_Kind::read_only,
         });
         map.registers.add(::X86_REG_RSP, 8);
         break;
@@ -102,7 +102,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
             .offset = narrow_cast<U32>(instruction.address),
             .entry_rsp_relative_address = get_rsp_adjustment(),
             .byte_count = src->size,
-            .access_kind = Stack_Access_Kind::write,
+            .access_kind = Stack_Access_Kind::write_only,
         });
         break;
       }
@@ -127,8 +127,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
               .entry_rsp_relative_address =
                   get_rsp_adjustment_from_value(map.registers.load(dest->reg)),
               .byte_count = (U32)-1,
-              // FIXME(strager): It could be a read *or* a write.
-              .access_kind = Stack_Access_Kind::read,
+              .access_kind = Stack_Access_Kind::read_or_write,
           });
         }
         break;
@@ -150,8 +149,8 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
                       get_rsp_adjustment() + operand->mem.disp,
                   .byte_count = operand->size,
                   .access_kind = operand->access == ::CS_AC_WRITE
-                                     ? Stack_Access_Kind::write
-                                     : Stack_Access_Kind::read,
+                                     ? Stack_Access_Kind::write_only
+                                     : Stack_Access_Kind::read_only,
               });
             }
           }
