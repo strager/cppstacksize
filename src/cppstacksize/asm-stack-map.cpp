@@ -3,6 +3,10 @@
 #include <cppstacksize/register.h>
 
 namespace cppstacksize {
+namespace {
+Stack_Access_Kind stack_access_kind_from_capstone(/*::cs_ac_type*/ U8 access);
+}
+
 template <class Out, class In>
 Out narrow_cast(In value) {
   return static_cast<Out>(value);
@@ -148,9 +152,8 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
                   .entry_rsp_relative_address =
                       get_rsp_adjustment() + operand->mem.disp,
                   .byte_count = operand->size,
-                  .access_kind = operand->access == ::CS_AC_WRITE
-                                     ? Stack_Access_Kind::write_only
-                                     : Stack_Access_Kind::read_only,
+                  .access_kind =
+                      stack_access_kind_from_capstone(operand->access),
               });
             }
           }
@@ -161,5 +164,17 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   ::cs_free(instructions, instruction_count);
   ::cs_close(&handle);
   return map;
+}
+
+namespace {
+Stack_Access_Kind stack_access_kind_from_capstone(/*::cs_ac_type*/ U8 access) {
+  if (access == (::CS_AC_READ | ::CS_AC_WRITE)) {
+    return Stack_Access_Kind::read_and_write;
+  } else if (access == ::CS_AC_WRITE) {
+    return Stack_Access_Kind::write_only;
+  } else {
+    return Stack_Access_Kind::read_only;
+  }
+}
 }
 }

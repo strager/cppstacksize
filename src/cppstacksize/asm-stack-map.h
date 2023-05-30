@@ -12,6 +12,7 @@ enum class Stack_Access_Kind : U8 {
   read_only,
   write_only,
   read_or_write,
+  read_and_write,
 };
 
 struct Stack_Map_Touch {
@@ -43,6 +44,17 @@ struct Stack_Map_Touch {
         .entry_rsp_relative_address = entry_rsp_relative_address,
         .byte_count = byte_count,
         .access_kind = Stack_Access_Kind::read_or_write,
+    };
+  }
+
+  static Stack_Map_Touch read_and_write(U32 offset,
+                                        S64 entry_rsp_relative_address,
+                                        U32 byte_count) {
+    return Stack_Map_Touch{
+        .offset = offset,
+        .entry_rsp_relative_address = entry_rsp_relative_address,
+        .byte_count = byte_count,
+        .access_kind = Stack_Access_Kind::read_and_write,
     };
   }
 

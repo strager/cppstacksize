@@ -13,6 +13,9 @@ std::ostream& operator<<(std::ostream& out, Stack_Access_Kind sak) {
     case Stack_Access_Kind::read_or_write:
       out << "read_or_write";
       break;
+    case Stack_Access_Kind::read_and_write:
+      out << "read_and_write";
+      break;
   }
   return out;
 }

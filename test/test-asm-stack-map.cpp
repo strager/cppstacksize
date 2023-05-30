@@ -76,6 +76,13 @@ TEST(Test_ASM_Stack_Map, rsp_relative_load_touches) {
                 Stack_Map_Touch::read(0, 0x20, 1));
 }
 
+TEST(Test_ASM_Stack_Map, rsp_relative_load_modify_store_touches) {
+  CHECK_TOUCHES(ASM_X86_64("add %rax, 0x28(%rsp)"),
+                Stack_Map_Touch::read_and_write(0, 0x28, 8));
+  CHECK_TOUCHES(ASM_X86_64("addq $69, 0x28(%rsp)"),
+                Stack_Map_Touch::read_and_write(0, 0x28, 8));
+}
+
 TEST(Test_ASM_Stack_Map, offset_is_byte_of_start_of_instruction) {
   CHECK_TOUCHES(ASM_X86_64("nop"
                            "mov (%rsp), %rax"),
