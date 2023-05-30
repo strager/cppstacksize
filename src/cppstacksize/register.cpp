@@ -167,12 +167,38 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
   }
 }
 
-Register_Value Register_File::load(U32 src) {
-  if (static_cast<::x86_reg>(src) == ::X86_REG_RAX) {
-    return this->values[Register_Name::rax];
-  } else {
+void Register_File::store(U32 dest, const Register_Value& src) {
+  Register_Name name = capstone_x86_reg_to_register_name[dest];
+  if (name == Register_Name::max_register_name) {
     // TODO(strager)
+  } else {
+    switch (capstone_x86_reg_to_register_piece[dest]) {
+      case Register_Piece::low_64:
+        this->values[name] = src;
+        break;
+
+      case Register_Piece::low_32:
+      case Register_Piece::low_16:
+      case Register_Piece::low_16_high_8:
+      case Register_Piece::low_8:
+        this->values[name] = Register_Value();
+        break;
+    }
+  }
+}
+
+Register_Value Register_File::load(/*::x86_reg*/ U32 src) {
+  Register_Name name = capstone_x86_reg_to_register_name[src];
+  if (name == Register_Name::max_register_name) {
     return Register_Value();
+  } else {
+    switch (capstone_x86_reg_to_register_piece[src]) {
+      case Register_Piece::low_64:
+        return this->values[name];
+      default:
+        // TODO(strager)
+        return Register_Value();
+    }
   }
 }
 

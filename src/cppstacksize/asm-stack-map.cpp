@@ -24,13 +24,16 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   Stack_Map map;
   map.registers.values[Register_Name::rsp] =
       Register_Value::make_entry_rsp_relative(0);
-  auto get_rsp_adjustment = [&map]() -> S64 {
-    Register_Value& rsp_value = map.registers.values[Register_Name::rsp];
-    if (rsp_value.kind != Register_Value_Kind::entry_rsp_relative) {
+  auto get_rsp_adjustment_from_value = [](const Register_Value& value) -> S64 {
+    if (value.kind != Register_Value_Kind::entry_rsp_relative) {
       // TODO(strager)
       return 0xcccccccc;
     }
-    return rsp_value.entry_rsp_relative_offset;
+    return value.entry_rsp_relative_offset;
+  };
+  auto get_rsp_adjustment = [&map, &get_rsp_adjustment_from_value]() -> S64 {
+    Register_Value& rsp_value = map.registers.values[Register_Name::rsp];
+    return get_rsp_adjustment_from_value(rsp_value);
   };
   for (::cs_insn& instruction : std::span(instructions, instruction_count)) {
     ::cs_detail* details = instruction.detail;
@@ -105,26 +108,55 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
       }
     }
 
-    if (details->x86.op_count == 2) {
-      for (U8 operand_index = 0; operand_index < 2; ++operand_index) {
-        ::cs_x86_op* operand = &details->x86.operands[operand_index];
-        if (operand->type == ::X86_OP_MEM &&
-            operand->mem.base == ::X86_REG_RSP) {
-          // Examples:
-          // mov other_operand, (%rsp)
-          // mov (%rsp), other_operand
-          // movzbl (%rsp), other_operand
+    switch (instruction.id) {
+      case ::X86_INS_LEA: {
+        // Examples:
+        // lea src, %rsp
+        // lea 0x30(%rsp), %eax
+        CSS_ASSERT(details->x86.op_count == 2);
+        ::cs_x86_op* src = &details->x86.operands[1];
+        CSS_ASSERT(src->type == ::X86_OP_MEM);
+        ::cs_x86_op* dest = &details->x86.operands[0];
+
+        // TODO(strager): What if index is present?
+        map.registers.store(dest->reg, map.registers.load(src->mem.base));
+        map.registers.add(dest->reg, src->mem.disp);
+        if (src->mem.base == ::X86_REG_RSP) {
           map.touches.push_back(Stack_Map_Touch{
               .offset = narrow_cast<U32>(instruction.address),
               .entry_rsp_relative_address =
-                  get_rsp_adjustment() + operand->mem.disp,
-              .byte_count = operand->size,
-              .access_kind = operand->access == ::CS_AC_WRITE
-                                 ? Stack_Access_Kind::write
-                                 : Stack_Access_Kind::read,
+                  get_rsp_adjustment_from_value(map.registers.load(dest->reg)),
+              .byte_count = (U32)-1,
+              // FIXME(strager): It could be a read *or* a write.
+              .access_kind = Stack_Access_Kind::read,
           });
         }
+        break;
       }
+
+      default:
+        if (details->x86.op_count == 2) {
+          for (U8 operand_index = 0; operand_index < 2; ++operand_index) {
+            ::cs_x86_op* operand = &details->x86.operands[operand_index];
+            if (operand->type == ::X86_OP_MEM &&
+                operand->mem.base == ::X86_REG_RSP) {
+              // Examples:
+              // mov other_operand, (%rsp)
+              // mov (%rsp), other_operand
+              // movzbl (%rsp), other_operand
+              map.touches.push_back(Stack_Map_Touch{
+                  .offset = narrow_cast<U32>(instruction.address),
+                  .entry_rsp_relative_address =
+                      get_rsp_adjustment() + operand->mem.disp,
+                  .byte_count = operand->size,
+                  .access_kind = operand->access == ::CS_AC_WRITE
+                                     ? Stack_Access_Kind::write
+                                     : Stack_Access_Kind::read,
+              });
+            }
+          }
+        }
+        break;
     }
   }
   ::cs_free(instructions, instruction_count);

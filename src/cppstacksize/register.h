@@ -87,6 +87,7 @@ struct Register_File {
   Register_Value values[Register_Name::max_register_name];
 
   void store(/*::x86_reg*/ U32 dest, const ::cs_x86_op& src);
+  void store(/*::x86_reg*/ U32 dest, const Register_Value& src);
 
   Register_Value load(/*::x86_reg*/ U32 src);
   Register_Value load(const ::cs_x86_op& src);

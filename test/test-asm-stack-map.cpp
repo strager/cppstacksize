@@ -160,5 +160,12 @@ TEST(Test_ASM_Stack_Map, ret_reads_return_address_and_adjusts_stack) {
                             }));
   }
 }
+
+TEST(Test_ASM_Stack_Map, lea_then_call_attributes_stack_usage_to_lea) {
+  CHECK_TOUCHES(ASM_X86_64("lea 0x50(%rsp), %rax"
+                           "call 0x1234"),
+                // FIXME(strager): This could be a read or a write.
+                Stack_Map_Touch::read(0, 0x50, -1));
+}
 }
 }
