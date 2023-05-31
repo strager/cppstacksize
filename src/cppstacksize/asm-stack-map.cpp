@@ -1,3 +1,4 @@
+#include "capstone/x86.h"
 #include <capstone/capstone.h>
 #include <cppstacksize/asm-stack-map.h>
 #include <cppstacksize/register.h>
@@ -147,6 +148,30 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
           }
         }
         break;
+
+      case ::X86_INS_STOSB:
+      case ::X86_INS_STOSD:
+      case ::X86_INS_STOSQ:
+      case ::X86_INS_STOSW: {
+        // Examples:
+        // rep stos %rax, (%rdi)
+        Register_Value count = map.registers.values[Register_Name::rcx];
+        Register_Value dest = map.registers.values[Register_Name::rdi];
+        if (dest.kind == Register_Value_Kind::entry_rsp_relative) {
+          ::cs_x86_op* dest_operand = &details->x86.operands[1];
+          U32 byte_count = (U32)-1;
+          if (count.kind == Register_Value_Kind::literal) {
+            byte_count = count.literal * dest_operand->size;
+          }
+          map.touches.push_back(Stack_Map_Touch{
+              .offset = current_offset,
+              .entry_rsp_relative_address = get_rsp_adjustment_from_value(dest),
+              .byte_count = byte_count,
+              .access_kind = Stack_Access_Kind::write_only,
+          });
+        }
+        break;
+      }
 
       default:
         if (details->x86.op_count == 2) {
