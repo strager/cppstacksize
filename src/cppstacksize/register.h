@@ -50,6 +50,15 @@ struct Register_Value {
     U64 entry_rsp_relative_offset;
   };
 
+  static Register_Value make_uninitialized() { return make_unknown((U32)-1); }
+
+  static Register_Value make_unknown(U32 last_update_offset) {
+    return Register_Value{
+        .kind = Register_Value_Kind::unknown,
+        .last_update_offset = last_update_offset,
+    };
+  }
+
   static Register_Value make_entry_rsp_relative(U64 offset) {
     return Register_Value{
         .kind = Register_Value_Kind::entry_rsp_relative,
@@ -89,6 +98,8 @@ struct Register_Value {
 };
 
 struct Register_File {
+  explicit Register_File();
+
   Register_Value values[Register_Name::max_register_name];
 
   void store(/*::x86_reg*/ U32 dest, const ::cs_x86_op& src, U32 update_offset);

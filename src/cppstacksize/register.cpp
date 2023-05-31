@@ -119,6 +119,12 @@ bool operator!=(const Register_Value& lhs, const Register_Value& rhs) {
   return !(lhs == rhs);
 }
 
+Register_File::Register_File() {
+  for (Register_Value& value : this->values) {
+    value = Register_Value::make_uninitialized();
+  }
+}
+
 void Register_File::store(U32 dest, const ::cs_x86_op& src, U32 update_offset) {
   if (src.type == ::X86_OP_IMM) {
     // Examples:
@@ -159,7 +165,7 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src, U32 update_offset) {
               break;
             }
             default:
-              value = Register_Value();
+              value = Register_Value::make_unknown(update_offset);
               break;
           }
           break;
@@ -185,7 +191,7 @@ void Register_File::store(U32 dest, const Register_Value& src,
       case Register_Piece::low_16:
       case Register_Piece::low_16_high_8:
       case Register_Piece::low_8:
-        value = Register_Value();
+        value = Register_Value::make_unknown(update_offset);
         break;
     }
     value.last_update_offset = update_offset;
@@ -195,14 +201,14 @@ void Register_File::store(U32 dest, const Register_Value& src,
 Register_Value Register_File::load(/*::x86_reg*/ U32 src) {
   Register_Name name = capstone_x86_reg_to_register_name[src];
   if (name == Register_Name::max_register_name) {
-    return Register_Value();
+    return Register_Value::make_uninitialized();
   } else {
     switch (capstone_x86_reg_to_register_piece[src]) {
       case Register_Piece::low_64:
         return this->values[name];
       default:
         // TODO(strager)
-        return Register_Value();
+        return Register_Value::make_uninitialized();
     }
   }
 }
@@ -222,7 +228,7 @@ Register_Value Register_File::load(const ::cs_x86_op& src) {
 
     default:
       // TODO(strager)
-      return Register_Value();
+      return Register_Value::make_uninitialized();
   }
   __builtin_unreachable();
 }
