@@ -1,8 +1,8 @@
-#include "capstone/x86.h"
 #include <capstone/capstone.h>
 #include <cppstacksize/asm-stack-map.h>
 #include <cppstacksize/register.h>
 #include <optional>
+#include <unordered_map>
 
 namespace cppstacksize {
 namespace {
@@ -136,7 +136,11 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
         break;
       }
 
-      case ::X86_INS_CALL:
+      case ::X86_INS_CALL: {
+        // Key: entry_rsp_relative_address
+        // Value: instruction_offset
+        std::unordered_map<S64, U32> address_to_instruction_offset;
+
         for (U8 reg = Register_Name::first_register_name;
              reg < Register_Name::max_register_name; ++reg) {
           if (reg == Register_Name::rsp) continue;
@@ -145,17 +149,31 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
               value.last_update_offset >= last_call_offset;
           if (value.kind == Register_Value_Kind::entry_rsp_relative &&
               is_register_likely_updated_for_this_function_call) {
-            map.touches.push_back(Stack_Map_Touch{
-                .offset = value.last_update_offset,
-                .entry_rsp_relative_address =
-                    get_rsp_adjustment_from_value(value),
-                .byte_count = (U32)-1,
-                .access_kind = Stack_Access_Kind::read_or_write,
-            });
+            // NOTE(strager): Using std::unordered_map<>::operator[] is fine
+            // because it returns 0 if an entry is missing and
+            // value.last_update_offset >= 0.
+            U32& existing_touch_instruction_offset =
+                address_to_instruction_offset[get_rsp_adjustment_from_value(
+                    value)];
+            if (existing_touch_instruction_offset < value.last_update_offset) {
+              existing_touch_instruction_offset = value.last_update_offset;
+            }
           }
         }
+
+        for (auto& [entry_rsp_relative_address, instruction_offset] :
+             address_to_instruction_offset) {
+          map.touches.push_back(Stack_Map_Touch{
+              .offset = instruction_offset,
+              .entry_rsp_relative_address = entry_rsp_relative_address,
+              .byte_count = (U32)-1,
+              .access_kind = Stack_Access_Kind::read_or_write,
+          });
+        }
+
         last_call_offset = current_offset;
         break;
+      }
 
       case ::X86_INS_STOSB:
       case ::X86_INS_STOSD:
