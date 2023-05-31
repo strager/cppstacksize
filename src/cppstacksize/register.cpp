@@ -119,11 +119,25 @@ bool operator!=(const Register_Value& lhs, const Register_Value& rhs) {
   return !(lhs == rhs);
 }
 
-Register_File::Register_File() {
-  for (Register_Value& value : this->values) {
-    value = Register_Value::make_uninitialized();
-  }
-}
+Register_File::Register_File()
+    : values{
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+          Register_Value::make_uninitialized(),
+      } {}
 
 void Register_File::store(U32 dest, const ::cs_x86_op& src, U32 update_offset) {
   if (src.type == ::X86_OP_IMM) {

@@ -38,9 +38,8 @@ enum Register_Name : U8 {
 };
 
 struct Register_Value {
-  Register_Value_Kind kind = Register_Value_Kind::unknown;
-  // TODO(strager): Disable default constructor; require last_update_offset.
-  U32 last_update_offset = (U32)-1;
+  Register_Value_Kind kind;
+  U32 last_update_offset;
 
   union {
     // If kind == Register_Value_Kind::literal:
@@ -53,17 +52,17 @@ struct Register_Value {
   static Register_Value make_uninitialized() { return make_unknown((U32)-1); }
 
   static Register_Value make_unknown(U32 last_update_offset) {
-    return Register_Value{
-        .kind = Register_Value_Kind::unknown,
-        .last_update_offset = last_update_offset,
-    };
+    Register_Value value;
+    value.kind = Register_Value_Kind::unknown;
+    value.last_update_offset = last_update_offset;
+    return value;
   }
 
   static Register_Value make_entry_rsp_relative(U64 offset) {
-    return Register_Value{
-        .kind = Register_Value_Kind::entry_rsp_relative,
-        .entry_rsp_relative_offset = offset,
-    };
+    Register_Value value;
+    value.kind = Register_Value_Kind::entry_rsp_relative;
+    value.entry_rsp_relative_offset = offset;
+    return value;
   }
 
   static Register_Value make_literal(int value) {
@@ -86,15 +85,18 @@ struct Register_Value {
     return make_literal(static_cast<U64>(value));
   }
 
-  static Register_Value make_literal(unsigned long long value) {
-    return Register_Value{
-        .kind = Register_Value_Kind::literal,
-        .literal = static_cast<U64>(value),
-    };
+  static Register_Value make_literal(unsigned long long v) {
+    Register_Value value;
+    value.kind = Register_Value_Kind::literal;
+    value.literal = static_cast<U64>(v);
+    return value;
   }
 
   friend bool operator==(const Register_Value&, const Register_Value&);
   friend bool operator!=(const Register_Value&, const Register_Value&);
+
+ private:
+  explicit Register_Value() = default;
 };
 
 struct Register_File {
