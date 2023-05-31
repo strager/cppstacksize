@@ -5,11 +5,21 @@ project(
   default_options: ['warning_level=3', 'cpp_std=c++20'],
 )
 
-capstone_proj = import('cmake').subproject('capstone')
+cmake = import('cmake')
+
+capstone_cmake_options = cmake.subproject_options()
+capstone_cmake_options.add_cmake_defines({
+  'CAPSTONE_BUILD_CSTOOL': false,
+  'CAPSTONE_BUILD_SHARED': false,
+  'CAPSTONE_BUILD_STATIC': true,
+  'CAPSTONE_BUILD_TESTS': false,
+})
+capstone_proj = cmake.subproject('capstone', options: capstone_cmake_options)
+
 gtest_proj = subproject('gtest')
 
 cppstacksize_includes = include_directories('src/')
-cppstacksize_lib = library(
+cppstacksize_lib = static_library(
   'cppstacksize-lib',
   [
     'src/cppstacksize/asm-stack-map-debug.cpp',
@@ -22,7 +32,7 @@ cppstacksize_lib = library(
   ],
   include_directories: [cppstacksize_includes],
   dependencies: [
-    capstone_proj.dependency('capstone-shared'),
+    capstone_proj.dependency('capstone-static'),
   ],
 )
 cppstacksize_lib_dep = declare_dependency(
