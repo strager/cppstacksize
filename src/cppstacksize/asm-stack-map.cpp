@@ -41,6 +41,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   };
 
   for (::cs_insn& instruction : std::span(instructions, instruction_count)) {
+    U32 current_offset = narrow_cast<U32>(instruction.address);
     ::cs_detail* details = instruction.detail;
 
     switch (instruction.id) {
@@ -67,9 +68,9 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
             S64 increment = src_value.literal;
             // TODO(strager): Checked addition/subtraction.
             if (add) {
-              map.registers.add(dest->reg, increment);
+              map.registers.add(dest->reg, increment, current_offset);
             } else {
-              map.registers.add(dest->reg, -increment);
+              map.registers.add(dest->reg, -increment, current_offset);
             }
           }
         }
@@ -85,7 +86,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
             .byte_count = src->size,
             .access_kind = Stack_Access_Kind::read_only,
         });
-        map.registers.add(::X86_REG_RSP, src->size);
+        map.registers.add(::X86_REG_RSP, src->size, current_offset);
         break;
       }
 
@@ -96,13 +97,13 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
             .byte_count = 8,
             .access_kind = Stack_Access_Kind::read_only,
         });
-        map.registers.add(::X86_REG_RSP, 8);
+        map.registers.add(::X86_REG_RSP, 8, current_offset);
         break;
 
       case ::X86_INS_PUSH: {
         CSS_ASSERT(details->x86.op_count == 1);
         ::cs_x86_op* src = &details->x86.operands[0];
-        map.registers.add(::X86_REG_RSP, -src->size);
+        map.registers.add(::X86_REG_RSP, -src->size, current_offset);
         map.touches.push_back(Stack_Map_Touch{
             .offset = narrow_cast<U32>(instruction.address),
             .entry_rsp_relative_address = get_rsp_adjustment(),
@@ -123,11 +124,10 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
         CSS_ASSERT(src->type == ::X86_OP_MEM);
         ::cs_x86_op* dest = &details->x86.operands[0];
 
-        U32 update_offset = narrow_cast<U32>(instruction.address);
         // TODO(strager): What if index is present?
         map.registers.store(dest->reg, map.registers.load(src->mem.base),
-                            update_offset);
-        map.registers.add(dest->reg, src->mem.disp, update_offset);
+                            current_offset);
+        map.registers.add(dest->reg, src->mem.disp, current_offset);
         break;
       }
 

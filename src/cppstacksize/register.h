@@ -100,8 +100,6 @@ struct Register_File {
   Register_Value load(/*::x86_reg*/ U32 src);
   Register_Value load(const ::cs_x86_op& src);
 
-  // TODO(strager): Require a last_update_offset.
-  void add(/*::x86_reg*/ U32 dest, U64 addend);
   void add(/*::x86_reg*/ U32 dest, U64 addend, U32 update_offset);
 };
 

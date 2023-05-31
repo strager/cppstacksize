@@ -225,11 +225,6 @@ Register_Value Register_File::load(const ::cs_x86_op& src) {
   __builtin_unreachable();
 }
 
-// TODO(strager): Delete.
-void Register_File::add(/*::x86_reg*/ U32 dest, U64 addend) {
-  this->add(dest, addend, (U32)-1);
-}
-
 void Register_File::add(/*::x86_reg*/ U32 dest, U64 addend, U32 update_offset) {
   Register_Name name = capstone_x86_reg_to_register_name[dest];
   if (name == Register_Name::max_register_name) {
