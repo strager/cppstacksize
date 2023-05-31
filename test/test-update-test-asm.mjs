@@ -9,7 +9,7 @@ describe("assemble", () => {
   it("should give bytes of one instruction", async () => {
     assert.deepStrictEqual(
       await assembleAsync(["xor %rax, %rax"], { arch: "x86_64" }),
-      [[0x48, 0x31, 0xc0]]
+      [0x48, 0x31, 0xc0]
     );
 
     // In yasm, this instruction's listing spans multiple lines.
@@ -17,7 +17,7 @@ describe("assemble", () => {
       await assembleAsync(["movabsq $0x123456789abcdef0, %rbx"], {
         arch: "x86_64",
       }),
-      [[0x48, 0xbb, 0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12]]
+      [0x48, 0xbb, 0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12]
     );
   });
 
@@ -33,10 +33,13 @@ describe("assemble", () => {
         { arch: "x86_64" }
       ),
       [
-        [0x31, 0xc0],
-        [0x31, 0xdb],
-        [0x31, 0xc9],
-        [0x31, 0xd2],
+        0x31, 0xc0,
+        //
+        0x31, 0xdb,
+        //
+        0x31, 0xc9,
+        //
+        0x31, 0xd2,
       ]
     );
   });
@@ -44,17 +47,14 @@ describe("assemble", () => {
   it("should give no bytes for labels", async () => {
     assert.deepStrictEqual(
       await assembleAsync([".loop:", "jmp .loop"], { arch: "x86_64" }),
-      [
-        [], // .loop
-        [0xeb, 0xfc], // jmp .loop
-      ]
+      [0xeb, 0xfc]
     );
   });
 
   it("should give no bytes for blank lines", async () => {
     assert.deepStrictEqual(
       await assembleAsync(["", "xor %eax, %eax", "", ""], { arch: "x86_64" }),
-      [[], [0x31, 0xc0], [], []]
+      [0x31, 0xc0]
     );
   });
 });

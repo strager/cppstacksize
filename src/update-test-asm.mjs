@@ -13,7 +13,7 @@ export async function assembleTestASMsAsync(source, outASMs = new Map()) {
     let instructionsBytes = await assembleAsync(assemblyLines, {
       arch: "x86_64",
     });
-    outASMs.set(assemblyLines.join(""), instructionsBytes.flat(1));
+    outASMs.set(assemblyLines.join(""), instructionsBytes);
   }
   return outASMs;
 }
@@ -38,19 +38,18 @@ export async function assembleAsync(assemblyLines, { arch }) {
   let includeMatchInPreviousInstruction = false;
   for (let match of listing.matchAll(listingLineRE)) {
     if (includeMatchInPreviousInstruction) {
-      instructions.at(-1).push(...hexStringToByteArray(match.groups.bytes));
+      instructions.push(...hexStringToByteArray(match.groups.bytes));
     }
     includeMatchInPreviousInstruction = match.groups.toBeContinued === "-";
 
     while (assemblyLines[currentAssemblyLineIndex] === "") {
-      instructions.push([]);
       currentAssemblyLineIndex += 1;
     }
 
     // TODO(strager): Handle leading whitespace in
     // assemblyLines[currentAssemblyLineIndex].
     if (assemblyLines[currentAssemblyLineIndex] === match.groups.code) {
-      instructions.push(hexStringToByteArray(match.groups.bytes ?? ""));
+      instructions.push(...hexStringToByteArray(match.groups.bytes ?? ""));
       currentAssemblyLineIndex += 1;
     }
   }
