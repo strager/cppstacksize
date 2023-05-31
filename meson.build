@@ -48,6 +48,12 @@ test_asm_generated_src = custom_target(
   ],
 )
 
+executable(
+  'dump-stack-map',
+  ['src/cppstacksize/dump-stack-map.cpp'],
+  dependencies: [cppstacksize_lib_dep],
+)
+
 tests = executable(
   'cppstacksize-test',
   [test_sources, test_asm_generated_src],
