@@ -178,6 +178,17 @@ TEST(Test_ASM_Stack_Map, lea_then_load_attributes_stack_usage_to_load) {
                 Stack_Map_Touch::read(5, 0x20 + 0x30, 8));
 }
 
+TEST(Test_ASM_Stack_Map, unrolled_stos) {
+  CHECK_TOUCHES(ASM_X86_64("lea 0x20(%rsp), %rdi"
+                           "mov $12345, %ecx"
+                           "stosq"
+                           "stosq"
+                           "stosq"),
+                Stack_Map_Touch::write(10, 0x20, 8),
+                Stack_Map_Touch::write(12, 0x28, 8),
+                Stack_Map_Touch::write(14, 0x30, 8));
+}
+
 TEST(Test_ASM_Stack_Map, memset_with_rep_stos) {
   CHECK_TOUCHES(ASM_X86_64("lea 0x20(%rsp), %rdi"
                            "mov $12345, %ecx"

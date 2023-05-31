@@ -2,6 +2,7 @@
 #include <capstone/capstone.h>
 #include <cppstacksize/asm-stack-map.h>
 #include <cppstacksize/register.h>
+#include <optional>
 
 namespace cppstacksize {
 namespace {
@@ -154,21 +155,36 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
       case ::X86_INS_STOSQ:
       case ::X86_INS_STOSW: {
         // Examples:
+        // stos %eax, (%rdi)
         // rep stos %rax, (%rdi)
-        Register_Value count = map.registers.values[Register_Name::rcx];
         Register_Value dest = map.registers.values[Register_Name::rdi];
-        if (dest.kind == Register_Value_Kind::entry_rsp_relative) {
-          ::cs_x86_op* dest_operand = &details->x86.operands[1];
-          U32 byte_count = (U32)-1;
+        ::cs_x86_op* dest_operand = &details->x86.operands[1];
+
+        std::optional<U32> byte_count;
+        if (instruction.detail->x86.prefix[0] == ::X86_PREFIX_REP) {
+          Register_Value count = map.registers.values[Register_Name::rcx];
           if (count.kind == Register_Value_Kind::literal) {
             byte_count = count.literal * dest_operand->size;
           }
+        } else {
+          byte_count = dest_operand->size;
+        }
+
+        if (dest.kind == Register_Value_Kind::entry_rsp_relative) {
           map.touches.push_back(Stack_Map_Touch{
               .offset = current_offset,
               .entry_rsp_relative_address = get_rsp_adjustment_from_value(dest),
-              .byte_count = byte_count,
+              .byte_count = byte_count.has_value() ? *byte_count : (U32)-1,
               .access_kind = Stack_Access_Kind::write_only,
           });
+        }
+
+        if (byte_count.has_value()) {
+          map.registers.add(::X86_REG_RDI, *byte_count, current_offset);
+        } else {
+          map.registers.store(::X86_REG_RDI,
+                              Register_Value::make_unknown(current_offset),
+                              current_offset);
         }
         break;
       }
