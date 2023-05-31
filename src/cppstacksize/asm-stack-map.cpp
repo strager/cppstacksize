@@ -39,6 +39,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
     Register_Value& rsp_value = map.registers.values[Register_Name::rsp];
     return get_rsp_adjustment_from_value(rsp_value);
   };
+
   for (::cs_insn& instruction : std::span(instructions, instruction_count)) {
     ::cs_detail* details = instruction.detail;
 
@@ -122,20 +123,30 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
         CSS_ASSERT(src->type == ::X86_OP_MEM);
         ::cs_x86_op* dest = &details->x86.operands[0];
 
+        U32 update_offset = narrow_cast<U32>(instruction.address);
         // TODO(strager): What if index is present?
-        map.registers.store(dest->reg, map.registers.load(src->mem.base));
-        map.registers.add(dest->reg, src->mem.disp);
-        if (src->mem.base == ::X86_REG_RSP) {
-          map.touches.push_back(Stack_Map_Touch{
-              .offset = narrow_cast<U32>(instruction.address),
-              .entry_rsp_relative_address =
-                  get_rsp_adjustment_from_value(map.registers.load(dest->reg)),
-              .byte_count = (U32)-1,
-              .access_kind = Stack_Access_Kind::read_or_write,
-          });
-        }
+        map.registers.store(dest->reg, map.registers.load(src->mem.base),
+                            update_offset);
+        map.registers.add(dest->reg, src->mem.disp, update_offset);
         break;
       }
+
+      case ::X86_INS_CALL:
+        for (U8 reg = Register_Name::first_register_name;
+             reg < Register_Name::max_register_name; ++reg) {
+          if (reg == Register_Name::rsp) continue;
+          Register_Value& value = map.registers.values[reg];
+          if (value.kind == Register_Value_Kind::entry_rsp_relative) {
+            map.touches.push_back(Stack_Map_Touch{
+                .offset = value.last_update_offset,
+                .entry_rsp_relative_address =
+                    get_rsp_adjustment_from_value(value),
+                .byte_count = (U32)-1,
+                .access_kind = Stack_Access_Kind::read_or_write,
+            });
+          }
+        }
+        break;
 
       default:
         if (details->x86.op_count == 2) {

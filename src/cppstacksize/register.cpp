@@ -167,23 +167,26 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
   }
 }
 
-void Register_File::store(U32 dest, const Register_Value& src) {
+void Register_File::store(U32 dest, const Register_Value& src,
+                          U32 update_offset) {
   Register_Name name = capstone_x86_reg_to_register_name[dest];
   if (name == Register_Name::max_register_name) {
     // TODO(strager)
   } else {
+    Register_Value& value = this->values[name];
     switch (capstone_x86_reg_to_register_piece[dest]) {
       case Register_Piece::low_64:
-        this->values[name] = src;
+        value = src;
         break;
 
       case Register_Piece::low_32:
       case Register_Piece::low_16:
       case Register_Piece::low_16_high_8:
       case Register_Piece::low_8:
-        this->values[name] = Register_Value();
+        value = Register_Value();
         break;
     }
+    value.last_update_offset = update_offset;
   }
 }
 
@@ -222,7 +225,12 @@ Register_Value Register_File::load(const ::cs_x86_op& src) {
   __builtin_unreachable();
 }
 
+// TODO(strager): Delete.
 void Register_File::add(/*::x86_reg*/ U32 dest, U64 addend) {
+  this->add(dest, addend, (U32)-1);
+}
+
+void Register_File::add(/*::x86_reg*/ U32 dest, U64 addend, U32 update_offset) {
   Register_Name name = capstone_x86_reg_to_register_name[dest];
   if (name == Register_Name::max_register_name) {
     // TODO(strager)
@@ -251,6 +259,7 @@ void Register_File::add(/*::x86_reg*/ U32 dest, U64 addend) {
         // TODO(strager)
         break;
     }
+    value.last_update_offset = update_offset;
   }
 }
 }

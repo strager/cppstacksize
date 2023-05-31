@@ -7,10 +7,10 @@
 using ::testing::ElementsAreArray;
 using ::testing::IsEmpty;
 
-#define CHECK_TOUCHES(code, ...)                             \
-  do {                                                       \
-    EXPECT_THAT(analyze_x86_64_stack_map((code)).touches,    \
-                ::testing::ElementsAreArray({__VA_ARGS__})); \
+#define CHECK_TOUCHES(code, ...)                                              \
+  do {                                                                        \
+    EXPECT_THAT(analyze_x86_64_stack_map((code)).touches,                     \
+                ::testing::ElementsAreArray<Stack_Map_Touch>({__VA_ARGS__})); \
   } while (false)
 
 namespace cppstacksize {
@@ -152,6 +152,12 @@ TEST(Test_ASM_Stack_Map, ret_reads_return_address_and_adjusts_stack) {
                                 Stack_Map_Touch::read(0, 0, 8),
                             }));
   }
+}
+
+TEST(Test_ASM_Stack_Map, lea_with_rsp_alone_does_not_use_stack) {
+  CHECK_TOUCHES(
+      ASM_X86_64("lea 0x50(%rsp), %rax"
+                 "lea (%rax), %rbx"));
 }
 
 TEST(Test_ASM_Stack_Map, lea_then_call_attributes_stack_usage_to_lea) {

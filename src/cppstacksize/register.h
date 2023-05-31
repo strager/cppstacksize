@@ -14,7 +14,9 @@ enum class Register_Value_Kind : U8 {
 };
 
 enum Register_Name : U8 {
-  rax,
+  first_register_name,
+
+  rax = first_register_name,
   rbx,
   rcx,
   rdx,
@@ -31,11 +33,14 @@ enum Register_Name : U8 {
   r14,
   r15,
 
+  // TODO(strager): Rename.
   max_register_name,
 };
 
 struct Register_Value {
   Register_Value_Kind kind = Register_Value_Kind::unknown;
+  // TODO(strager): Disable default constructor; require last_update_offset.
+  U32 last_update_offset = (U32)-1;
 
   union {
     // If kind == Register_Value_Kind::literal:
@@ -86,13 +91,18 @@ struct Register_Value {
 struct Register_File {
   Register_Value values[Register_Name::max_register_name];
 
+  // TODO(strager): Require a last_update_offset.
   void store(/*::x86_reg*/ U32 dest, const ::cs_x86_op& src);
-  void store(/*::x86_reg*/ U32 dest, const Register_Value& src);
+
+  void store(/*::x86_reg*/ U32 dest, const Register_Value& src,
+             U32 update_offset);
 
   Register_Value load(/*::x86_reg*/ U32 src);
   Register_Value load(const ::cs_x86_op& src);
 
+  // TODO(strager): Require a last_update_offset.
   void add(/*::x86_reg*/ U32 dest, U64 addend);
+  void add(/*::x86_reg*/ U32 dest, U64 addend, U32 update_offset);
 };
 
 std::ostream& operator<<(std::ostream& out, const Register_Value&);
