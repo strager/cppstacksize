@@ -141,52 +141,67 @@ Register_File::Register_File()
       } {}
 
 void Register_File::store(U32 dest, const ::cs_x86_op& src, U32 update_offset) {
-  if (src.type == ::X86_OP_IMM) {
-    // Examples:
-    // mov $0, %rax
-    // mov $69, %ah
-    Register_Name name = capstone_x86_reg_to_register_name[dest];
-    if (name == Register_Name::max_register_name) {
-      // TODO(strager)
-    } else {
-      Register_Value& value = this->values[name];
-      switch (capstone_x86_reg_to_register_piece[dest]) {
-        case Register_Piece::low_32:
-        case Register_Piece::low_64:
-          value = Register_Value::make_literal(src.imm, update_offset);
-          break;
+  switch (src.type) {
+    case ::X86_OP_IMM: {
+      // Examples:
+      // mov $0, %rax
+      // mov $69, %ah
+      Register_Name name = capstone_x86_reg_to_register_name[dest];
+      if (name == Register_Name::max_register_name) {
+        // TODO(strager)
+      } else {
+        Register_Value& value = this->values[name];
+        switch (capstone_x86_reg_to_register_piece[dest]) {
+          case Register_Piece::low_32:
+          case Register_Piece::low_64:
+            value = Register_Value::make_literal(src.imm, update_offset);
+            break;
 
-        case Register_Piece::low_16:
-        case Register_Piece::low_16_high_8:
-        case Register_Piece::low_8:
-          Register_Value old_value = this->values[name];
-          switch (old_value.kind) {
-            case Register_Value_Kind::literal: {
-              U64 v = old_value.literal;
-              switch (capstone_x86_reg_to_register_piece[dest]) {
-                case Register_Piece::low_16:
-                  v = (v & ~U64(0xffff)) | src.imm;
-                  break;
-                case Register_Piece::low_8:
-                  v = (v & ~U64(0xff)) | src.imm;
-                  break;
-                case Register_Piece::low_16_high_8:
-                  v = (v & ~U64(0xff00)) | (src.imm << 8);
-                  break;
-                default:
-                  __builtin_unreachable();
+          case Register_Piece::low_16:
+          case Register_Piece::low_16_high_8:
+          case Register_Piece::low_8:
+            Register_Value old_value = this->values[name];
+            switch (old_value.kind) {
+              case Register_Value_Kind::literal: {
+                U64 v = old_value.literal;
+                switch (capstone_x86_reg_to_register_piece[dest]) {
+                  case Register_Piece::low_16:
+                    v = (v & ~U64(0xffff)) | src.imm;
+                    break;
+                  case Register_Piece::low_8:
+                    v = (v & ~U64(0xff)) | src.imm;
+                    break;
+                  case Register_Piece::low_16_high_8:
+                    v = (v & ~U64(0xff00)) | (src.imm << 8);
+                    break;
+                  default:
+                    __builtin_unreachable();
+                }
+                value.literal = v;
+                break;
               }
-              value.literal = v;
-              break;
+              default:
+                value = Register_Value::make_unknown(update_offset);
+                break;
             }
-            default:
-              value = Register_Value::make_unknown(update_offset);
-              break;
-          }
-          break;
+            break;
+        }
+        value.last_update_offset = update_offset;
       }
-      value.last_update_offset = update_offset;
+      break;
     }
+
+    case ::X86_OP_REG:
+      this->store(dest, this->load(src.reg), update_offset);
+      break;
+
+    case ::X86_OP_MEM:
+      // TODO(strager)
+      break;
+
+    case ::X86_OP_INVALID:
+      __builtin_unreachable();
+      break;
   }
 }
 

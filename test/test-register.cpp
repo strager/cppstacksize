@@ -236,5 +236,16 @@ TEST(Test_Register, mov8_after_unknown_value_is_unknown) {
         << "value should have been updated by second instruction";
   }
 }
+
+TEST(Test_Register, rename_64_bit_register_with_mov) {
+  {
+    std::span<const U8> code = ASM_X86_64(
+        "mov $0x69, %rax"
+        "mov %rax, %rbx");
+    Stack_Map sm = analyze_x86_64_stack_map(code);
+    EXPECT_EQ(sm.registers.values[Register_Name::rbx],
+              Literal_Register_Value(0x69));
+  }
+}
 }
 }
