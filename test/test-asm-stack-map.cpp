@@ -7,10 +7,11 @@
 using ::testing::ElementsAreArray;
 using ::testing::IsEmpty;
 
-#define CHECK_TOUCHES(code, ...)                                              \
-  do {                                                                        \
-    EXPECT_THAT(analyze_x86_64_stack_map((code)).touches,                     \
-                ::testing::ElementsAreArray<Stack_Map_Touch>({__VA_ARGS__})); \
+#define CHECK_TOUCHES(code, ...)                                               \
+  do {                                                                         \
+    EXPECT_THAT(                                                               \
+        analyze_x86_64_stack_map((code)).touches,                              \
+        ::testing::UnorderedElementsAreArray<Stack_Map_Touch>({__VA_ARGS__})); \
   } while (false)
 
 namespace cppstacksize {
@@ -212,6 +213,66 @@ TEST(Test_ASM_Stack_Map, memset_with_rep_stos) {
                            "mov (%rax), %ecx"
                            "rep; stosb"),
                 Stack_Map_Touch::write(7, 0x20, -1));
+}
+
+TEST(Test_ASM_Stack_Map, unrolled_movs) {
+  // Destination on stack:
+  CHECK_TOUCHES(ASM_X86_64("lea 0x20(%rsp), %rdi"
+                           "mov 0x40(%rcx), %rsi"
+                           "mov $12345, %ecx"
+                           "movsq"
+                           "movsq"
+                           "movsq"),
+                Stack_Map_Touch::write(14, 0x20, 8),
+                Stack_Map_Touch::write(16, 0x28, 8),
+                Stack_Map_Touch::write(18, 0x30, 8));
+
+  // Source on stack:
+  CHECK_TOUCHES(ASM_X86_64("lea 0x20(%rsp), %rsi"
+                           "mov 0x40(%rcx), %rdi"
+                           "mov $12345, %ecx"
+                           "movsq"
+                           "movsq"
+                           "movsq"),
+                Stack_Map_Touch::read(14, 0x20, 8),
+                Stack_Map_Touch::read(16, 0x28, 8),
+                Stack_Map_Touch::read(18, 0x30, 8));
+
+  // Source and destination on stack:
+  CHECK_TOUCHES(
+      ASM_X86_64("lea 0x20(%rsp), %rsi"
+                 "lea 0x40(%rsp), %rdi"
+                 "mov $12345, %ecx"
+                 "movsq"
+                 "movsq"
+                 "movsq"),
+      Stack_Map_Touch::read(15, 0x20, 8), Stack_Map_Touch::write(15, 0x40, 8),
+      Stack_Map_Touch::read(17, 0x28, 8), Stack_Map_Touch::write(17, 0x48, 8),
+      Stack_Map_Touch::read(19, 0x30, 8), Stack_Map_Touch::write(19, 0x50, 8));
+}
+
+TEST(Test_ASM_Stack_Map, memcpy_with_rep_movs) {
+  // Destination on stack:
+  CHECK_TOUCHES(ASM_X86_64("lea 0x20(%rsp), %rdi"
+                           "mov 0x40(%rcx), %rsi"
+                           "mov $12345, %ecx"
+                           "rep; movsq"),
+                Stack_Map_Touch::write(14, 0x20, 12345 * 8));
+
+  // Source on stack:
+  CHECK_TOUCHES(ASM_X86_64("lea 0x20(%rsp), %rsi"
+                           "mov 0x40(%rcx), %rdi"
+                           "mov $12345, %ecx"
+                           "rep; movsq"),
+                Stack_Map_Touch::read(14, 0x20, 12345 * 8));
+
+  // Source and destination on stack:
+  CHECK_TOUCHES(ASM_X86_64("lea 0x20(%rsp), %rsi"
+                           "lea 0x40(%rsp), %rdi"
+                           "mov $12345, %ecx"
+                           "rep; movsl"),
+                Stack_Map_Touch::read(15, 0x20, 12345 * 4),
+                Stack_Map_Touch::write(15, 0x40, 12345 * 4));
 }
 }
 }

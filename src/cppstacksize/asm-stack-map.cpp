@@ -189,6 +189,58 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
         break;
       }
 
+      case ::X86_INS_MOVSB:
+      case ::X86_INS_MOVSD:
+      case ::X86_INS_MOVSQ:
+      case ::X86_INS_MOVSW: {
+        // Examples:
+        // movs %eax, (%rdi)
+        // rep movs %rax, (%rdi)
+        Register_Value src = map.registers.values[Register_Name::rsi];
+        Register_Value dest = map.registers.values[Register_Name::rdi];
+        ::cs_x86_op* dest_operand = &details->x86.operands[1];
+
+        std::optional<U32> byte_count;
+        if (instruction.detail->x86.prefix[0] == ::X86_PREFIX_REP) {
+          Register_Value count = map.registers.values[Register_Name::rcx];
+          if (count.kind == Register_Value_Kind::literal) {
+            byte_count = count.literal * dest_operand->size;
+          }
+        } else {
+          byte_count = dest_operand->size;
+        }
+
+        if (src.kind == Register_Value_Kind::entry_rsp_relative) {
+          map.touches.push_back(Stack_Map_Touch{
+              .offset = current_offset,
+              .entry_rsp_relative_address = get_rsp_adjustment_from_value(src),
+              .byte_count = byte_count.has_value() ? *byte_count : (U32)-1,
+              .access_kind = Stack_Access_Kind::read_only,
+          });
+        }
+        if (dest.kind == Register_Value_Kind::entry_rsp_relative) {
+          map.touches.push_back(Stack_Map_Touch{
+              .offset = current_offset,
+              .entry_rsp_relative_address = get_rsp_adjustment_from_value(dest),
+              .byte_count = byte_count.has_value() ? *byte_count : (U32)-1,
+              .access_kind = Stack_Access_Kind::write_only,
+          });
+        }
+
+        if (byte_count.has_value()) {
+          map.registers.add(::X86_REG_RDI, *byte_count, current_offset);
+          map.registers.add(::X86_REG_RSI, *byte_count, current_offset);
+        } else {
+          map.registers.store(::X86_REG_RDI,
+                              Register_Value::make_unknown(current_offset),
+                              current_offset);
+          map.registers.store(::X86_REG_RSI,
+                              Register_Value::make_unknown(current_offset),
+                              current_offset);
+        }
+        break;
+      }
+
       default:
         if (details->x86.op_count == 2) {
           for (U8 operand_index = 0; operand_index < 2; ++operand_index) {
