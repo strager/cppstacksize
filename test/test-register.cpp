@@ -2,14 +2,38 @@
 #include <cppstacksize/asm.h>
 #include <gtest/gtest.h>
 
+#pragma clang diagnostic ignored "-Wunused-function"
+
 namespace cppstacksize {
 namespace {
+struct Literal_Register_Value {
+  explicit Literal_Register_Value(U64 value) : value(value) {}
+
+  U64 value;
+
+  friend bool operator==(const Register_Value& lhs,
+                         Literal_Register_Value rhs) {
+    if (lhs.kind != Register_Value_Kind::literal) return false;
+    return lhs.literal == rhs.value;
+  }
+
+  friend bool operator!=(const Register_Value& lhs,
+                         Literal_Register_Value rhs) {
+    return !(lhs == rhs);
+  }
+};
+
+std::ostream& operator<<(std::ostream& out, Literal_Register_Value value) {
+  out << value.value;
+  return out;
+}
+
 TEST(Test_Register, mov_immediate_to_register_changes_register) {
   {
     std::span<const U8> code = ASM_X86_64("mov $0x50, %rax");
     Stack_Map sm = analyze_x86_64_stack_map(code);
     EXPECT_EQ(sm.registers.values[Register_Name::rax],
-              Register_Value::make_literal(0x50));
+              Literal_Register_Value(0x50));
   }
 
   {
@@ -32,21 +56,21 @@ TEST(Test_Register, mov_immediate_to_register_changes_register) {
         "mov $15, %r15"
         );
     Stack_Map sm = analyze_x86_64_stack_map(code);
-    EXPECT_EQ(sm.registers.values[Register_Name::rax], Register_Value::make_literal(1));
-    EXPECT_EQ(sm.registers.values[Register_Name::rbx], Register_Value::make_literal(2));
-    EXPECT_EQ(sm.registers.values[Register_Name::rcx], Register_Value::make_literal(3));
-    EXPECT_EQ(sm.registers.values[Register_Name::rdx], Register_Value::make_literal(4));
-    EXPECT_EQ(sm.registers.values[Register_Name::rsi], Register_Value::make_literal(5));
-    EXPECT_EQ(sm.registers.values[Register_Name::rdi], Register_Value::make_literal(6));
-    EXPECT_EQ(sm.registers.values[Register_Name::rbp], Register_Value::make_literal(7));
-    EXPECT_EQ(sm.registers.values[Register_Name::r8],  Register_Value::make_literal(8));
-    EXPECT_EQ(sm.registers.values[Register_Name::r9],  Register_Value::make_literal(9));
-    EXPECT_EQ(sm.registers.values[Register_Name::r10], Register_Value::make_literal(10));
-    EXPECT_EQ(sm.registers.values[Register_Name::r11], Register_Value::make_literal(11));
-    EXPECT_EQ(sm.registers.values[Register_Name::r12], Register_Value::make_literal(12));
-    EXPECT_EQ(sm.registers.values[Register_Name::r13], Register_Value::make_literal(13));
-    EXPECT_EQ(sm.registers.values[Register_Name::r14], Register_Value::make_literal(14));
-    EXPECT_EQ(sm.registers.values[Register_Name::r15], Register_Value::make_literal(15));
+    EXPECT_EQ(sm.registers.values[Register_Name::rax], Literal_Register_Value(1));
+    EXPECT_EQ(sm.registers.values[Register_Name::rbx], Literal_Register_Value(2));
+    EXPECT_EQ(sm.registers.values[Register_Name::rcx], Literal_Register_Value(3));
+    EXPECT_EQ(sm.registers.values[Register_Name::rdx], Literal_Register_Value(4));
+    EXPECT_EQ(sm.registers.values[Register_Name::rsi], Literal_Register_Value(5));
+    EXPECT_EQ(sm.registers.values[Register_Name::rdi], Literal_Register_Value(6));
+    EXPECT_EQ(sm.registers.values[Register_Name::rbp], Literal_Register_Value(7));
+    EXPECT_EQ(sm.registers.values[Register_Name::r8],  Literal_Register_Value(8));
+    EXPECT_EQ(sm.registers.values[Register_Name::r9],  Literal_Register_Value(9));
+    EXPECT_EQ(sm.registers.values[Register_Name::r10], Literal_Register_Value(10));
+    EXPECT_EQ(sm.registers.values[Register_Name::r11], Literal_Register_Value(11));
+    EXPECT_EQ(sm.registers.values[Register_Name::r12], Literal_Register_Value(12));
+    EXPECT_EQ(sm.registers.values[Register_Name::r13], Literal_Register_Value(13));
+    EXPECT_EQ(sm.registers.values[Register_Name::r14], Literal_Register_Value(14));
+    EXPECT_EQ(sm.registers.values[Register_Name::r15], Literal_Register_Value(15));
     // clang-format on
   }
 
@@ -70,21 +94,21 @@ TEST(Test_Register, mov_immediate_to_register_changes_register) {
         "mov $15, %r15d"
         );
     Stack_Map sm = analyze_x86_64_stack_map(code);
-    EXPECT_EQ(sm.registers.values[Register_Name::rax], Register_Value::make_literal(1));
-    EXPECT_EQ(sm.registers.values[Register_Name::rbx], Register_Value::make_literal(2));
-    EXPECT_EQ(sm.registers.values[Register_Name::rcx], Register_Value::make_literal(3));
-    EXPECT_EQ(sm.registers.values[Register_Name::rdx], Register_Value::make_literal(4));
-    EXPECT_EQ(sm.registers.values[Register_Name::rsi], Register_Value::make_literal(5));
-    EXPECT_EQ(sm.registers.values[Register_Name::rdi], Register_Value::make_literal(6));
-    EXPECT_EQ(sm.registers.values[Register_Name::rbp], Register_Value::make_literal(7));
-    EXPECT_EQ(sm.registers.values[Register_Name::r8],  Register_Value::make_literal(8));
-    EXPECT_EQ(sm.registers.values[Register_Name::r9],  Register_Value::make_literal(9));
-    EXPECT_EQ(sm.registers.values[Register_Name::r10], Register_Value::make_literal(10));
-    EXPECT_EQ(sm.registers.values[Register_Name::r11], Register_Value::make_literal(11));
-    EXPECT_EQ(sm.registers.values[Register_Name::r12], Register_Value::make_literal(12));
-    EXPECT_EQ(sm.registers.values[Register_Name::r13], Register_Value::make_literal(13));
-    EXPECT_EQ(sm.registers.values[Register_Name::r14], Register_Value::make_literal(14));
-    EXPECT_EQ(sm.registers.values[Register_Name::r15], Register_Value::make_literal(15));
+    EXPECT_EQ(sm.registers.values[Register_Name::rax], Literal_Register_Value(1));
+    EXPECT_EQ(sm.registers.values[Register_Name::rbx], Literal_Register_Value(2));
+    EXPECT_EQ(sm.registers.values[Register_Name::rcx], Literal_Register_Value(3));
+    EXPECT_EQ(sm.registers.values[Register_Name::rdx], Literal_Register_Value(4));
+    EXPECT_EQ(sm.registers.values[Register_Name::rsi], Literal_Register_Value(5));
+    EXPECT_EQ(sm.registers.values[Register_Name::rdi], Literal_Register_Value(6));
+    EXPECT_EQ(sm.registers.values[Register_Name::rbp], Literal_Register_Value(7));
+    EXPECT_EQ(sm.registers.values[Register_Name::r8],  Literal_Register_Value(8));
+    EXPECT_EQ(sm.registers.values[Register_Name::r9],  Literal_Register_Value(9));
+    EXPECT_EQ(sm.registers.values[Register_Name::r10], Literal_Register_Value(10));
+    EXPECT_EQ(sm.registers.values[Register_Name::r11], Literal_Register_Value(11));
+    EXPECT_EQ(sm.registers.values[Register_Name::r12], Literal_Register_Value(12));
+    EXPECT_EQ(sm.registers.values[Register_Name::r13], Literal_Register_Value(13));
+    EXPECT_EQ(sm.registers.values[Register_Name::r14], Literal_Register_Value(14));
+    EXPECT_EQ(sm.registers.values[Register_Name::r15], Literal_Register_Value(15));
     // clang-format on
   }
 
@@ -92,7 +116,7 @@ TEST(Test_Register, mov_immediate_to_register_changes_register) {
     std::span<const U8> code = ASM_X86_64("mov $0x123456789abcdef0, %rax");
     Stack_Map sm = analyze_x86_64_stack_map(code);
     EXPECT_EQ(sm.registers.values[Register_Name::rax],
-              Register_Value::make_literal(0x123456789abcdef0));
+              Literal_Register_Value(0x123456789abcdef0));
   }
 }
 
@@ -103,7 +127,7 @@ TEST(Test_Register, mov32_sets_entire_64_bits) {
         "mov $0x69, %eax");
     Stack_Map sm = analyze_x86_64_stack_map(code);
     EXPECT_EQ(sm.registers.values[Register_Name::rax],
-              Register_Value::make_literal(0x69));
+              Literal_Register_Value(0x69));
   }
 
   // Should not sign extend:
@@ -113,7 +137,7 @@ TEST(Test_Register, mov32_sets_entire_64_bits) {
         "mov $0xffffffff, %eax");
     Stack_Map sm = analyze_x86_64_stack_map(code);
     EXPECT_EQ(sm.registers.values[Register_Name::rax],
-              Register_Value::make_literal(0xffffffff));
+              Literal_Register_Value(0xffffffff));
   }
 }
 
@@ -124,7 +148,7 @@ TEST(Test_Register, mov16_preserves_other_bits) {
         "mov $0x0420, %ax");
     Stack_Map sm = analyze_x86_64_stack_map(code);
     EXPECT_EQ(sm.registers.values[Register_Name::rax],
-              Register_Value::make_literal(0x123456789abc0420));
+              Literal_Register_Value(0x123456789abc0420));
   }
 
   {
@@ -162,21 +186,21 @@ TEST(Test_Register, mov16_preserves_other_bits) {
         "mov $15, %r15w"
         );
     Stack_Map sm = analyze_x86_64_stack_map(code);
-    EXPECT_EQ(sm.registers.values[Register_Name::rax], Register_Value::make_literal(0xffffffffffff0001));
-    EXPECT_EQ(sm.registers.values[Register_Name::rbx], Register_Value::make_literal(0xffffffffffff0002));
-    EXPECT_EQ(sm.registers.values[Register_Name::rcx], Register_Value::make_literal(0xffffffffffff0003));
-    EXPECT_EQ(sm.registers.values[Register_Name::rdx], Register_Value::make_literal(0xffffffffffff0004));
-    EXPECT_EQ(sm.registers.values[Register_Name::rsi], Register_Value::make_literal(0xffffffffffff0005));
-    EXPECT_EQ(sm.registers.values[Register_Name::rdi], Register_Value::make_literal(0xffffffffffff0006));
-    EXPECT_EQ(sm.registers.values[Register_Name::rbp], Register_Value::make_literal(0xffffffffffff0007));
-    EXPECT_EQ(sm.registers.values[Register_Name::r8],  Register_Value::make_literal(0xffffffffffff0008));
-    EXPECT_EQ(sm.registers.values[Register_Name::r9],  Register_Value::make_literal(0xffffffffffff0009));
-    EXPECT_EQ(sm.registers.values[Register_Name::r10], Register_Value::make_literal(0xffffffffffff000a));
-    EXPECT_EQ(sm.registers.values[Register_Name::r11], Register_Value::make_literal(0xffffffffffff000b));
-    EXPECT_EQ(sm.registers.values[Register_Name::r12], Register_Value::make_literal(0xffffffffffff000c));
-    EXPECT_EQ(sm.registers.values[Register_Name::r13], Register_Value::make_literal(0xffffffffffff000d));
-    EXPECT_EQ(sm.registers.values[Register_Name::r14], Register_Value::make_literal(0xffffffffffff000e));
-    EXPECT_EQ(sm.registers.values[Register_Name::r15], Register_Value::make_literal(0xffffffffffff000f));
+    EXPECT_EQ(sm.registers.values[Register_Name::rax], Literal_Register_Value(0xffffffffffff0001));
+    EXPECT_EQ(sm.registers.values[Register_Name::rbx], Literal_Register_Value(0xffffffffffff0002));
+    EXPECT_EQ(sm.registers.values[Register_Name::rcx], Literal_Register_Value(0xffffffffffff0003));
+    EXPECT_EQ(sm.registers.values[Register_Name::rdx], Literal_Register_Value(0xffffffffffff0004));
+    EXPECT_EQ(sm.registers.values[Register_Name::rsi], Literal_Register_Value(0xffffffffffff0005));
+    EXPECT_EQ(sm.registers.values[Register_Name::rdi], Literal_Register_Value(0xffffffffffff0006));
+    EXPECT_EQ(sm.registers.values[Register_Name::rbp], Literal_Register_Value(0xffffffffffff0007));
+    EXPECT_EQ(sm.registers.values[Register_Name::r8],  Literal_Register_Value(0xffffffffffff0008));
+    EXPECT_EQ(sm.registers.values[Register_Name::r9],  Literal_Register_Value(0xffffffffffff0009));
+    EXPECT_EQ(sm.registers.values[Register_Name::r10], Literal_Register_Value(0xffffffffffff000a));
+    EXPECT_EQ(sm.registers.values[Register_Name::r11], Literal_Register_Value(0xffffffffffff000b));
+    EXPECT_EQ(sm.registers.values[Register_Name::r12], Literal_Register_Value(0xffffffffffff000c));
+    EXPECT_EQ(sm.registers.values[Register_Name::r13], Literal_Register_Value(0xffffffffffff000d));
+    EXPECT_EQ(sm.registers.values[Register_Name::r14], Literal_Register_Value(0xffffffffffff000e));
+    EXPECT_EQ(sm.registers.values[Register_Name::r15], Literal_Register_Value(0xffffffffffff000f));
     // clang-format on
   }
 }
@@ -188,7 +212,7 @@ TEST(Test_Register, mov8_preserves_other_bits) {
         "mov $0x69, %al");
     Stack_Map sm = analyze_x86_64_stack_map(code);
     EXPECT_EQ(sm.registers.values[Register_Name::rax],
-              Register_Value::make_literal(0x123456789abcde69));
+              Literal_Register_Value(0x123456789abcde69));
   }
 
   {
@@ -197,7 +221,7 @@ TEST(Test_Register, mov8_preserves_other_bits) {
         "mov $0x69, %ah");
     Stack_Map sm = analyze_x86_64_stack_map(code);
     EXPECT_EQ(sm.registers.values[Register_Name::rax],
-              Register_Value::make_literal(0x123456789abc69f0));
+              Literal_Register_Value(0x123456789abc69f0));
   }
 }
 

@@ -58,37 +58,43 @@ struct Register_Value {
     return value;
   }
 
-  static Register_Value make_entry_rsp_relative(U64 offset) {
+  static Register_Value make_entry_rsp_relative(U64 offset,
+                                                U32 last_update_offset) {
     Register_Value value;
     value.kind = Register_Value_Kind::entry_rsp_relative;
     value.entry_rsp_relative_offset = offset;
+    value.last_update_offset = last_update_offset;
     return value;
   }
 
-  static Register_Value make_literal(int value) {
-    return make_literal(static_cast<U64>(value));
+  static Register_Value make_literal(int value, U32 last_update_offset) {
+    return make_literal(static_cast<U64>(value), last_update_offset);
   }
 
-  static Register_Value make_literal(unsigned value) {
-    return make_literal(static_cast<U64>(value));
+  static Register_Value make_literal(unsigned value, U32 last_update_offset) {
+    return make_literal(static_cast<U64>(value), last_update_offset);
   }
 
-  static Register_Value make_literal(long value) {
-    return make_literal(static_cast<U64>(value));
+  static Register_Value make_literal(long value, U32 last_update_offset) {
+    return make_literal(static_cast<U64>(value), last_update_offset);
   }
 
-  static Register_Value make_literal(unsigned long value) {
-    return make_literal(static_cast<unsigned long long>(value));
+  static Register_Value make_literal(unsigned long value,
+                                     U32 last_update_offset) {
+    return make_literal(static_cast<unsigned long long>(value),
+                        last_update_offset);
   }
 
-  static Register_Value make_literal(long long value) {
-    return make_literal(static_cast<U64>(value));
+  static Register_Value make_literal(long long value, U32 last_update_offset) {
+    return make_literal(static_cast<U64>(value), last_update_offset);
   }
 
-  static Register_Value make_literal(unsigned long long v) {
+  static Register_Value make_literal(unsigned long long v,
+                                     U32 last_update_offset) {
     Register_Value value;
     value.kind = Register_Value_Kind::literal;
     value.literal = static_cast<U64>(v);
+    value.last_update_offset = last_update_offset;
     return value;
   }
 

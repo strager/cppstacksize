@@ -104,6 +104,7 @@ constexpr std::array<Register_Piece, ::X86_REG_ENDING>
 
 bool operator==(const Register_Value& lhs, const Register_Value& rhs) {
   if (lhs.kind != rhs.kind) return false;
+  if (lhs.last_update_offset != rhs.last_update_offset) return false;
   switch (lhs.kind) {
     case Register_Value_Kind::unknown:
       return true;
@@ -152,7 +153,7 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src, U32 update_offset) {
       switch (capstone_x86_reg_to_register_piece[dest]) {
         case Register_Piece::low_32:
         case Register_Piece::low_64:
-          value = Register_Value::make_literal(src.imm);
+          value = Register_Value::make_literal(src.imm, update_offset);
           break;
 
         case Register_Piece::low_16:
@@ -233,7 +234,8 @@ Register_Value Register_File::load(const ::cs_x86_op& src) {
       // Examples:
       // sub $0x18, %rsp
       // add $0x18, %rsp
-      return Register_Value::make_literal(src.imm);
+      // FIXME(strager): The last_update_offset is incorrect.
+      return Register_Value::make_literal(src.imm, (U32)-1);
 
     case ::X86_OP_REG:
       // Examples:

@@ -147,7 +147,7 @@ TEST(Test_ASM_Stack_Map, ret_reads_return_address_and_adjusts_stack) {
     std::span<const U8> code = ASM_X86_64("ret");
     Stack_Map sm = analyze_x86_64_stack_map(code);
     EXPECT_EQ(sm.registers.values[Register_Name::rsp],
-              Register_Value::make_entry_rsp_relative(8));
+              Register_Value::make_entry_rsp_relative(8, 0));
     EXPECT_THAT(sm.touches, ElementsAreArray({
                                 Stack_Map_Touch::read(0, 0, 8),
                             }));

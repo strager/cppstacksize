@@ -27,7 +27,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
 
   Stack_Map map;
   map.registers.values[Register_Name::rsp] =
-      Register_Value::make_entry_rsp_relative(0);
+      Register_Value::make_entry_rsp_relative(0, 0);
   auto get_rsp_adjustment_from_value = [](const Register_Value& value) -> S64 {
     if (value.kind != Register_Value_Kind::entry_rsp_relative) {
       // TODO(strager)

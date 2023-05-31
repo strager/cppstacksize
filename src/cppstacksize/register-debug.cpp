@@ -14,6 +14,7 @@ std::ostream& operator<<(std::ostream& out, const Register_Value& value) {
       out << value.literal;
       break;
   }
+  out << " @" << value.last_update_offset;
   return out;
 }
 }
