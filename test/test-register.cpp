@@ -231,8 +231,9 @@ TEST(Test_Register, mov8_after_unknown_value_is_unknown) {
         "mov (%rbx), %rax"
         "mov $0x69, %al");
     Stack_Map sm = analyze_x86_64_stack_map(code);
-    EXPECT_EQ(sm.registers.values[Register_Name::rax].kind,
-              Register_Value_Kind::unknown);
+    EXPECT_EQ(sm.registers.values[Register_Name::rax],
+              Register_Value::make_unknown(3))
+        << "value should have been updated by second instruction";
   }
 }
 }
