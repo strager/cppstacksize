@@ -152,20 +152,26 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
         if (details->x86.op_count == 2) {
           for (U8 operand_index = 0; operand_index < 2; ++operand_index) {
             ::cs_x86_op* operand = &details->x86.operands[operand_index];
-            if (operand->type == ::X86_OP_MEM &&
-                operand->mem.base == ::X86_REG_RSP) {
-              // Examples:
-              // mov other_operand, (%rsp)
-              // mov (%rsp), other_operand
-              // movzbl (%rsp), other_operand
-              map.touches.push_back(Stack_Map_Touch{
-                  .offset = narrow_cast<U32>(instruction.address),
-                  .entry_rsp_relative_address =
-                      get_rsp_adjustment() + operand->mem.disp,
-                  .byte_count = operand->size,
-                  .access_kind =
-                      stack_access_kind_from_capstone(operand->access),
-              });
+            if (operand->type == ::X86_OP_MEM) {
+              Register_Value base_address =
+                  map.registers.load(operand->mem.base);
+              if (base_address.kind ==
+                  Register_Value_Kind::entry_rsp_relative) {
+                // Examples:
+                // mov other_operand, (%rsp)
+                // mov (%rsp), other_operand
+                // mov -0x10(%rbp), other_operand
+                // movzbl (%rsp), other_operand
+                map.touches.push_back(Stack_Map_Touch{
+                    .offset = narrow_cast<U32>(instruction.address),
+                    .entry_rsp_relative_address =
+                        get_rsp_adjustment_from_value(base_address) +
+                        operand->mem.disp,
+                    .byte_count = operand->size,
+                    .access_kind =
+                        stack_access_kind_from_capstone(operand->access),
+                });
+              }
             }
           }
         }
