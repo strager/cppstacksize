@@ -42,6 +42,9 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
     return get_rsp_adjustment_from_value(rsp_value);
   };
 
+  // Byte offset of the most recently-encountered call instruction.
+  U32 last_call_offset = 0;
+
   for (::cs_insn& instruction : std::span(instructions, instruction_count)) {
     U32 current_offset = narrow_cast<U32>(instruction.address);
     ::cs_detail* details = instruction.detail;
@@ -138,7 +141,10 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
              reg < Register_Name::max_register_name; ++reg) {
           if (reg == Register_Name::rsp) continue;
           Register_Value& value = map.registers.values[reg];
-          if (value.kind == Register_Value_Kind::entry_rsp_relative) {
+          bool is_register_likely_updated_for_this_function_call =
+              value.last_update_offset >= last_call_offset;
+          if (value.kind == Register_Value_Kind::entry_rsp_relative &&
+              is_register_likely_updated_for_this_function_call) {
             map.touches.push_back(Stack_Map_Touch{
                 .offset = value.last_update_offset,
                 .entry_rsp_relative_address =
@@ -148,6 +154,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
             });
           }
         }
+        last_call_offset = current_offset;
         break;
 
       case ::X86_INS_STOSB:

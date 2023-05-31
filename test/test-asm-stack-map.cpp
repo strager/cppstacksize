@@ -167,6 +167,14 @@ TEST(Test_ASM_Stack_Map, lea_then_call_attributes_stack_usage_to_lea) {
                 Stack_Map_Touch::read_or_write(0, 0x50, -1));
 }
 
+TEST(Test_ASM_Stack_Map,
+     lea_then_two_calls_attributes_stack_usage_to_lea_once) {
+  CHECK_TOUCHES(ASM_X86_64("lea 0x50(%rsp), %rax"
+                           "call 0x1234"
+                           "call 0x5678"),
+                Stack_Map_Touch::read_or_write(0, 0x50, -1));
+}
+
 TEST(Test_ASM_Stack_Map, lea_then_store_attributes_stack_usage_to_store) {
   CHECK_TOUCHES(ASM_X86_64("lea 0x20(%rsp), %rax"
                            "mov %rbx, (%rax)"),
