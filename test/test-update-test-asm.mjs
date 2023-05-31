@@ -1,6 +1,9 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { assembleAsync, assembleTestASMsAsync } from "../src/update-test-asm.mjs";
+import {
+  assembleAsync,
+  assembleTestASMsAsync,
+} from "../src/update-test-asm.mjs";
 
 describe("assemble", () => {
   it("should give bytes of one instruction", async () => {
@@ -69,9 +72,7 @@ describe("update test ASM", () => {
       '  "xor %eax, %eax"\n' + //
       ")\n";
     let asms = await assembleTestASMsAsync(source);
-    assert.deepStrictEqual(asms, new Map([
-      ["xor %eax, %eax", [0x31, 0xc0]],
-    ]));
+    assert.deepStrictEqual(asms, new Map([["xor %eax, %eax", [0x31, 0xc0]]]));
   });
 
   it("should make data for multiple x86_64 code lines", async () => {
@@ -82,9 +83,10 @@ describe("update test ASM", () => {
       '  "jmp .loop"\n' + //
       ")\n";
     let asms = await assembleTestASMsAsync(source);
-    assert.deepStrictEqual(asms, new Map([
-      ["xor %eax, %eax.loop:jmp .loop", [0x31, 0xc0, 0xeb, 0xfc]],
-    ]));
+    assert.deepStrictEqual(
+      asms,
+      new Map([["xor %eax, %eax.loop:jmp .loop", [0x31, 0xc0, 0xeb, 0xfc]]])
+    );
   });
 
   it("should make data for ASM_X86_64 blocks independently", async () => {
@@ -98,10 +100,13 @@ describe("update test ASM", () => {
       '  "jne .loop"\n' + //
       ")\n";
     let asms = await assembleTestASMsAsync(source);
-    assert.deepStrictEqual(asms, new Map([
-      [".loop:jmp .loop", [0xeb, 0xfc]],
-      [".loop:jne .loop", [0x75, 0xfc]],
-    ]));
+    assert.deepStrictEqual(
+      asms,
+      new Map([
+        [".loop:jmp .loop", [0xeb, 0xfc]],
+        [".loop:jne .loop", [0x75, 0xfc]],
+      ])
+    );
   });
 
   it("allows ')' inside strings", async () => {
@@ -110,8 +115,9 @@ describe("update test ASM", () => {
       '  "mov (%rsp), %rbx"\n' + //
       ")\n";
     let asms = await assembleTestASMsAsync(source);
-    assert.deepStrictEqual(asms, new Map([
-      ["mov (%rsp), %rbx", [0x48, 0x8b, 0x1c, 0x24]],
-    ]));
+    assert.deepStrictEqual(
+      asms,
+      new Map([["mov (%rsp), %rbx", [0x48, 0x8b, 0x1c, 0x24]]])
+    );
   });
 });
