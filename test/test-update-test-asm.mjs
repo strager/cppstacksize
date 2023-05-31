@@ -47,7 +47,7 @@ describe("assemble", () => {
   it("should give no bytes for labels", async () => {
     assert.deepStrictEqual(
       await assembleAsync([".loop:", "jmp .loop"], { arch: "x86_64" }),
-      [0xeb, 0xfc]
+      [0xeb, 0xfe]
     );
   });
 
@@ -85,7 +85,7 @@ describe("update test ASM", () => {
     let asms = await assembleTestASMsAsync(source);
     assert.deepStrictEqual(
       asms,
-      new Map([["xor %eax, %eax.loop:jmp .loop", [0x31, 0xc0, 0xeb, 0xfc]]])
+      new Map([["xor %eax, %eax.loop:jmp .loop", [0x31, 0xc0, 0xeb, 0xfe]]])
     );
   });
 
@@ -103,8 +103,8 @@ describe("update test ASM", () => {
     assert.deepStrictEqual(
       asms,
       new Map([
-        [".loop:jmp .loop", [0xeb, 0xfc]],
-        [".loop:jne .loop", [0x75, 0xfc]],
+        [".loop:jmp .loop", [0xeb, 0xfe]],
+        [".loop:jne .loop", [0x75, 0xfe]],
       ])
     );
   });

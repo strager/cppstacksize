@@ -1,5 +1,7 @@
 import child_process from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { isModuleNodeMain } from "./is-main.mjs";
 
 export async function assembleTestASMsAsync(source, outASMs = new Map()) {
@@ -27,34 +29,36 @@ function makeCxxNumberLiterals(numbers) {
 
 export async function assembleAsync(assemblyLines, { arch }) {
   console.assert(arch === "x86_64", "only x86_64 is supported right now");
-  let listing = await getYASMListingAsync(
-    ".code64\n" + assemblyLines.join("\n") + "\n"
+  let code = ".code64\n" + assemblyLines.join("\n") + "\n";
+
+  let tempDir = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), "cppstacksize-update-test-asm-")
   );
-  let listingLineRE =
-    /^ *(?<line>\d+) +((?<address>[0-9A-F]+) +(?<bytes>[0-9A-F]+)(?<toBeContinued>-?) +)?(?<code>.*)$/gm;
-
-  let currentAssemblyLineIndex = 0;
-  let instructions = [];
-  let includeMatchInPreviousInstruction = false;
-  for (let match of listing.matchAll(listingLineRE)) {
-    if (includeMatchInPreviousInstruction) {
-      instructions.push(...hexStringToByteArray(match.groups.bytes));
-    }
-    includeMatchInPreviousInstruction = match.groups.toBeContinued === "-";
-
-    while (assemblyLines[currentAssemblyLineIndex] === "") {
-      currentAssemblyLineIndex += 1;
-    }
-
-    // TODO(strager): Handle leading whitespace in
-    // assemblyLines[currentAssemblyLineIndex].
-    if (assemblyLines[currentAssemblyLineIndex] === match.groups.code) {
-      instructions.push(...hexStringToByteArray(match.groups.bytes ?? ""));
-      currentAssemblyLineIndex += 1;
-    }
+  try {
+    let binaryFilePath = path.join(tempDir, "output.bin");
+    await new Promise((resolve, reject) => {
+      let childProcess = child_process.execFile(
+        "yasm",
+        ["-p", "gas", "-L", "nasm", "-o", binaryFilePath, "-"],
+        {
+          windowsHide: true,
+        },
+        (err, stdout, stderr) => {
+          if (err !== null) {
+            reject(err);
+            return;
+          }
+          resolve(stdout);
+        }
+      );
+      childProcess.stdin.write(code);
+      childProcess.stdin.end();
+    });
+    let bytesBuffer = await fs.promises.readFile(binaryFilePath);
+    return [...bytesBuffer];
+  } finally {
+    await fs.promises.rm(tempDir, { recursive: true });
   }
-  console.assert(currentAssemblyLineIndex === assemblyLines.length);
-  return instructions;
 }
 
 function getYASMListingAsync(code) {
