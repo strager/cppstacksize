@@ -119,7 +119,7 @@ bool operator!=(const Register_Value& lhs, const Register_Value& rhs) {
   return !(lhs == rhs);
 }
 
-void Register_File::store(U32 dest, const ::cs_x86_op& src) {
+void Register_File::store(U32 dest, const ::cs_x86_op& src, U32 update_offset) {
   if (src.type == ::X86_OP_IMM) {
     // Examples:
     // mov $0, %rax
@@ -128,10 +128,11 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
     if (name == Register_Name::max_register_name) {
       // TODO(strager)
     } else {
+      Register_Value& value = this->values[name];
       switch (capstone_x86_reg_to_register_piece[dest]) {
         case Register_Piece::low_32:
         case Register_Piece::low_64:
-          this->values[name] = Register_Value::make_literal(src.imm);
+          value = Register_Value::make_literal(src.imm);
           break;
 
         case Register_Piece::low_16:
@@ -140,29 +141,30 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src) {
           Register_Value old_value = this->values[name];
           switch (old_value.kind) {
             case Register_Value_Kind::literal: {
-              U64 value = old_value.literal;
+              U64 v = old_value.literal;
               switch (capstone_x86_reg_to_register_piece[dest]) {
                 case Register_Piece::low_16:
-                  value = (value & ~U64(0xffff)) | src.imm;
+                  v = (v & ~U64(0xffff)) | src.imm;
                   break;
                 case Register_Piece::low_8:
-                  value = (value & ~U64(0xff)) | src.imm;
+                  v = (v & ~U64(0xff)) | src.imm;
                   break;
                 case Register_Piece::low_16_high_8:
-                  value = (value & ~U64(0xff00)) | (src.imm << 8);
+                  v = (v & ~U64(0xff00)) | (src.imm << 8);
                   break;
                 default:
                   __builtin_unreachable();
               }
-              this->values[name].literal = value;
+              value.literal = v;
               break;
             }
             default:
-              this->values[name] = Register_Value();
+              value = Register_Value();
               break;
           }
           break;
       }
+      value.last_update_offset = update_offset;
     }
   }
 }

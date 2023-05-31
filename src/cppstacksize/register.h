@@ -91,9 +91,7 @@ struct Register_Value {
 struct Register_File {
   Register_Value values[Register_Name::max_register_name];
 
-  // TODO(strager): Require a last_update_offset.
-  void store(/*::x86_reg*/ U32 dest, const ::cs_x86_op& src);
-
+  void store(/*::x86_reg*/ U32 dest, const ::cs_x86_op& src, U32 update_offset);
   void store(/*::x86_reg*/ U32 dest, const Register_Value& src,
              U32 update_offset);
 

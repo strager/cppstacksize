@@ -51,7 +51,7 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
         ::cs_x86_op* src = &details->x86.operands[1];
         ::cs_x86_op* dest = &details->x86.operands[0];
         if (dest->type == ::X86_OP_REG) {
-          map.registers.store(dest->reg, *src);
+          map.registers.store(dest->reg, *src, current_offset);
         }
         break;
       }
