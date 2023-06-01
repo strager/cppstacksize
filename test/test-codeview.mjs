@@ -38,7 +38,7 @@ describe("primitives.obj", () => {
     assert.strictEqual(functions.length, 1);
     assert.strictEqual(functions[0].name, "primitives");
     assert.strictEqual(
-      rebaseReaderOffset(functions[0].reader, functions[0].byteOffset, file),
+      functions[0].reader.locate(functions[0].byteOffset).fileOffset,
       0x237
     );
     assert.strictEqual(functions[0].selfStackSize, 88);
@@ -592,15 +592,3 @@ describe("findAllCodeViewFunctionsAsync", () => {
     assert.deepStrictEqual(funcs, []);
   });
 });
-
-function rebaseReaderOffset(reader, offset, desiredReader) {
-  while (reader !== desiredReader) {
-    if (reader instanceof SubFileReader) {
-      offset += reader.subFileOffset;
-      reader = reader.baseReader;
-    } else {
-      throw new Error("failed to rebase file offset");
-    }
-  }
-  return offset;
-}
