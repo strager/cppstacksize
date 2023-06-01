@@ -4,11 +4,7 @@ import path from "node:path";
 import url from "node:url";
 import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
 import { describe, it } from "node:test";
-import {
-  getPEDebugDirectoryAsync,
-  getPEPDBReferenceAsync,
-  getPESectionsAsync,
-} from "../src/pe.mjs";
+import { getPEPDBReferenceAsync, parsePEFileAsync } from "../src/pe.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
@@ -18,8 +14,8 @@ describe("PE file sections", (t) => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "pdb/example.dll"))
     );
-    let sections = await getPESectionsAsync(file);
-    sections = sections.map((section) => ({
+    let pe = await parsePEFileAsync(file);
+    let sections = pe.sections.map((section) => ({
       name: section.name,
       dataSize: section.dataSize,
       dataFileOffset: section.dataFileOffset,
@@ -61,8 +57,8 @@ describe("PE debug directory", (t) => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "pdb/example.dll"))
     );
-    let debugEntries = await getPEDebugDirectoryAsync(file);
-    debugEntries = debugEntries.map((entry) => ({
+    let pe = await parsePEFileAsync(file);
+    let debugEntries = pe.debugDirectory.map((entry) => ({
       type: entry.type,
       dataSize: entry.dataSize,
       dataRVA: entry.dataRVA,
@@ -98,7 +94,8 @@ describe("PE PDB reference", (t) => {
     let file = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "pdb/example.dll"))
     );
-    let reference = await getPEPDBReferenceAsync(file);
+    let pe = await parsePEFileAsync(file);
+    let reference = await getPEPDBReferenceAsync(pe);
     assert.ok(reference !== null);
     assert.strictEqual(
       reference.pdbGUID.toString(),

@@ -8,7 +8,27 @@ import { withLoadScopeAsync } from "./loader.mjs";
 
 let IMAGE_DEBUG_TYPE_CODEVIEW = 2;
 
-export function getPESectionsAsync(reader) {
+// A Windows PE (.dll or .exe) or COFF (.obj) file.
+class PEFile {
+  reader;
+  sections = [];
+  debugDirectory = [];
+
+  constructor(reader) {
+    this.reader = reader;
+  }
+}
+
+export function parsePEFileAsync(reader) {
+  return withLoadScopeAsync(async () => {
+    let pe = new PEFile(reader);
+    pe.sections = await getPESectionsAsync(reader);
+    pe.debugDirectory = await getPEDebugDirectoryAsync(reader);
+    return pe;
+  });
+}
+
+function getPESectionsAsync(reader) {
   return withLoadScopeAsync(async () => {
     let peSignatureOffset = reader.u32(0x3c);
     // TODO(strager): Check PE signature.
@@ -19,7 +39,7 @@ export function getPESectionsAsync(reader) {
   });
 }
 
-export function getPEDebugDirectoryAsync(reader) {
+function getPEDebugDirectoryAsync(reader) {
   return withLoadScopeAsync(async () => {
     let peSignatureOffset = reader.u32(0x3c);
     // TODO(strager): Check PE signature.
@@ -82,13 +102,12 @@ export function getPEDebugDirectoryAsync(reader) {
   });
 }
 
-export function getPEPDBReferenceAsync(reader) {
+export function getPEPDBReferenceAsync(pe) {
   return withLoadScopeAsync(async () => {
-    let debugDirectoryEntries = await getPEDebugDirectoryAsync(reader);
-    for (let entry of debugDirectoryEntries) {
+    for (let entry of pe.debugDirectory) {
       if (entry.type === IMAGE_DEBUG_TYPE_CODEVIEW) {
         let result = parseCodeViewDebugDirectoryData(
-          new SubFileReader(reader, entry.dataFileOffset, entry.dataSize)
+          new SubFileReader(pe.reader, entry.dataFileOffset, entry.dataSize)
         );
         if (result !== null) {
           return result;
