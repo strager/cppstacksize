@@ -1,6 +1,6 @@
 import { GUID } from "./guid.mjs";
 import { ReaderBase, SubFileReader } from "./reader.mjs";
-import { getCOFFSectionsAsync } from "./coff.mjs";
+import { getCOFFSectionsAsync, parseCOFFSection } from "./coff.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 // Documentation:
@@ -22,6 +22,21 @@ class PEFile {
 
   constructor(reader) {
     this.reader = reader;
+  }
+
+  _parseSections(offset) {
+    let coffMagic = this.reader.u16(offset);
+    if (coffMagic != 0x8664) {
+      throw new PEParseError(`unexpected magic: 0x${coffMagic.toString(16)}`);
+    }
+    let sectionCount = this.reader.u16(offset + 2);
+    let optionalHeaderSize = this.reader.u16(offset + 16);
+    let sectionTableOffset = offset + 20 + optionalHeaderSize;
+    for (let sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex) {
+      this.sections.push(
+        parseCOFFSection(this.reader, sectionTableOffset + sectionIndex * 40)
+      );
+    }
   }
 
   _parseOptionalHeader(coffHeaderOffset) {
@@ -95,10 +110,7 @@ export function parsePEFileAsync(reader) {
       throw new PEMagicMismatchError();
     }
     let coffHeaderOffset = peSignatureOffset + 4;
-    pe.sections = await getCOFFSectionsAsync(
-      new SubFileReader(reader, coffHeaderOffset)
-    );
-
+    pe._parseSections(coffHeaderOffset);
     pe._parseOptionalHeader(coffHeaderOffset);
 
     return pe;
