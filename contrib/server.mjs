@@ -75,7 +75,7 @@ function guessContentType(p) {
   if (/\.mjs$/.test(p)) {
     return "application/javascript";
   }
-  if (/\.html/.test(p)) {
+  if (/\.html$/.test(p)) {
     return "text/html";
   }
   return "text/plain";
