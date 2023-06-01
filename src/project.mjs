@@ -15,6 +15,7 @@ import {
 } from "./pdb.mjs";
 import { fallbackLogger } from "./logger.mjs";
 import { findCOFFSectionsByNameAsync } from "./coff.mjs";
+import { PEMagicMismatchError, parsePEFileAsync } from "./pe.mjs";
 
 export class Project {
   #files = [];
@@ -97,6 +98,7 @@ export class Project {
     let funcs = [];
     for (let file of this.#files) {
       await file.tryLoadPDBGenericHeadersAsync(logger);
+      await file.tryLoadPEFileAsync(logger);
       if (file.pdbStreams !== null) {
         if (file.pdbDBI === null) {
           file.pdbDBI = await parsePDBDBIStreamAsync(
@@ -110,7 +112,14 @@ export class Project {
             ...(await findAllCodeViewFunctions2Async(codeViewStream, logger))
           );
         }
-      } else {
+      }
+      if (file.peFile !== null) {
+        // TODO(strager): Only attach to functions from PDBs linked with this PE
+        // (according to the PDB's GUID).
+        for (let func of funcs) {
+          func.peFile = file.peFile;
+        }
+
         for (let sectionReader of await findCOFFSectionsByNameAsync(
           file.reader,
           ".debug$S"
@@ -133,9 +142,24 @@ class ProjectFile {
   pdbTPIHeader = null;
   pdbIPIHeader = null;
 
+  peFile = null;
+
   constructor(name, reader) {
     this.name = name;
     this.reader = reader;
+  }
+
+  async tryLoadPEFileAsync(logger) {
+    try {
+      if (this.peFile === null) {
+        this.peFile = await parsePEFileAsync(this.reader);
+      }
+    } catch (e) {
+      if (e instanceof PEMagicMismatchError) {
+        return;
+      }
+      throw e;
+    }
   }
 
   async tryLoadPDBGenericHeadersAsync(logger) {

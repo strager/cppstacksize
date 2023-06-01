@@ -103,6 +103,10 @@ async function showFunctionDetailsAsync(func) {
 
     stackFrameTableTbodyElement.appendChild(tr);
   }
+
+  let instructionBytes = func.getInstructionBytesReader(logger);
+  instructionBytes.enumerateBytes(0, instructionBytes.size, console.log);
+  // TODO(strager): Analyze and show stack map.
 }
 
 let functionTableElement = document.getElementById("function-table");

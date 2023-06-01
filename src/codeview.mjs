@@ -269,6 +269,9 @@ export class CodeViewFunction {
   // Number of bytes for this function's machine code.
   codeSize;
 
+  // Associated PE or COFF file, if any.
+  peFile = null;
+
   #hasFuncIDType;
   #typeID;
 
@@ -366,6 +369,23 @@ export class CodeViewFunction {
           return -1;
       }
     });
+  }
+
+  // Returns null if no PEFile is associated with this function.
+  getInstructionBytesReader(logger = fallbackLogger) {
+    if (this.peFile === null) {
+      return null;
+    }
+    let codeSection = this.peFile.sections[this.codeSectionIndex];
+    if (codeSection === undefined) {
+      logger.log(
+        `could not find section index ${this.codeSectionIndex} in PE file referenced by CodeView function`,
+        this.reader.locate(this.byteOffset)
+      );
+      return null;
+    }
+    let sectionReader = this.peFile.readerForSection(codeSection);
+    return new SubFileReader(sectionReader, this.codeOffset, this.codeSize);
   }
 }
 

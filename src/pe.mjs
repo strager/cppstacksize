@@ -28,13 +28,7 @@ class PEFile {
     let foundSections = [];
     for (let section of this.sections) {
       if (section.name === sectionName) {
-        foundSections.push(
-          new SubFileReader(
-            this.reader,
-            section.dataFileOffset,
-            section.dataSize
-          )
-        );
+        foundSections.push(this.readerForSection(section));
       }
     }
     return foundSections;
@@ -107,6 +101,14 @@ class PEFile {
       });
       offset += 28;
     }
+  }
+
+  readerForSection(section) {
+    return new SubFileReader(
+      this.reader,
+      section.dataFileOffset,
+      section.dataSize
+    );
   }
 
   readerForRVA(baseRVA, size) {
