@@ -220,6 +220,9 @@ async function findAllCodeViewFunctionsInSubsectionAsync(
           offset,
           /*hasFuncIDType=*/ recordType === S_GPROC32_ID
         );
+        func.codeSectionIndex = reader.u16(offset + 36) - 1;
+        func.codeOffset = reader.u32(offset + 32);
+        func.codeSize = reader.u32(offset + 16);
         outFunctions.push(func);
         break;
       }
@@ -250,6 +253,21 @@ export class CodeViewFunction {
   reader;
   byteOffset;
   selfStackSize;
+
+  // Section number. Almost certainly refers to a .text section.
+  //
+  // TODO[coff-relocations]: This is probably wrong because we don't perform
+  // relocations.
+  codeSectionIndex;
+
+  // Byte offset within the section described by codeSectionIndex.
+  //
+  // TODO[coff-relocations]: This is probably wrong because we don't perform
+  // relocations.
+  codeOffset;
+  // Number of bytes for this function's machine code.
+  codeSize;
+
   #hasFuncIDType;
   #typeID;
 
@@ -260,6 +278,9 @@ export class CodeViewFunction {
     this.#typeID = typeID;
     this.byteOffset = byteOffset;
     this.selfStackSize = -1;
+    this.codeSectionIndex = -1;
+    this.codeOffset = -1;
+    this.codeSize = -1;
   }
 
   async getCallerStackSizeAsync(

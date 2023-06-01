@@ -6,6 +6,7 @@ import url from "node:url";
 import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
 import {
   CodeViewTypesInSeparatePDBFileError,
+  findAllCodeViewFunctions2Async,
   findAllCodeViewFunctionsAsync,
   getCodeViewFunctionLocalsAsync,
   getCodeViewTypeAsync,
@@ -13,6 +14,7 @@ import {
   parseCodeViewTypesWithoutHeaderAsync,
 } from "../src/codeview.mjs";
 import {
+  PDBBlocksReader,
   parsePDBHeaderAsync,
   parsePDBStreamDirectoryAsync,
   parsePDBTPIStreamHeaderAsync,
@@ -40,6 +42,13 @@ describe("primitives.obj", () => {
       0x237
     );
     assert.strictEqual(functions[0].selfStackSize, 88);
+    // TODO[coff-relocations]: Perform relocations to get the correct
+    // codeSectionIndex and codeOffset.
+    if (false) {
+      assert.strictEqual(functions[0].codeSectionIndex, 2); // .text$mn
+      assert.strictEqual(functions[0].codeOffset, 0);
+    }
+    assert.strictEqual(functions[0].codeSize, 124);
   });
 
   it("function has local variables", async () => {
@@ -357,6 +366,36 @@ describe("split COFF + PDB", () => {
       40
     );
   });
+});
+
+test("function code offset and size", async () => {
+  let pdbFile = new NodeBufferReader(
+    await fs.promises.readFile(path.join(__dirname, "pdb-pe/temporary.pdb"))
+  );
+  let codeViewReader = new PDBBlocksReader(
+    pdbFile,
+    [9],
+    /*blockSize=*/ 4096,
+    /*byteSize=*/ 648,
+    /*streamIndex=*/ 10
+  );
+  let functions = await findAllCodeViewFunctions2Async(codeViewReader);
+  let functionsByName = new Map(functions.map((func) => [func.name, func]));
+
+  let localVariableFunc = functionsByName.get("local_variable");
+  assert.strictEqual(localVariableFunc?.codeSectionIndex, 0);
+  assert.strictEqual(localVariableFunc?.codeOffset, 0x0000);
+  assert.strictEqual(localVariableFunc?.codeSize, 57);
+
+  let temporaryFunc = functionsByName.get("temporary");
+  assert.strictEqual(temporaryFunc?.codeSectionIndex, 0);
+  assert.strictEqual(temporaryFunc?.codeOffset, 0x0040);
+  assert.strictEqual(temporaryFunc?.codeSize, 57);
+
+  let startFunc = functionsByName.get("_start");
+  assert.strictEqual(startFunc?.codeSectionIndex, 0);
+  assert.strictEqual(startFunc?.codeOffset, 0x0080);
+  assert.strictEqual(startFunc?.codeSize, 3);
 });
 
 describe("getCodeViewTypeAsync", () => {
