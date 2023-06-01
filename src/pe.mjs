@@ -23,33 +23,15 @@ class PEFile {
   constructor(reader) {
     this.reader = reader;
   }
-}
 
-export function parsePEFileAsync(reader) {
-  return withLoadScopeAsync(async () => {
-    let pe = new PEFile(reader);
-
-    if (reader.u16(0) !== 0x5a4d) {
-      // "MZ"
-      throw new PEMagicMismatchError();
-    }
-    let peSignatureOffset = reader.u32(0x3c);
-    if (reader.u32(peSignatureOffset) !== 0x00004550) {
-      // "PE\0\0"
-      throw new PEMagicMismatchError();
-    }
-    let coffHeaderOffset = peSignatureOffset + 4;
-    pe.sections = await getCOFFSectionsAsync(
-      new SubFileReader(reader, coffHeaderOffset)
-    );
-
-    let optionalHeaderSize = reader.u16(coffHeaderOffset + 16);
+  _parseOptionalHeader(coffHeaderOffset) {
+    let optionalHeaderSize = this.reader.u16(coffHeaderOffset + 16);
     if (optionalHeaderSize === 0) {
       throw new PEParseError("missing optional header");
     }
 
     let optionalHeaderReader = new SubFileReader(
-      reader,
+      this.reader,
       coffHeaderOffset + 20,
       optionalHeaderSize
     );
@@ -80,15 +62,15 @@ export function parsePEFileAsync(reader) {
     let debugDataDirectoryRVA = dataDirectoryReader.u32(48);
     let debugDataDirectorySize = dataDirectoryReader.u32(48 + 4);
     let debugDirectoryReader = new RVAReaderSlow(
-      reader,
-      pe.sections,
+      this.reader,
+      this.sections,
       debugDataDirectoryRVA,
       debugDataDirectorySize
     );
 
     let offset = 0;
     while (offset < debugDirectoryReader.size) {
-      pe.debugDirectory.push({
+      this.debugDirectory.push({
         type: debugDirectoryReader.u32(offset + 12),
         dataSize: debugDirectoryReader.u32(offset + 16),
         dataRVA: debugDirectoryReader.u32(offset + 20),
@@ -96,6 +78,28 @@ export function parsePEFileAsync(reader) {
       });
       offset += 28;
     }
+  }
+}
+
+export function parsePEFileAsync(reader) {
+  return withLoadScopeAsync(async () => {
+    let pe = new PEFile(reader);
+
+    if (reader.u16(0) !== 0x5a4d) {
+      // "MZ"
+      throw new PEMagicMismatchError();
+    }
+    let peSignatureOffset = reader.u32(0x3c);
+    if (reader.u32(peSignatureOffset) !== 0x00004550) {
+      // "PE\0\0"
+      throw new PEMagicMismatchError();
+    }
+    let coffHeaderOffset = peSignatureOffset + 4;
+    pe.sections = await getCOFFSectionsAsync(
+      new SubFileReader(reader, coffHeaderOffset)
+    );
+
+    pe._parseOptionalHeader(coffHeaderOffset);
 
     return pe;
   });
