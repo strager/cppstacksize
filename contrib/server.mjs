@@ -78,5 +78,8 @@ function guessContentType(p) {
   if (/\.html$/.test(p)) {
     return "text/html";
   }
+  if (/\.wasm$/.test(p)) {
+    return "application/wasm";
+  }
   return "text/plain";
 }
