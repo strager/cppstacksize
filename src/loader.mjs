@@ -64,6 +64,10 @@ export class LoaderReader extends ReaderBase {
     this.#chunkCount = (loader.size + chunkSize - 1) >> this.#chunkShift;
   }
 
+  get size() {
+    return this.#loader.size;
+  }
+
   async fetchAsync(offset, size) {
     console.assert(size > 0);
     let beginChunkIndex = offset >> this.#chunkShift;

@@ -143,6 +143,10 @@ export class ArrayBufferReader extends ReaderBase {
     this.#uint8Array = new Uint8Array(arrayBuffer);
   }
 
+  get size() {
+    return this.#uint8Array.byteLength;
+  }
+
   locate(offset) {
     return new Location(offset, null, null);
   }
