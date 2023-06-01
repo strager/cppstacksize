@@ -212,12 +212,6 @@ class RVAReaderSlow extends ReaderBase {
         `cannot find section for rva 0x${rva.toString(16)} size=4`
       );
     }
-    console.error(
-      section,
-      this.#baseRVA.toString(16),
-      offset.toString(16),
-      rva.toString(16)
-    );
     // TODO(strager): Zero-pad if out of bounds.
     return this.#reader.u32(
       rva - section.virtualAddress + section.dataFileOffset

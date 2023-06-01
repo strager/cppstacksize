@@ -76,7 +76,6 @@ describe("Project", (t) => {
     // Type tables should load from .pdb.
     let typeTable = await project.getTypeTableAsync();
     let typeIndexTable = await project.getTypeIndexTableAsync();
-    console.error(typeTable.toString());
     assert.strictEqual(
       await funcs[0].getCallerStackSizeAsync(typeTable, typeIndexTable),
       40
@@ -104,7 +103,6 @@ describe("Project", (t) => {
     // Type tables should load from .pdb.
     let typeTable = await project.getTypeTableAsync();
     let typeIndexTable = await project.getTypeIndexTableAsync();
-    console.error(typeTable.toString());
     assert.strictEqual(
       await funcs[0].getCallerStackSizeAsync(typeTable, typeIndexTable),
       40
