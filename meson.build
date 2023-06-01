@@ -14,6 +14,7 @@ capstone_cmake_options.add_cmake_defines({
   'CAPSTONE_BUILD_STATIC': true,
   'CAPSTONE_BUILD_TESTS': false,
 })
+capstone_cmake_options.set_install(false)
 capstone_proj = cmake.subproject('capstone', options: capstone_cmake_options)
 
 gtest_proj = subproject('gtest')
@@ -79,3 +80,20 @@ tests = executable(
   cpp_pch: ['test/pch.h'],
 )
 test('tests', tests)
+
+# TODO(strager): Only build when configured with Emscripten.
+cppstacksize_wasm_exe = executable(
+  'cppstacksize-wasm',
+  dependencies: [cppstacksize_lib_dep],
+  link_args: [
+    '--no-entry',
+    '-sENVIRONMENT=node,web',
+    '-sEXPORTED_FUNCTIONS=["_css_create_analyzer_x86_64","_css_destroy_analyzer","_css_set_machine_code","_css_get_stack_map","_malloc","_free"]',
+    '-sEXPORTED_RUNTIME_METHODS=cwrap',
+    '-sEXPORT_ES6=1',
+    '-sMODULARIZE=1',
+  ],
+  install: false,
+  name_suffix: 'mjs',
+)
+meson.add_install_script(['contrib/install-wasm.sh', cppstacksize_wasm_exe])
