@@ -110,36 +110,41 @@ describe("Project", (t) => {
   });
 
   it(".pdb functions link to loaded .dll", async () => {
-    let project = new Project();
-    project.addFile(
-      "temporary.pdb",
-      new NodeBufferReader(
-        await fs.promises.readFile(path.join(__dirname, "pdb-pe/temporary.pdb"))
-      )
+    let pdbReader = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "pdb-pe/temporary.pdb"))
     );
     let dllReader = new NodeBufferReader(
       await fs.promises.readFile(path.join(__dirname, "pdb-pe/temporary.dll"))
     );
-    project.addFile("temporary.dll", dllReader);
+    for (let i = 0; i < 2; ++i) {
+      let project = new Project();
+      if (i === 0) {
+        project.addFile("temporary.pdb", pdbReader);
+        project.addFile("temporary.dll", dllReader);
+      } else {
+        project.addFile("temporary.dll", dllReader);
+        project.addFile("temporary.pdb", pdbReader);
+      }
 
-    // Function table should load from .pdb.
-    let functions = await project.getAllFunctionsAsync();
-    let functionsByName = new Map(functions.map((func) => [func.name, func]));
+      // Function table should load from .pdb.
+      let functions = await project.getAllFunctionsAsync();
+      let functionsByName = new Map(functions.map((func) => [func.name, func]));
 
-    let localVariableBytesReader = functionsByName
-      .get("local_variable")
-      .getInstructionBytesReader();
-    assert.ok(localVariableBytesReader instanceof SubFileReader);
-    assert.strictEqual(localVariableBytesReader.baseReader, dllReader);
-    assert.strictEqual(localVariableBytesReader.subFileOffset, 0x0400);
-    assert.strictEqual(localVariableBytesReader.subFileSize, 0x39);
+      let localVariableBytesReader = functionsByName
+        .get("local_variable")
+        .getInstructionBytesReader();
+      assert.ok(localVariableBytesReader instanceof SubFileReader);
+      assert.strictEqual(localVariableBytesReader.baseReader, dllReader);
+      assert.strictEqual(localVariableBytesReader.subFileOffset, 0x0400);
+      assert.strictEqual(localVariableBytesReader.subFileSize, 0x39);
 
-    let temporaryReader = functionsByName
-      .get("temporary")
-      .getInstructionBytesReader();
-    assert.ok(temporaryReader instanceof SubFileReader);
-    assert.strictEqual(temporaryReader.baseReader, dllReader);
-    assert.strictEqual(temporaryReader.subFileOffset, 0x0440);
-    assert.strictEqual(temporaryReader.subFileSize, 0x39);
+      let temporaryReader = functionsByName
+        .get("temporary")
+        .getInstructionBytesReader();
+      assert.ok(temporaryReader instanceof SubFileReader);
+      assert.strictEqual(temporaryReader.baseReader, dllReader);
+      assert.strictEqual(temporaryReader.subFileOffset, 0x0440);
+      assert.strictEqual(temporaryReader.subFileSize, 0x39);
+    }
   });
 });

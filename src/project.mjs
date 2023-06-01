@@ -99,6 +99,9 @@ export class Project {
     for (let file of this.#files) {
       await file.tryLoadPDBGenericHeadersAsync(logger);
       await file.tryLoadPEFileAsync(logger);
+    }
+
+    for (let file of this.#files) {
       if (file.pdbStreams !== null) {
         if (file.pdbDBI === null) {
           file.pdbDBI = await parsePDBDBIStreamAsync(
@@ -113,6 +116,9 @@ export class Project {
           );
         }
       }
+    }
+
+    for (let file of this.#files) {
       if (file.peFile !== null) {
         // TODO(strager): Only attach to functions from PDBs linked with this PE
         // (according to the PDB's GUID).
