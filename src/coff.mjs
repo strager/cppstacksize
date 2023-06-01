@@ -1,7 +1,19 @@
 import { SubFileReader } from "./reader.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
-export function findCOFFSectionsByNameAsync(reader, sectionName) {
+export async function findCOFFSectionsByNameAsync(reader, sectionName) {
+  let foundSections = [];
+  for (let section of await getCOFFSectionsAsync(reader)) {
+    if (section.name === sectionName) {
+      foundSections.push(
+        new SubFileReader(reader, section.dataFileOffset, section.dataSize)
+      );
+    }
+  }
+  return foundSections;
+}
+
+export function getCOFFSectionsAsync(reader) {
   return withLoadScopeAsync(() => {
     let magic = reader.u16(0);
     if (magic != 0x8664) {
@@ -15,16 +27,11 @@ export function findCOFFSectionsByNameAsync(reader, sectionName) {
       );
     }
 
-    let foundSections = [];
+    let sections = [];
     for (let sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex) {
-      let section = parseCOFFSection(reader, 20 + sectionIndex * 40);
-      if (section.name === sectionName) {
-        foundSections.push(
-          new SubFileReader(reader, section.dataFileOffset, section.dataSize)
-        );
-      }
+      sections.push(parseCOFFSection(reader, 20 + sectionIndex * 40));
     }
-    return foundSections;
+    return sections;
   });
 }
 
