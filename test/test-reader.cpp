@@ -1,5 +1,6 @@
 #include <cppstacksize/base.h>
 #include <cppstacksize/reader.h>
+#include <deque>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <limits>
@@ -8,15 +9,128 @@ using ::testing::ElementsAreArray;
 
 namespace cppstacksize {
 namespace {
-TEST(Test_Reader, has_correct_size) {
+template <class Reader_Factory>
+class Test_Reader : public ::testing::Test {
+ protected:
+  auto make_reader(std::span<const U8> data) {
+    return this->reader_factory_.make_reader(data);
+  }
+
+  Reader_Factory reader_factory_;
+};
+
+struct Span_Reader_Factory {
+  Span_Reader make_reader(std::span<const U8> data) {
+    return Span_Reader(data);
+  }
+};
+
+struct Sub_File_Reader_With_Full_Span_Reader {
+  Sub_File_Reader<Span_Reader> make_reader(std::span<const U8> data) {
+    Span_Reader* base_reader = &this->base_readers_.emplace_back(data);
+    return Sub_File_Reader<Span_Reader>(base_reader, 0, base_reader->size());
+  }
+  std::deque<Span_Reader> base_readers_;
+};
+
+struct Sub_File_Reader_With_Full_Span_Reader_And_Implicit_Size {
+  Sub_File_Reader<Span_Reader> make_reader(std::span<const U8> data) {
+    Span_Reader* base_reader = &this->base_readers_.emplace_back(data);
+    return Sub_File_Reader<Span_Reader>(base_reader, 0);
+  }
+  std::deque<Span_Reader> base_readers_;
+};
+
+struct Sub_File_Reader_With_Full_Span_Reader_And_Too_Big_Size {
+  Sub_File_Reader<Span_Reader> make_reader(std::span<const U8> data) {
+    Span_Reader* base_reader = &this->base_readers_.emplace_back(data);
+    return Sub_File_Reader<Span_Reader>(base_reader, 0, 100);
+  }
+  std::deque<Span_Reader> base_readers_;
+};
+
+struct Sub_File_Reader_With_Partial_Span_Reader {
+  Sub_File_Reader<Span_Reader> make_reader(std::span<const U8> data) {
+    std::vector<U8>& all_bytes = this->datas_.emplace_back();
+    all_bytes.push_back(0xcc);
+    all_bytes.push_back(0xdd);
+    all_bytes.push_back(0xee);
+    all_bytes.push_back(0xff);
+    all_bytes.insert(all_bytes.end(), data.begin(), data.end());
+    all_bytes.push_back(0xcc);
+    all_bytes.push_back(0xdd);
+    all_bytes.push_back(0xee);
+    all_bytes.push_back(0xff);
+    all_bytes.push_back(0x00);
+
+    Span_Reader* base_reader = &this->base_readers_.emplace_back(all_bytes);
+    return Sub_File_Reader<Span_Reader>(base_reader, 4, data.size());
+  }
+  std::deque<std::vector<U8>> datas_;
+  std::deque<Span_Reader> base_readers_;
+};
+
+struct Sub_File_Reader_Inside_Sub_File_Reader_With_Span_Reader {
+  Sub_File_Reader<Sub_File_Reader<Span_Reader>> make_reader(
+      std::span<const U8> data) {
+    std::vector<U8>& all_bytes = this->datas_.emplace_back();
+    all_bytes.push_back(0xcc);
+    all_bytes.push_back(0xdd);
+    all_bytes.push_back(0xee);
+    all_bytes.push_back(0xff);
+    all_bytes.insert(all_bytes.end(), data.begin(), data.end());
+    all_bytes.push_back(0xcc);
+    all_bytes.push_back(0xdd);
+    all_bytes.push_back(0xee);
+    all_bytes.push_back(0xff);
+    all_bytes.push_back(0x00);
+
+    Span_Reader* base_reader = &this->base_readers_.emplace_back(all_bytes);
+    Sub_File_Reader<Span_Reader>* inner_reader =
+        &this->inner_readers_.emplace_back(base_reader, 2, data.size() + 5);
+    Sub_File_Reader<Sub_File_Reader<Span_Reader>> outer_reader(inner_reader, 2,
+                                                               data.size());
+    return outer_reader;
+  }
+  std::deque<std::vector<U8>> datas_;
+  std::deque<Span_Reader> base_readers_;
+  std::deque<Sub_File_Reader<Span_Reader>> inner_readers_;
+};
+
+struct Sub_File_Reader_With_Partial_Span_Reader_And_Implicit_Size {
+  Sub_File_Reader<Span_Reader> make_reader(std::span<const U8> data) {
+    std::vector<U8>& all_bytes = this->datas_.emplace_back();
+    all_bytes.push_back(0xcc);
+    all_bytes.push_back(0xdd);
+    all_bytes.push_back(0xee);
+    all_bytes.push_back(0xff);
+    all_bytes.insert(all_bytes.end(), data.begin(), data.end());
+
+    Span_Reader* base_reader = &this->base_readers_.emplace_back(all_bytes);
+    return Sub_File_Reader<Span_Reader>(base_reader, 4);
+  }
+  std::deque<std::vector<U8>> datas_;
+  std::deque<Span_Reader> base_readers_;
+};
+
+using Reader_Factories = ::testing::Types<
+    Span_Reader_Factory, Sub_File_Reader_With_Full_Span_Reader,
+    Sub_File_Reader_With_Full_Span_Reader_And_Implicit_Size,
+    Sub_File_Reader_With_Full_Span_Reader_And_Too_Big_Size,
+    Sub_File_Reader_With_Partial_Span_Reader,
+    Sub_File_Reader_Inside_Sub_File_Reader_With_Span_Reader,
+    Sub_File_Reader_With_Partial_Span_Reader_And_Implicit_Size>;
+TYPED_TEST_SUITE(Test_Reader, Reader_Factories);
+
+TYPED_TEST(Test_Reader, has_correct_size) {
   static const U8 data[] = {10, 20, 30, 40, 50};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_EQ(r.size(), 5);
 }
 
-TEST(Test_Reader, reads_u8) {
+TYPED_TEST(Test_Reader, reads_u8) {
   static const U8 data[] = {10, 20, 30, 40, 50};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_EQ(r.u8(0), 10);
   EXPECT_EQ(r.u8(1), 20);
   EXPECT_EQ(r.u8(2), 30);
@@ -24,17 +138,17 @@ TEST(Test_Reader, reads_u8) {
   EXPECT_EQ(r.u8(4), 50);
 }
 
-TEST(Test_Reader, reads_u16) {
+TYPED_TEST(Test_Reader, reads_u16) {
   static const U8 data[] = {1, 2, 3, 4, 5};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_EQ(r.u16(0), 0x0201);
   EXPECT_EQ(r.u16(1), 0x0302);
   EXPECT_EQ(r.u16(2), 0x0403);
 }
 
-TEST(Test_Reader, reads_u32) {
+TYPED_TEST(Test_Reader, reads_u32) {
   static const U8 data[] = {1, 2, 3, 4, 5};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
 #if 0  // TODO(strager)
   if (r instanceof PDB_Blocks_Reader) {
     // TODO(strager): Reading u32 straddling multiple blocks is not yet
@@ -46,9 +160,9 @@ TEST(Test_Reader, reads_u32) {
   EXPECT_EQ(r.u32(1), 0x05040302);
 }
 
-TEST(Test_Reader, reads_byte_array) {
+TYPED_TEST(Test_Reader, reads_byte_array) {
   static const U8 data[] = {10, 20, 30, 40, 50, 60, 70, 80};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
 
   {
     U8 bytes[8] = {};
@@ -72,9 +186,9 @@ TEST(Test_Reader, reads_byte_array) {
   }
 }
 
-TEST(Test_Reader, reads_fixed_with_string) {
+TYPED_TEST(Test_Reader, reads_fixed_with_string) {
   static const U8 data[] = {u8'h', u8'e', u8'l', u8'l', u8'o', 0, 0, 0, u8'x'};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
 
   EXPECT_EQ(r.fixed_width_string(0, 8), u8"hello");
   EXPECT_EQ(r.fixed_width_string(2, 6), u8"llo");
@@ -84,7 +198,7 @@ TEST(Test_Reader, reads_fixed_with_string) {
   EXPECT_EQ(r.fixed_width_string(0, 4), u8"hell");
 }
 
-TEST(Test_Reader, reads_utf_8_c_string) {
+TYPED_TEST(Test_Reader, reads_utf_8_c_string) {
   static const U8 data[] = {
       // "hello\0"
       u8'h',
@@ -102,14 +216,14 @@ TEST(Test_Reader, reads_utf_8_c_string) {
       u8'd',
       0x00,
   };
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_EQ(r.utf_8_c_string(0), u8"hello");
   EXPECT_EQ(r.utf_8_c_string(6), u8"wörld");
 }
 
-TEST(Test_Reader, finds_u8_if_present) {
+TYPED_TEST(Test_Reader, finds_u8_if_present) {
   static const U8 data[] = {10, 20, 30, 40, 50, 60, 70};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
 
   EXPECT_EQ(r.find_u8(10, 0), 0);
   EXPECT_EQ(r.find_u8(20, 0), 1);
@@ -124,9 +238,9 @@ TEST(Test_Reader, finds_u8_if_present) {
   EXPECT_EQ(r.find_u8(50, 0, 6), 4);
 }
 
-TEST(Test_Reader, fails_to_find_u8_if_missing) {
+TYPED_TEST(Test_Reader, fails_to_find_u8_if_missing) {
   static const U8 data[] = {10, 20, 30, 40, 50, 60, 70};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
 
   EXPECT_EQ(r.find_u8(0, 0), std::nullopt);
   EXPECT_EQ(r.find_u8(15, 0), std::nullopt);
@@ -139,17 +253,17 @@ TEST(Test_Reader, fails_to_find_u8_if_missing) {
   EXPECT_EQ(r.find_u8(50, 0, 4), std::nullopt);
 }
 
-TEST(Test_Reader, out_of_bounds_u8_fails) {
+TYPED_TEST(Test_Reader, out_of_bounds_u8_fails) {
   static const U8 data[] = {10, 20};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_THROW({ r.u8(2); }, Out_Of_Bounds_Read);
   EXPECT_THROW({ r.u8(100); }, Out_Of_Bounds_Read);
   EXPECT_THROW({ r.u8(std::numeric_limits<U64>::max()); }, Out_Of_Bounds_Read);
 }
 
-TEST(Test_Reader, out_of_bounds_u16_fails) {
+TYPED_TEST(Test_Reader, out_of_bounds_u16_fails) {
   static const U8 data[] = {10, 20};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_THROW({ r.u16(1); }, Out_Of_Bounds_Read);
   EXPECT_THROW({ r.u16(100); }, Out_Of_Bounds_Read);
   EXPECT_THROW({ r.u16(std::numeric_limits<U64>::max() - 1); },
@@ -157,9 +271,9 @@ TEST(Test_Reader, out_of_bounds_u16_fails) {
   EXPECT_THROW({ r.u16(std::numeric_limits<U64>::max()); }, Out_Of_Bounds_Read);
 }
 
-TEST(Test_Reader, out_of_bounds_u32_fails) {
+TYPED_TEST(Test_Reader, out_of_bounds_u32_fails) {
   static const U8 data[] = {10, 20, 30, 40};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
 #if 0  // TODO(strager)
   if (r instanceof PDB_Blocks_Reader) {
     // TODO(strager): Reading u32 straddling multiple blocks is not yet
@@ -170,23 +284,23 @@ TEST(Test_Reader, out_of_bounds_u32_fails) {
   EXPECT_THROW({ r.u32(2); }, Out_Of_Bounds_Read);
 }
 
-TEST(Test_Reader, out_of_bounds_utf_8_c_string_fails) {
+TYPED_TEST(Test_Reader, out_of_bounds_utf_8_c_string_fails) {
   static const U8 data[] = {0x6c, 0x6f, 0x6c};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_THROW({ r.utf_8_c_string(0); }, C_String_Null_Terminator_Not_Found);
 }
 
-TEST(Test_Reader, out_of_bounds_utf_8_string_fails) {
+TYPED_TEST(Test_Reader, out_of_bounds_utf_8_string_fails) {
   static const U8 data[] = {0x6c, 0x6f, 0x6c};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_THROW({ r.utf_8_string(0, 4); }, Out_Of_Bounds_Read);
   EXPECT_THROW({ r.utf_8_string(0, 100); }, Out_Of_Bounds_Read);
 }
 }
 
-TEST(Test_Reader, out_of_bounds_copy_bytes_into_fails) {
+TYPED_TEST(Test_Reader, out_of_bounds_copy_bytes_into_fails) {
   static const U8 data[] = {0x6c, 0x6f, 0x6c};
-  Span_Reader r(data);
+  auto r = this->make_reader(data);
   EXPECT_THROW(
       {
         U8 buffer[4];

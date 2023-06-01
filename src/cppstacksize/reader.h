@@ -51,6 +51,14 @@ class Reader_Base {
         });
   }
 
+ protected:
+  void check_bounds(U64 offset, U64 size) {
+    U64 last_offset = offset + size - 1;
+    if (last_offset >= this->derived()->size() || last_offset < offset) {
+      throw Out_Of_Bounds_Read();
+    }
+  }
+
  private:
   Derived* derived() noexcept { return static_cast<Derived*>(this); }
 };
@@ -110,14 +118,85 @@ class Span_Reader : public Reader_Base<Span_Reader> {
   }
 
  private:
-  void check_bounds(U64 offset, U64 size) {
-    U64 last_offset = offset + size - 1;
-    if (last_offset >= this->size() || last_offset < offset) {
-      throw Out_Of_Bounds_Read();
+  std::span<const U8> data_;
+};
+
+template <class Base_Reader_T>
+class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
+ public:
+  using Base_Reader = Base_Reader_T;
+
+  explicit Sub_File_Reader(Base_Reader* base_reader, U64 offset)
+      : Sub_File_Reader(base_reader, offset, base_reader->size() - offset) {}
+
+  explicit Sub_File_Reader(Base_Reader* base_reader, U64 offset, U64 size) {
+    // TODO(port): Combine nested Sub_File_Reader-s.
+    this->base_reader_ = base_reader;
+    // TODO(strager): Ensure offset does not exceed base_reader->size().
+    this->sub_file_offset_ = offset;
+    if (offset + size >= this->base_reader_->size()) {
+      this->sub_file_size_ = this->base_reader_->size() - offset;
+    } else {
+      this->sub_file_size_ = size;
     }
   }
 
-  std::span<const U8> data_;
+  U64 size() { return this->sub_file_size_; }
+
+  U8 u8(U64 offset) {
+    this->check_bounds(offset, 1);
+    return this->base_reader_->u8(offset + this->sub_file_offset_);
+  }
+
+  U16 u16(U64 offset) {
+    this->check_bounds(offset, 2);
+    return this->base_reader_->u16(offset + this->sub_file_offset_);
+  }
+
+  U32 u32(U64 offset) {
+    this->check_bounds(offset, 4);
+    return this->base_reader_->u32(offset + this->sub_file_offset_);
+  }
+
+  std::u8string utf_8_string(U64 offset, U64 size) {
+    this->check_bounds(offset, size);
+    return this->base_reader_->utf_8_string(offset + this->sub_file_offset_,
+                                            size);
+  }
+
+  std::optional<U64> find_u8(U8 b, U64 offset) {
+    return this->find_u8(b, offset, this->size());
+  }
+
+  std::optional<U64> find_u8(U8 b, U64 offset, U64 end_offset) {
+    if (offset >= this->sub_file_size_) {
+      return std::nullopt;
+    }
+    U64 sub_file_end_offset = this->sub_file_offset_ + this->sub_file_size_;
+    end_offset = end_offset + this->sub_file_offset_;
+    if (end_offset > sub_file_end_offset) {
+      end_offset = sub_file_end_offset;
+    }
+
+    std::optional<U64> i = this->base_reader_->find_u8(
+        b, offset + this->sub_file_offset_, end_offset);
+    if (!i.has_value()) {
+      return std::nullopt;
+    }
+    return *i - this->sub_file_offset_;
+  }
+
+  template <class Callback>
+  void enumerate_bytes(U64 offset, U64 size, Callback callback) {
+    this->check_bounds(offset, size);
+    this->base_reader_->enumerate_bytes(offset + this->sub_file_offset_, size,
+                                        callback);
+  }
+
+ private:
+  Base_Reader* base_reader_;
+  U64 sub_file_offset_;
+  U64 sub_file_size_;
 };
 }
 
