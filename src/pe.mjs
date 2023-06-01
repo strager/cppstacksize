@@ -22,28 +22,14 @@ class PEFile {
 export function parsePEFileAsync(reader) {
   return withLoadScopeAsync(async () => {
     let pe = new PEFile(reader);
-    pe.sections = await getPESectionsAsync(reader);
-    pe.debugDirectory = await getPEDebugDirectoryAsync(reader);
-    return pe;
-  });
-}
 
-function getPESectionsAsync(reader) {
-  return withLoadScopeAsync(async () => {
-    let peSignatureOffset = reader.u32(0x3c);
-    // TODO(strager): Check PE signature.
-    let coffFileHeaderOffset = peSignatureOffset + 4;
-    return await getCOFFSectionsAsync(
-      new SubFileReader(reader, coffFileHeaderOffset)
-    );
-  });
-}
-
-function getPEDebugDirectoryAsync(reader) {
-  return withLoadScopeAsync(async () => {
     let peSignatureOffset = reader.u32(0x3c);
     // TODO(strager): Check PE signature.
     let coffHeaderOffset = peSignatureOffset + 4;
+    pe.sections = await getCOFFSectionsAsync(
+      new SubFileReader(reader, coffHeaderOffset)
+    );
+
     let optionalHeaderSize = reader.u16(coffHeaderOffset + 16);
     if (optionalHeaderSize === 0) {
       throw new PEParseError("missing optional header");
@@ -82,15 +68,14 @@ function getPEDebugDirectoryAsync(reader) {
     let debugDataDirectorySize = dataDirectoryReader.u32(48 + 4);
     let debugDirectoryReader = new RVAReaderSlow(
       reader,
-      await getPESectionsAsync(reader),
+      pe.sections,
       debugDataDirectoryRVA,
       debugDataDirectorySize
     );
 
-    let debugDirectory = [];
     let offset = 0;
     while (offset < debugDirectoryReader.size) {
-      debugDirectory.push({
+      pe.debugDirectory.push({
         type: debugDirectoryReader.u32(offset + 12),
         dataSize: debugDirectoryReader.u32(offset + 16),
         dataRVA: debugDirectoryReader.u32(offset + 20),
@@ -98,7 +83,8 @@ function getPEDebugDirectoryAsync(reader) {
       });
       offset += 28;
     }
-    return debugDirectory;
+
+    return pe;
   });
 }
 
