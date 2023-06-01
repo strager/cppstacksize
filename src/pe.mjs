@@ -1,6 +1,9 @@
-import { SubFileReader } from "./reader.mjs";
+import { ReaderBase, SubFileReader } from "./reader.mjs";
 import { getCOFFSectionsAsync } from "./coff.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
+
+// Documentation:
+// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
 
 export function getPESectionsAsync(reader) {
   return withLoadScopeAsync(async () => {
@@ -11,4 +14,107 @@ export function getPESectionsAsync(reader) {
       new SubFileReader(reader, coffFileHeaderOffset)
     );
   });
+}
+
+export function getPEDebugDirectoryAsync(reader) {
+  return withLoadScopeAsync(async () => {
+    let peSignatureOffset = reader.u32(0x3c);
+    // TODO(strager): Check PE signature.
+    let coffHeaderOffset = peSignatureOffset + 4;
+    let optionalHeaderSize = reader.u16(coffHeaderOffset + 16);
+    if (optionalHeaderSize === 0) {
+      throw new PEParseError("missing optional header");
+    }
+
+    let optionalHeaderReader = new SubFileReader(
+      reader,
+      coffHeaderOffset + 20,
+      optionalHeaderSize
+    );
+    let optionalHeaderMagic = optionalHeaderReader.u16(0);
+    let dataDirectoryOffset;
+    if (optionalHeaderMagic === 0x10b) {
+      // PE32
+      dataDirectoryOffset = 96;
+    } else if (optionalHeaderMagic === 0x20b) {
+      // PE32+
+      dataDirectoryOffset = 112;
+    } else {
+      throw new PEParseError(
+        `unexpected optional header magic: 0x${optionalHeaderMagic.toString(
+          16
+        )}`
+      );
+    }
+
+    let dataDirectoryReader = new SubFileReader(optionalHeaderReader, dataDirectoryOffset);
+    let hasDebugDataDirectory = dataDirectoryReader.size >= 56;
+    if (!hasDebugDataDirectory) {
+      return [];
+    }
+    let debugDataDirectoryRVA = dataDirectoryReader.u32(48);
+    let debugDataDirectorySize = dataDirectoryReader.u32(48 + 4);
+    let debugDirectoryReader = new RVAReaderSlow(
+      reader,
+      await getPESectionsAsync(reader),
+      debugDataDirectoryRVA,
+      debugDataDirectorySize
+    );
+
+    let debugDirectory = [];
+    let offset = 0;
+    while (offset < debugDirectoryReader.size) {
+      debugDirectory.push({
+        type: debugDirectoryReader.u32(offset + 12),
+        dataSize: debugDirectoryReader.u32(offset + 16),
+        dataRVA: debugDirectoryReader.u32(offset + 20),
+        dataFileOffset: debugDirectoryReader.u32(offset + 24),
+      });
+      offset += 28;
+    }
+    return debugDirectory;
+  });
+}
+
+class RVAReaderSlow extends ReaderBase {
+  #reader;
+  #sections;
+  #baseRVA;
+  #size;
+
+  constructor(reader, sections, baseRVA, size) {
+    super();
+    this.#reader = reader;
+    this.#sections = sections;
+    this.#baseRVA = baseRVA;
+    this.#size = size;
+  }
+
+  get size() {
+    return this.#size;
+  }
+
+  u32(offset) {
+    let rva = this.#baseRVA + offset;
+    let section = this.#sections.find(
+      (section) =>
+        section.virtualAddress <= rva &&
+        rva + 4 < section.virtualAddress + section.virtualSize
+    );
+    if (section === undefined) {
+      throw new RangeError(
+        `cannot find section for rva 0x${rva.toString(16)} size=4`
+      );
+    }
+    console.error(
+      section,
+      this.#baseRVA.toString(16),
+      offset.toString(16),
+      rva.toString(16)
+    );
+    // TODO(strager): Zero-pad if out of bounds.
+    return this.#reader.u32(
+      rva - section.virtualAddress + section.dataFileOffset
+    );
+  }
 }
