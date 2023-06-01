@@ -21,15 +21,12 @@ export function getCOFFSectionsAsync(reader) {
     }
     let sectionCount = reader.u16(2);
     let optionalHeaderSize = reader.u16(16);
-    if (optionalHeaderSize != 0) {
-      throw new COFFParseError(
-        `unexpected optional header size: 0x${optionalHeaderSize.toString(16)}`
-      );
-    }
-
+    let sectionTableOffset = 20 + optionalHeaderSize;
     let sections = [];
     for (let sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex) {
-      sections.push(parseCOFFSection(reader, 20 + sectionIndex * 40));
+      sections.push(
+        parseCOFFSection(reader, sectionTableOffset + sectionIndex * 40)
+      );
     }
     return sections;
   });
