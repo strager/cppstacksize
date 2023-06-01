@@ -1,6 +1,5 @@
 import { GUID } from "./guid.mjs";
 import { ReaderBase, SubFileReader } from "./reader.mjs";
-import { getCOFFSectionsAsync, parseCOFFSection } from "./coff.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 // Documentation:
@@ -131,6 +130,16 @@ export function getPEPDBReferenceAsync(pe) {
     }
     return null;
   });
+}
+
+export function parseCOFFSection(reader, offset) {
+  return {
+    name: reader.fixedWidthString(offset, 8),
+    virtualSize: reader.u32(offset + 8),
+    virtualAddress: reader.u32(offset + 12),
+    dataSize: reader.u32(offset + 16),
+    dataFileOffset: reader.u32(offset + 20),
+  };
 }
 
 function parseCodeViewDebugDirectoryData(reader) {

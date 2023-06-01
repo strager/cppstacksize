@@ -1,4 +1,5 @@
 import { SubFileReader } from "./reader.mjs";
+import { parseCOFFSection } from "./pe.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 export async function findCOFFSectionsByNameAsync(reader, sectionName) {
@@ -30,14 +31,4 @@ export function getCOFFSectionsAsync(reader) {
     }
     return sections;
   });
-}
-
-export function parseCOFFSection(reader, offset) {
-  return {
-    name: reader.fixedWidthString(offset, 8),
-    virtualSize: reader.u32(offset + 8),
-    virtualAddress: reader.u32(offset + 12),
-    dataSize: reader.u32(offset + 16),
-    dataFileOffset: reader.u32(offset + 20),
-  };
 }
