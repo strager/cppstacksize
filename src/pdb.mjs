@@ -135,6 +135,8 @@ export async function parsePDBDBIStreamAsync(reader, logger) {
     }
 
     let moduleInfoSize = reader.u32(0x18);
+    let sectionContributionSubstreamSize = reader.u32(0x1c);
+    let sectionMapSubstreamSize = reader.u32(0x20);
 
     let modules = [];
     let moduleInfosBegin = 0x40;
@@ -146,6 +148,9 @@ export async function parsePDBDBIStreamAsync(reader, logger) {
     let offset = 0;
     while (offset < moduleInfosReader.size) {
       offset = alignUp(offset, 4);
+      let moduleSectionSection = moduleInfosReader.u16(offset + 0x04);
+      let moduleSectionOffset = moduleInfosReader.u16(offset + 0x08);
+      let moduleSectionSize = moduleInfosReader.u16(offset + 0x0c);
       let moduleSymStream = moduleInfosReader.u16(offset + 0x22);
       let moduleNameNullTerminatorOffset = moduleInfosReader.findU8(
         0,
@@ -176,10 +181,21 @@ export async function parsePDBDBIStreamAsync(reader, logger) {
         objNameNullTerminatorOffset - offset
       );
       offset = objNameNullTerminatorOffset + 1;
+
       modules.push({
         linkedObjectPath: objName,
         sourceObjectPath: moduleName,
         debugInfoStreamIndex: moduleSymStream,
+        segments: [
+          {
+            peSectionIndex:
+              moduleSectionSection === 0 || moduleSectionSection == 0xffff
+                ? null
+                : moduleSectionSection - 1,
+            offset: moduleSectionOffset,
+            size: moduleSectionSize,
+          },
+        ],
       });
     }
     return {

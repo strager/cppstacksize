@@ -373,6 +373,13 @@ describe("PDB file", (t) => {
         "C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\pdb\\example.obj"
       );
       assert.strictEqual(dbi.modules[0].debugInfoStreamIndex, 15);
+      assert.deepStrictEqual(getSegments(dbi.modules[0]), [
+        {
+          peSectionIndex: 0,
+          offset: 0x0000,
+          size: 160,
+        },
+      ]);
 
       assert.strictEqual(
         dbi.modules[1].linkedObjectPath,
@@ -383,10 +390,32 @@ describe("PDB file", (t) => {
         "d:\\a01\\_work\\43\\s\\Intermediate\\vctools\\msvcrt.nativeproj_110336922\\objr\\amd64\\dll_dllmain.obj"
       );
       assert.strictEqual(dbi.modules[1].debugInfoStreamIndex, 37);
+      assert.deepStrictEqual(getSegments(dbi.modules[1]), [
+        {
+          peSectionIndex: 0,
+          offset: 0x00a0,
+          size: 80,
+        },
+      ]);
 
       assert.strictEqual(dbi.modules[28].sourceObjectPath, "* Linker *");
       assert.strictEqual(dbi.modules[28].linkedObjectPath, "");
       assert.strictEqual(dbi.modules[28].debugInfoStreamIndex, 35);
+      assert.deepStrictEqual(getSegments(dbi.modules[28]), [
+        {
+          peSectionIndex: null,
+          offset: 0x0000,
+          size: 0xffff,
+        },
+      ]);
+
+      function getSegments(module) {
+        return module.segments.map((s) => ({
+          peSectionIndex: s.peSectionIndex,
+          offset: s.offset,
+          size: s.size,
+        }));
+      }
     });
 
     it("can read TPI stream", async () => {
