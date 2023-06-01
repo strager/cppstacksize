@@ -23,6 +23,23 @@ class PEFile {
     this.reader = reader;
   }
 
+  // Returns a Reader for each section with the given name.
+  findSectionsByName(sectionName) {
+    let foundSections = [];
+    for (let section of this.sections) {
+      if (section.name === sectionName) {
+        foundSections.push(
+          new SubFileReader(
+            this.reader,
+            section.dataFileOffset,
+            section.dataSize
+          )
+        );
+      }
+    }
+    return foundSections;
+  }
+
   _parseSections(offset) {
     let coffMagic = this.reader.u16(offset);
     if (coffMagic != 0x8664) {
