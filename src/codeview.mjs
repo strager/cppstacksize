@@ -32,6 +32,7 @@ import {
 } from "./codeview-constants.mjs";
 import { GUID } from "./guid.mjs";
 
+// TODO(strager): Use ExternalPDBFileReference.
 export class CodeViewTypesInSeparatePDBFileError extends Error {
   pdbGUID;
   pdbPath;

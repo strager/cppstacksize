@@ -1,9 +1,12 @@
+import { GUID } from "./guid.mjs";
 import { ReaderBase, SubFileReader } from "./reader.mjs";
 import { getCOFFSectionsAsync } from "./coff.mjs";
 import { withLoadScopeAsync } from "./loader.mjs";
 
 // Documentation:
 // https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
+
+let IMAGE_DEBUG_TYPE_CODEVIEW = 2;
 
 export function getPESectionsAsync(reader) {
   return withLoadScopeAsync(async () => {
@@ -47,7 +50,10 @@ export function getPEDebugDirectoryAsync(reader) {
       );
     }
 
-    let dataDirectoryReader = new SubFileReader(optionalHeaderReader, dataDirectoryOffset);
+    let dataDirectoryReader = new SubFileReader(
+      optionalHeaderReader,
+      dataDirectoryOffset
+    );
     let hasDebugDataDirectory = dataDirectoryReader.size >= 56;
     if (!hasDebugDataDirectory) {
       return [];
@@ -74,6 +80,45 @@ export function getPEDebugDirectoryAsync(reader) {
     }
     return debugDirectory;
   });
+}
+
+export function getPEPDBReferenceAsync(reader) {
+  return withLoadScopeAsync(async () => {
+    let debugDirectoryEntries = await getPEDebugDirectoryAsync(reader);
+    for (let entry of debugDirectoryEntries) {
+      if (entry.type === IMAGE_DEBUG_TYPE_CODEVIEW) {
+        let result = parseCodeViewDebugDirectoryData(
+          new SubFileReader(reader, entry.dataFileOffset, entry.dataSize)
+        );
+        if (result !== null) {
+          return result;
+        }
+      }
+    }
+    return null;
+  });
+}
+
+function parseCodeViewDebugDirectoryData(reader) {
+  let magic = reader.u32(0);
+  if (magic != 0x53445352) {
+    // "RSDS"
+    return null;
+  }
+  let pdbPath = reader.utf8CString(24);
+  let pdbGUIDBytes = new Uint8Array(16);
+  reader.copyBytesInto(pdbGUIDBytes, 4, 16);
+  return new ExternalPDBFileReference(pdbPath, new GUID(pdbGUIDBytes));
+}
+
+export class ExternalPDBFileReference {
+  pdbGUID;
+  pdbPath;
+
+  constructor(pdbPath, pdbGUID) {
+    this.pdbGUID = pdbGUID;
+    this.pdbPath = pdbPath;
+  }
 }
 
 class RVAReaderSlow extends ReaderBase {

@@ -4,7 +4,11 @@ import path from "node:path";
 import url from "node:url";
 import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
 import { describe, it } from "node:test";
-import { getPEDebugDirectoryAsync, getPESectionsAsync } from "../src/pe.mjs";
+import {
+  getPEDebugDirectoryAsync,
+  getPEPDBReferenceAsync,
+  getPESectionsAsync,
+} from "../src/pe.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
@@ -86,5 +90,23 @@ describe("PE debug directory", (t) => {
         dataFileOffset: 0x1644,
       },
     ]);
+  });
+});
+
+describe("PE PDB reference", (t) => {
+  it("pdb/example.dll", async () => {
+    let file = new NodeBufferReader(
+      await fs.promises.readFile(path.join(__dirname, "pdb/example.dll"))
+    );
+    let reference = await getPEPDBReferenceAsync(file);
+    assert.ok(reference !== null);
+    assert.strictEqual(
+      reference.pdbGUID.toString(),
+      "597c058d-affe-4abf-a0ea-76a2e3a3d099"
+    );
+    assert.strictEqual(
+      reference.pdbPath,
+      "C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\pdb\\example.pdb"
+    );
   });
 });
