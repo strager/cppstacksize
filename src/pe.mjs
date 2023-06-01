@@ -92,9 +92,7 @@ class PEFile {
     }
     let debugDataDirectoryRVA = dataDirectoryReader.u32(48);
     let debugDataDirectorySize = dataDirectoryReader.u32(48 + 4);
-    let debugDirectoryReader = new RVAReaderSlow(
-      this.reader,
-      this.sections,
+    let debugDirectoryReader = this.readerForRVA(
       debugDataDirectoryRVA,
       debugDataDirectorySize
     );
@@ -109,6 +107,30 @@ class PEFile {
       });
       offset += 28;
     }
+  }
+
+  readerForRVA(baseRVA, size) {
+    // TODO(strager): Intelligent fallback if input spans multiple sections.
+    // TODO(strager): Support 0 padding if baseRVA+size extends beyond dataSize.
+    let section = this.sections.find(
+      (section) =>
+        section.virtualAddress <= baseRVA &&
+        baseRVA + size <
+          section.virtualAddress +
+            Math.min(section.virtualSize, section.dataSize)
+    );
+    if (section === undefined) {
+      throw new RangeError(
+        `cannot find section for RVA 0x${baseRVA.toString(
+          16
+        )} size=0x${size.toString(16)}`
+      );
+    }
+    return new SubFileReader(
+      this.reader,
+      baseRVA - section.virtualAddress + section.dataFileOffset,
+      size
+    );
   }
 }
 
@@ -202,16 +224,6 @@ class RVAReaderSlow extends ReaderBase {
 
   u32(offset) {
     let rva = this.#baseRVA + offset;
-    let section = this.#sections.find(
-      (section) =>
-        section.virtualAddress <= rva &&
-        rva + 4 < section.virtualAddress + section.virtualSize
-    );
-    if (section === undefined) {
-      throw new RangeError(
-        `cannot find section for rva 0x${rva.toString(16)} size=4`
-      );
-    }
     // TODO(strager): Zero-pad if out of bounds.
     return this.#reader.u32(
       rva - section.virtualAddress + section.dataFileOffset
