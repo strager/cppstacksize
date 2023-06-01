@@ -8,6 +8,12 @@ import { withLoadScopeAsync } from "./loader.mjs";
 
 let IMAGE_DEBUG_TYPE_CODEVIEW = 2;
 
+export class PEMagicMismatchError extends Error {
+  constructor() {
+    super("PE magic mismatched");
+  }
+}
+
 // A Windows PE (.dll or .exe) or COFF (.obj) file.
 class PEFile {
   reader;
@@ -23,8 +29,15 @@ export function parsePEFileAsync(reader) {
   return withLoadScopeAsync(async () => {
     let pe = new PEFile(reader);
 
+    if (reader.u16(0) !== 0x5a4d) {
+      // "MZ"
+      throw new PEMagicMismatchError();
+    }
     let peSignatureOffset = reader.u32(0x3c);
-    // TODO(strager): Check PE signature.
+    if (reader.u32(peSignatureOffset) !== 0x00004550) {
+      // "PE\0\0"
+      throw new PEMagicMismatchError();
+    }
     let coffHeaderOffset = peSignatureOffset + 4;
     pe.sections = await getCOFFSectionsAsync(
       new SubFileReader(reader, coffHeaderOffset)

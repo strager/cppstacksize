@@ -3,8 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import url from "node:url";
 import { NodeBufferReader, SubFileReader } from "../src/reader.mjs";
+import { assertRejectsAsync } from "./assert-util.mjs";
 import { describe, it } from "node:test";
-import { getPEPDBReferenceAsync, parsePEFileAsync } from "../src/pe.mjs";
+import {
+  PEMagicMismatchError,
+  getPEPDBReferenceAsync,
+  parsePEFileAsync,
+} from "../src/pe.mjs";
 
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
@@ -105,5 +110,37 @@ describe("PE PDB reference", (t) => {
       reference.pdbPath,
       "C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\pdb\\example.pdb"
     );
+  });
+});
+
+describe("corrupted PE", () => {
+  it("pdb/example.dll with invalid DOS signature", async () => {
+    let originalFileBuffer = await fs.promises.readFile(
+      path.join(__dirname, "pdb/example.dll")
+    );
+    for (let i = 0; i < 2; ++i) {
+      let corruptedFileBuffer = Buffer.from(originalFileBuffer);
+      corruptedFileBuffer[i] ^= 0xcc;
+      let file = new NodeBufferReader(corruptedFileBuffer);
+      await assertRejectsAsync(
+        async () => await parsePEFileAsync(file),
+        PEMagicMismatchError
+      );
+    }
+  });
+
+  it("pdb/example.dll with invalid PE signature", async () => {
+    let originalFileBuffer = await fs.promises.readFile(
+      path.join(__dirname, "pdb/example.dll")
+    );
+    for (let i = 0; i < 4; ++i) {
+      let corruptedFileBuffer = Buffer.from(originalFileBuffer);
+      corruptedFileBuffer[0x0100 + i] ^= 0xcc;
+      let file = new NodeBufferReader(corruptedFileBuffer);
+      await assertRejectsAsync(
+        async () => await parsePEFileAsync(file),
+        PEMagicMismatchError
+      );
+    }
   });
 });
