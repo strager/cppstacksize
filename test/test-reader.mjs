@@ -89,6 +89,20 @@ describe("SubFileReader with full NodeBufferReader", (t) => {
   });
 });
 
+describe("SubFileReader with full NodeBufferReader and implicit size", (t) => {
+  testReader((bytes) => {
+    let baseReader = new NodeBufferReader(Buffer.from(bytes));
+    return new SubFileReader(baseReader, 0);
+  });
+});
+
+describe("SubFileReader with full NodeBufferReader and too-big size", (t) => {
+  testReader((bytes) => {
+    let baseReader = new NodeBufferReader(Buffer.from(bytes));
+    return new SubFileReader(baseReader, 0, bytes.length + 100);
+  });
+});
+
 describe("SubFileReader with partial NodeBufferReader", (t) => {
   testReader((bytes) => {
     let allBytes = [
@@ -105,6 +119,14 @@ describe("SubFileReader with partial NodeBufferReader", (t) => {
     ];
     let baseReader = new NodeBufferReader(Buffer.from(allBytes));
     return new SubFileReader(baseReader, 4, bytes.length);
+  });
+});
+
+describe("SubFileReader with partial NodeBufferReader and implicit size", (t) => {
+  testReader((bytes) => {
+    let allBytes = [0xcc, 0xdd, 0xee, 0xff, ...bytes];
+    let baseReader = new NodeBufferReader(Buffer.from(allBytes));
+    return new SubFileReader(baseReader, 4);
   });
 });
 

@@ -202,11 +202,18 @@ export class SubFileReader extends ReaderBase {
   subFileOffset;
   subFileSize;
 
-  constructor(baseReader, offset, size) {
+  constructor(baseReader, offset, size = null) {
     super();
     this.baseReader = baseReader;
+    // TODO(strager): Ensure offset does not exceed baseReader.size.
     this.subFileOffset = offset;
-    this.subFileSize = size;
+    if (size === null) {
+      this.subFileSize = this.baseReader.size - offset;
+    } else if (offset + size >= this.baseReader.size) {
+      this.subFileSize = this.baseReader.size - offset;
+    } else {
+      this.subFileSize = size;
+    }
   }
 
   get size() {
