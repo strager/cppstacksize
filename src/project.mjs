@@ -102,36 +102,31 @@ export class Project {
     }
 
     for (let file of this.#files) {
-      if (file.pdbStreams !== null) {
-        if (file.pdbDBI === null) {
-          file.pdbDBI = await parsePDBDBIStreamAsync(
-            file.pdbStreams[3],
-            logger
-          );
-        }
-        for (let module of file.pdbDBI.modules) {
-          let codeViewStream = file.pdbStreams[module.debugInfoStreamIndex];
-          funcs.push(
-            ...(await findAllCodeViewFunctions2Async(codeViewStream, logger))
-          );
-        }
+      if (file.pdbStreams === null) continue;
+      if (file.pdbDBI === null) {
+        file.pdbDBI = await parsePDBDBIStreamAsync(file.pdbStreams[3], logger);
+      }
+      for (let module of file.pdbDBI.modules) {
+        let codeViewStream = file.pdbStreams[module.debugInfoStreamIndex];
+        funcs.push(
+          ...(await findAllCodeViewFunctions2Async(codeViewStream, logger))
+        );
       }
     }
 
     for (let file of this.#files) {
-      if (file.peFile !== null) {
-        // TODO(strager): Only attach to functions from PDBs linked with this PE
-        // (according to the PDB's GUID).
-        for (let func of funcs) {
-          func.peFile = file.peFile;
-        }
+      if (file.peFile === null) continue;
+      // TODO(strager): Only attach to functions from PDBs linked with this PE
+      // (according to the PDB's GUID).
+      for (let func of funcs) {
+        func.peFile = file.peFile;
+      }
 
-        for (let sectionReader of await findCOFFSectionsByNameAsync(
-          file.reader,
-          ".debug$S"
-        )) {
-          funcs.push(...(await findAllCodeViewFunctionsAsync(sectionReader)));
-        }
+      for (let sectionReader of await findCOFFSectionsByNameAsync(
+        file.reader,
+        ".debug$S"
+      )) {
+        funcs.push(...(await findAllCodeViewFunctionsAsync(sectionReader)));
       }
     }
     return funcs;
