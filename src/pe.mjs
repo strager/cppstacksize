@@ -26,7 +26,7 @@ class PEFile {
   _parseSections(offset) {
     let coffMagic = this.reader.u16(offset);
     if (coffMagic != 0x8664) {
-      throw new PEParseError(`unexpected magic: 0x${coffMagic.toString(16)}`);
+      throw new PEMagicMismatchError();
     }
     let sectionCount = this.reader.u16(offset + 2);
     let optionalHeaderSize = this.reader.u16(offset + 16);
@@ -99,18 +99,19 @@ export function parsePEFileAsync(reader) {
   return withLoadScopeAsync(async () => {
     let pe = new PEFile(reader);
 
-    if (reader.u16(0) !== 0x5a4d) {
-      // "MZ"
-      throw new PEMagicMismatchError();
+    let isDOSExecutable = reader.u16(0) === 0x5a4d; // "MZ"
+    if (isDOSExecutable) {
+      let peSignatureOffset = reader.u32(0x3c);
+      if (reader.u32(peSignatureOffset) !== 0x00004550) {
+        // "PE\0\0"
+        throw new PEMagicMismatchError();
+      }
+      let coffHeaderOffset = peSignatureOffset + 4;
+      pe._parseSections(coffHeaderOffset);
+      pe._parseOptionalHeader(coffHeaderOffset);
+    } else {
+      pe._parseSections(0);
     }
-    let peSignatureOffset = reader.u32(0x3c);
-    if (reader.u32(peSignatureOffset) !== 0x00004550) {
-      // "PE\0\0"
-      throw new PEMagicMismatchError();
-    }
-    let coffHeaderOffset = peSignatureOffset + 4;
-    pe._parseSections(coffHeaderOffset);
-    pe._parseOptionalHeader(coffHeaderOffset);
 
     return pe;
   });
