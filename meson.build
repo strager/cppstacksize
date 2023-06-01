@@ -29,6 +29,7 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/base.h',
     'src/cppstacksize/c-api.cpp',
     'src/cppstacksize/c-api.h',
+    'src/cppstacksize/reader.h',
     'src/cppstacksize/register-debug.cpp',
     'src/cppstacksize/register.cpp',
     'src/cppstacksize/register.h',
@@ -44,8 +45,11 @@ cppstacksize_lib_dep = declare_dependency(
 )
 
 test_sources = [
+  # Tests with ASM_X86_64 directives:
   'test/test-asm-stack-map.cpp',
   'test/test-register.cpp',
+
+  'test/test-reader.cpp',
 ]
 # TODO(strager): Commit the generated file into source control and make this
 # step optional.
