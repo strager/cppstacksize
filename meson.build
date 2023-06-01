@@ -26,6 +26,8 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/asm-stack-map.cpp',
     'src/cppstacksize/asm-stack-map.h',
     'src/cppstacksize/base.h',
+    'src/cppstacksize/c-api.cpp',
+    'src/cppstacksize/c-api.h',
     'src/cppstacksize/register-debug.cpp',
     'src/cppstacksize/register.cpp',
     'src/cppstacksize/register.h',

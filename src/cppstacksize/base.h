@@ -12,6 +12,11 @@ using S64 = std::int64_t;
 using U32 = std::uint32_t;
 using U64 = std::uint64_t;
 using U8 = std::uint8_t;
+
+template <class Out, class In>
+Out narrow_cast(In value) {
+  return static_cast<Out>(value);
+}
 }
 
 #endif

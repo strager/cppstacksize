@@ -9,11 +9,6 @@ namespace {
 Stack_Access_Kind stack_access_kind_from_capstone(/*::cs_ac_type*/ U8 access);
 }
 
-template <class Out, class In>
-Out narrow_cast(In value) {
-  return static_cast<Out>(value);
-}
-
 Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   ::csh handle;
   if (::cs_open(::CS_ARCH_X86, ::CS_MODE_64, &handle) != ::CS_ERR_OK) {
