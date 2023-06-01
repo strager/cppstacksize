@@ -82,6 +82,19 @@ describe("PDBBlocksReader(blockSize=4) subset of NodeBufferReader", (t) => {
   });
 });
 
+describe("SubFileReader", (t) => {
+  it("combines nested SubFileReader-s", () => {
+    let baseReader = new NodeBufferReader(
+      Buffer.from([10, 20, 30, 40, 50, 60])
+    );
+    let innerReader = new SubFileReader(baseReader, 1, 5);
+    let outerReader = new SubFileReader(innerReader, 1);
+    assert.strictEqual(outerReader.baseReader, baseReader);
+    assert.strictEqual(outerReader.subFileOffset, 1 + 1);
+    assert.strictEqual(outerReader.subFileSize, 4);
+  });
+});
+
 describe("SubFileReader with full NodeBufferReader", (t) => {
   testReader((bytes) => {
     let baseReader = new NodeBufferReader(Buffer.from(bytes));
@@ -119,6 +132,29 @@ describe("SubFileReader with partial NodeBufferReader", (t) => {
     ];
     let baseReader = new NodeBufferReader(Buffer.from(allBytes));
     return new SubFileReader(baseReader, 4, bytes.length);
+  });
+});
+
+describe("SubFileReader inside SubFileReader with NodeBufferReader", (t) => {
+  testReader((bytes) => {
+    let allBytes = [
+      0xcc,
+      0xdd,
+      0xee,
+      0xff,
+      ...bytes,
+      0xcc,
+      0xdd,
+      0xee,
+      0xff,
+      0x00,
+    ];
+    let baseReader = new NodeBufferReader(Buffer.from(allBytes));
+    return new SubFileReader(
+      new SubFileReader(baseReader, 2, bytes.length + 5),
+      2,
+      bytes.length
+    );
   });
 });
 
