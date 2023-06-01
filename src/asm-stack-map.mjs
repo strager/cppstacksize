@@ -1,4 +1,4 @@
-import loadCPPStackSizeAsync from "../src/build/cppstacksize-wasm.mjs";
+import loadCPPStackSizeAsync from "./build/cppstacksize-wasm.mjs";
 let cppStackSizeModule = await loadCPPStackSizeAsync();
 
 let css_create_analyzer_x86_64 = cppStackSizeModule.cwrap(

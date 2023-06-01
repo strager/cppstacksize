@@ -1,7 +1,8 @@
+import { Analyzer } from "./asm-stack-map.mjs";
 import { BlobLoader, LoaderReader, withLoadScopeAsync } from "./loader.mjs";
 import { CapturingLogger, fallbackLogger } from "./logger.mjs";
-import { getCodeViewFunctionLocalsAsync } from "./codeview.mjs";
 import { Project } from "./project.mjs";
+import { getCodeViewFunctionLocalsAsync } from "./codeview.mjs";
 
 let funcs = [];
 let typeTable = null;
@@ -61,6 +62,7 @@ async function onUploadFilesAsync(files) {
 
 async function clearFunctionDetailsAsync() {
   stackFrameTableTbodyElement.innerHTML = "";
+  stackMapTableTbodyElement.innerHTML = "";
 }
 
 async function showFunctionDetailsAsync(func) {
@@ -104,9 +106,26 @@ async function showFunctionDetailsAsync(func) {
     stackFrameTableTbodyElement.appendChild(tr);
   }
 
-  let instructionBytes = func.getInstructionBytesReader(logger);
-  instructionBytes.enumerateBytes(0, instructionBytes.size, console.log);
-  // TODO(strager): Analyze and show stack map.
+  let instructionsReader = func.getInstructionBytesReader(logger);
+  let instructionBytes = await withLoadScopeAsync(async () => {
+    return await instructionsReader.copyBytes(0, instructionsReader.size);
+  });
+  let analyzer = new Analyzer({ arch: "x86_64" });
+  analyzer.setMachineCode(instructionBytes);
+  for (let i = 0; i < analyzer.stackMapEntryCount; ++i) {
+    let entry = analyzer.getStackMapEntry(i);
+
+    let tr = document.createElement("tr");
+    let td = document.createElement("td");
+    td.textContent = `0x${entry.instructionOffset.toString(16)}`;
+    tr.appendChild(td);
+
+    td = document.createElement("td");
+    td.textContent = `${entry.byteCount}`;
+    tr.appendChild(td);
+
+    stackMapTableTbodyElement.appendChild(tr);
+  }
 }
 
 let functionTableElement = document.getElementById("function-table");
@@ -173,6 +192,9 @@ selectedFunctionResizeObserver.observe(functionTableSelectionScrollBoxElement);
 
 let stackFrameTableElement = document.getElementById("stack-frame-table");
 let stackFrameTableTbodyElement = stackFrameTableElement.querySelector("tbody");
+
+let stackMapTableElement = document.getElementById("stack-map-table");
+let stackMapTableTbodyElement = stackMapTableElement.querySelector("tbody");
 
 let filePickerElement = document.getElementById("file-picker");
 filePickerElement.addEventListener("change", (_event) => {

@@ -61,6 +61,12 @@ export class ReaderBase {
     });
   }
 
+  copyBytes(offset, size) {
+    let buffer = new Uint8Array(size);
+    this.copyBytesInto(buffer, offset, size);
+    return buffer;
+  }
+
   _raiseOutOfBoundsError(offset, size) {
     throw new RangeError(
       `${this.locate(
