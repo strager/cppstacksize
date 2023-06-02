@@ -4,7 +4,7 @@
 #include <string_view>
 
 namespace cppstacksize {
-Logger* fallback_logger = &Console_Logger::instance;
+Logger& fallback_logger = Console_Logger::instance;
 
 Console_Logger Console_Logger::instance;
 

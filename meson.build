@@ -30,6 +30,8 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/base.h',
     'src/cppstacksize/c-api.cpp',
     'src/cppstacksize/c-api.h',
+    'src/cppstacksize/codeview-constants.h',
+    'src/cppstacksize/codeview.h',
     'src/cppstacksize/file.cpp',
     'src/cppstacksize/file.h',
     'src/cppstacksize/guid.cpp',
@@ -43,6 +45,7 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/register-debug.cpp',
     'src/cppstacksize/register.cpp',
     'src/cppstacksize/register.h',
+    'src/cppstacksize/util.h',
   ],
   include_directories: [cppstacksize_includes],
   dependencies: [
@@ -53,6 +56,9 @@ cppstacksize_lib = static_library(
 cppstacksize_lib_dep = declare_dependency(
   link_with: cppstacksize_lib,
   include_directories : [cppstacksize_includes],
+  # TODO(strager): Remove uses of fmt from our headers and make the dependency
+  # private.
+  dependencies: [fmt_proj.get_variable('fmt_dep')],
 )
 
 test_sources = [
@@ -62,6 +68,7 @@ test_sources = [
 
   'test/cppstacksize/asm.h',
   'test/cppstacksize/example-file.h',
+  'test/test-codeview.cpp',
   'test/test-coff.cpp',
   'test/test-guid.cpp',
   'test/test-pe.cpp',

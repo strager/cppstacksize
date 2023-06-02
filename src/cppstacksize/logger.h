@@ -17,7 +17,7 @@ class Console_Logger : public Logger {
   void log(std::string_view message, const Location& location) override;
 };
 
-extern Logger* fallback_logger;
+extern Logger& fallback_logger;
 }
 
 #endif
