@@ -17,6 +17,7 @@ capstone_cmake_options.add_cmake_defines({
 capstone_cmake_options.set_install(false)
 capstone_proj = cmake.subproject('capstone', options: capstone_cmake_options)
 
+fmt_proj = subproject('fmt')
 gtest_proj = subproject('gtest')
 
 cppstacksize_includes = include_directories('src/')
@@ -30,6 +31,7 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/c-api.cpp',
     'src/cppstacksize/c-api.h',
     'src/cppstacksize/pdb.h',
+    'src/cppstacksize/reader.cpp',
     'src/cppstacksize/reader.h',
     'src/cppstacksize/register-debug.cpp',
     'src/cppstacksize/register.cpp',
@@ -38,6 +40,7 @@ cppstacksize_lib = static_library(
   include_directories: [cppstacksize_includes],
   dependencies: [
     capstone_proj.dependency('capstone-static'),
+    fmt_proj.get_variable('fmt_dep'),
   ],
 )
 cppstacksize_lib_dep = declare_dependency(
@@ -50,6 +53,7 @@ test_sources = [
   'test/test-asm-stack-map.cpp',
   'test/test-register.cpp',
 
+  'test/test-reader-location.cpp',
   'test/test-reader.cpp',
 ]
 # TODO(strager): Commit the generated file into source control and make this

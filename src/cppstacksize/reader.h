@@ -13,6 +13,14 @@ class Out_Of_Bounds_Read : public std::exception {};
 
 class C_String_Null_Terminator_Not_Found : public std::exception {};
 
+struct Location {
+  U64 file_offset;
+  std::optional<U32> stream_index = std::nullopt;
+  std::optional<U32> stream_offset = std::nullopt;
+
+  std::string to_string();
+};
+
 // Mixin class using CRTP.
 template <class Derived>
 class Reader_Base {
@@ -68,6 +76,8 @@ class Span_Reader : public Reader_Base<Span_Reader> {
   explicit Span_Reader(std::span<const U8> data) : data_(data) {}
 
   U64 size() const { return this->data_.size(); }
+
+  Location locate(U64 offset) { return Location{.file_offset = offset}; }
 
   U8 u8(U64 offset) {
     this->check_bounds(offset, 1);
@@ -142,6 +152,10 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
   }
 
   U64 size() { return this->sub_file_size_; }
+
+  Location locate(U64 offset) {
+    return this->base_reader_->locate(offset + this->sub_file_offset_);
+  }
 
   U8 u8(U64 offset) {
     this->check_bounds(offset, 1);

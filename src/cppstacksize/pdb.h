@@ -18,11 +18,19 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
         block_indexes_(std::move(block_indexes)),
         block_size_(block_size),
         byte_size_(byte_size),
-        stream_index_(stream_index) {
-    CSS_ASSERT(block_size >= 4);
-  }
+        stream_index_(stream_index) {}
 
   U64 size() { return this->byte_size_; }
+
+  Location locate(U64 offset) {
+    U32 block_index = this->block_indexes_[offset / this->block_size_];
+    U64 relative_offset = offset % this->block_size_;
+    Location location = this->base_reader_->locate(
+        block_index * this->block_size_ + relative_offset);
+    location.stream_index = this->stream_index_;
+    location.stream_offset = offset;
+    return location;
+  }
 
   U8 u8(U64 offset) {
     this->check_bounds(offset, 1);
