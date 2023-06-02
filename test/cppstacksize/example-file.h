@@ -17,7 +17,7 @@ class Example_File {
 
   std::span<const U8> data() { return this->file_.data(); }
 
-  Span_Reader& reader() { return this->reader_; }
+  const Span_Reader& reader() { return this->reader_; }
 
  private:
   static std::string full_path(const char* relative_path);

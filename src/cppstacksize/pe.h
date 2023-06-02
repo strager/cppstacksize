@@ -40,11 +40,11 @@ struct PE_Debug_Directory_Entry {
 // A Windows PE (.dll or .exe) or COFF (.obj) file.
 template <class Reader>
 struct PE_File {
-  Reader* reader;
+  const Reader* reader;
   std::vector<PE_Section> sections;
   std::vector<PE_Debug_Directory_Entry> debug_directory;
 
-  explicit PE_File(Reader* reader) : reader(reader) {}
+  explicit PE_File(const Reader* reader) : reader(reader) {}
 
   // Returns a Reader for each section with the given name.
   std::vector<Sub_File_Reader<Reader>> find_sections_by_name(
@@ -141,7 +141,7 @@ struct PE_File {
 };
 
 template <class Reader>
-inline PE_File<Reader> parse_pe_file(Reader* reader) {
+inline PE_File<Reader> parse_pe_file(const Reader* reader) {
   PE_File<Reader> pe(reader);
 
   bool is_dos_executable = reader->u16(0) == 0x5a4d;  // "MZ"
@@ -167,13 +167,12 @@ struct External_PDB_File_Reference {
 
 template <class Reader>
 inline std::optional<External_PDB_File_Reference> get_pe_pdb_reference(
-    PE_File<Reader>& pe) {
+    const PE_File<Reader>& pe) {
   for (const PE_Debug_Directory_Entry& entry : pe.debug_directory) {
     if (entry.type == IMAGE_DEBUG_TYPE_CODEVIEW) {
-      Sub_File_Reader<Reader> data_reader(pe.reader, entry.data_file_offset,
-                                          entry.data_size);
       std::optional<External_PDB_File_Reference> result =
-          parse_code_view_debug_directory_data(data_reader);
+          parse_code_view_debug_directory_data(Sub_File_Reader<Reader>(
+              pe.reader, entry.data_file_offset, entry.data_size));
       if (result.has_value()) {
         return result;
       }
@@ -183,7 +182,7 @@ inline std::optional<External_PDB_File_Reference> get_pe_pdb_reference(
 }
 
 template <class Reader>
-inline PE_Section parse_coff_section(Reader& reader, U64 offset) {
+inline PE_Section parse_coff_section(const Reader& reader, U64 offset) {
   return PE_Section{
       .name = reader.fixed_width_string(offset, 8),
       .virtual_size = reader.u32(offset + 8),
@@ -195,7 +194,7 @@ inline PE_Section parse_coff_section(Reader& reader, U64 offset) {
 
 template <class Reader>
 inline std::optional<External_PDB_File_Reference>
-parse_code_view_debug_directory_data(Reader& reader) {
+parse_code_view_debug_directory_data(const Reader& reader) {
   U32 magic = reader.u32(0);
   if (magic != 0x53445352) {
     // "RSDS"

@@ -25,7 +25,7 @@ struct Location {
 template <class Derived>
 class Reader_Base {
  public:
-  std::u8string fixed_width_string(U64 offset, U64 size) {
+  std::u8string fixed_width_string(U64 offset, U64 size) const {
     std::optional<U64> string_end_offset =
         this->derived()->find_u8(0, offset, offset + size);
     if (string_end_offset.has_value()) {
@@ -34,7 +34,7 @@ class Reader_Base {
     return this->derived()->utf_8_string(offset, size);
   }
 
-  std::u8string utf_8_c_string(U64 offset) {
+  std::u8string utf_8_c_string(U64 offset) const {
     std::optional<U64> end_offset = this->derived()->find_u8(0, offset);
     if (!end_offset.has_value()) {
       throw C_String_Null_Terminator_Not_Found();
@@ -42,7 +42,7 @@ class Reader_Base {
     return this->derived()->utf_8_string(offset, *end_offset - offset);
   }
 
-  std::u8string utf_8_string(U64 offset, U64 size) {
+  std::u8string utf_8_string(U64 offset, U64 size) const {
     std::u8string result;
     this->derived()->enumerate_bytes(
         offset, size, [&](std::span<const U8> chunk) -> void {
@@ -51,7 +51,7 @@ class Reader_Base {
     return result;
   }
 
-  void copy_bytes_into(std::span<U8> out, U64 offset) {
+  void copy_bytes_into(std::span<U8> out, U64 offset) const {
     this->derived()->enumerate_bytes(
         offset, out.size(), [&](std::span<const U8> chunk) -> void {
           std::copy(chunk.begin(), chunk.end(), out.begin());
@@ -60,7 +60,7 @@ class Reader_Base {
   }
 
  protected:
-  void check_bounds(U64 offset, U64 size) {
+  void check_bounds(U64 offset, U64 size) const {
     U64 last_offset = size == 0 ? offset : offset + size - 1;
     if (last_offset >= this->derived()->size() || last_offset < offset) {
       throw Out_Of_Bounds_Read();
@@ -68,7 +68,9 @@ class Reader_Base {
   }
 
  private:
-  Derived* derived() noexcept { return static_cast<Derived*>(this); }
+  const Derived* derived() const noexcept {
+    return static_cast<const Derived*>(this);
+  }
 };
 
 class Span_Reader : public Reader_Base<Span_Reader> {
@@ -77,20 +79,20 @@ class Span_Reader : public Reader_Base<Span_Reader> {
 
   U64 size() const { return this->data_.size(); }
 
-  Location locate(U64 offset) { return Location{.file_offset = offset}; }
+  Location locate(U64 offset) const { return Location{.file_offset = offset}; }
 
-  U8 u8(U64 offset) {
+  U8 u8(U64 offset) const {
     this->check_bounds(offset, 1);
     return this->data_[offset];
   }
 
-  U16 u16(U64 offset) {
+  U16 u16(U64 offset) const {
     this->check_bounds(offset, 2);
     return (static_cast<U16>(this->data_[offset + 0]) << (0 * 8)) |
            (static_cast<U16>(this->data_[offset + 1]) << (1 * 8));
   }
 
-  U32 u32(U64 offset) {
+  U32 u32(U64 offset) const {
     this->check_bounds(offset, 4);
     return (static_cast<U32>(this->data_[offset + 0]) << (0 * 8)) |
            (static_cast<U32>(this->data_[offset + 1]) << (1 * 8)) |
@@ -101,11 +103,11 @@ class Span_Reader : public Reader_Base<Span_Reader> {
   // Searches for a byte equal b starting from offset.
   //
   // Returns the offset of the first match, or null if there is no match.
-  std::optional<U64> find_u8(U8 b, U64 offset) {
+  std::optional<U64> find_u8(U8 b, U64 offset) const {
     return this->find_u8(b, offset, this->size());
   }
 
-  std::optional<U64> find_u8(U8 b, U64 offset, U64 end_offset) {
+  std::optional<U64> find_u8(U8 b, U64 offset, U64 end_offset) const {
     if (end_offset > this->size()) {
       end_offset = this->size();
     }
@@ -122,7 +124,7 @@ class Span_Reader : public Reader_Base<Span_Reader> {
   }
 
   template <class Callback>
-  void enumerate_bytes(U64 offset, U64 size, Callback callback) {
+  void enumerate_bytes(U64 offset, U64 size, Callback callback) const {
     this->check_bounds(offset, size);
     callback(this->data_.subspan(offset, size));
   }
@@ -136,10 +138,11 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
  public:
   using Base_Reader = Base_Reader_T;
 
-  explicit Sub_File_Reader(Base_Reader* base_reader, U64 offset)
+  explicit Sub_File_Reader(const Base_Reader* base_reader, U64 offset)
       : Sub_File_Reader(base_reader, offset, base_reader->size() - offset) {}
 
-  explicit Sub_File_Reader(Base_Reader* base_reader, U64 offset, U64 size) {
+  explicit Sub_File_Reader(const Base_Reader* base_reader, U64 offset,
+                           U64 size) {
     // TODO(port): Combine nested Sub_File_Reader-s.
     this->base_reader_ = base_reader;
     // TODO(strager): Ensure offset does not exceed base_reader->size().
@@ -151,41 +154,41 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
     }
   }
 
-  Base_Reader* base_reader() { return this->base_reader_; }
-  U64 sub_file_offset() { return this->sub_file_offset_; }
+  const Base_Reader* base_reader() const { return this->base_reader_; }
+  U64 sub_file_offset() const { return this->sub_file_offset_; }
 
-  U64 size() { return this->sub_file_size_; }
+  U64 size() const { return this->sub_file_size_; }
 
-  Location locate(U64 offset) {
+  Location locate(U64 offset) const {
     return this->base_reader_->locate(offset + this->sub_file_offset_);
   }
 
-  U8 u8(U64 offset) {
+  U8 u8(U64 offset) const {
     this->check_bounds(offset, 1);
     return this->base_reader_->u8(offset + this->sub_file_offset_);
   }
 
-  U16 u16(U64 offset) {
+  U16 u16(U64 offset) const {
     this->check_bounds(offset, 2);
     return this->base_reader_->u16(offset + this->sub_file_offset_);
   }
 
-  U32 u32(U64 offset) {
+  U32 u32(U64 offset) const {
     this->check_bounds(offset, 4);
     return this->base_reader_->u32(offset + this->sub_file_offset_);
   }
 
-  std::u8string utf_8_string(U64 offset, U64 size) {
+  std::u8string utf_8_string(U64 offset, U64 size) const {
     this->check_bounds(offset, size);
     return this->base_reader_->utf_8_string(offset + this->sub_file_offset_,
                                             size);
   }
 
-  std::optional<U64> find_u8(U8 b, U64 offset) {
+  std::optional<U64> find_u8(U8 b, U64 offset) const {
     return this->find_u8(b, offset, this->size());
   }
 
-  std::optional<U64> find_u8(U8 b, U64 offset, U64 end_offset) {
+  std::optional<U64> find_u8(U8 b, U64 offset, U64 end_offset) const {
     if (offset >= this->sub_file_size_) {
       return std::nullopt;
     }
@@ -204,14 +207,14 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
   }
 
   template <class Callback>
-  void enumerate_bytes(U64 offset, U64 size, Callback callback) {
+  void enumerate_bytes(U64 offset, U64 size, Callback callback) const {
     this->check_bounds(offset, size);
     this->base_reader_->enumerate_bytes(offset + this->sub_file_offset_, size,
                                         callback);
   }
 
  private:
-  Base_Reader* base_reader_;
+  const Base_Reader* base_reader_;
   U64 sub_file_offset_;
   U64 sub_file_size_;
 };

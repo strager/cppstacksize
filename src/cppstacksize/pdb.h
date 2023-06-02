@@ -11,7 +11,7 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
  public:
   using Base_Reader = Base_Reader_T;
 
-  explicit PDB_Blocks_Reader(Base_Reader* base_reader,
+  explicit PDB_Blocks_Reader(const Base_Reader* base_reader,
                              std::vector<U32> block_indexes, U32 block_size,
                              U32 byte_size, U32 stream_index)
       : base_reader_(base_reader),
@@ -20,9 +20,9 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
         byte_size_(byte_size),
         stream_index_(stream_index) {}
 
-  U64 size() { return this->byte_size_; }
+  U64 size() const { return this->byte_size_; }
 
-  Location locate(U64 offset) {
+  Location locate(U64 offset) const {
     U32 block_index = this->block_indexes_[offset / this->block_size_];
     U64 relative_offset = offset % this->block_size_;
     Location location = this->base_reader_->locate(
@@ -32,7 +32,7 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
     return location;
   }
 
-  U8 u8(U64 offset) {
+  U8 u8(U64 offset) const {
     this->check_bounds(offset, 1);
 
     // TODO(strager): Avoid divisions.
@@ -44,7 +44,7 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
   }
 
 #define CSS_DEFINE_READ_FUNCTION(type, name, size)                       \
-  type name(U64 offset) {                                                \
+  type name(U64 offset) const {                                          \
     this->check_bounds(offset, size);                                    \
                                                                          \
     /* TODO(strager): Avoid divisions. */                                \
@@ -67,11 +67,11 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
 
 #undef CSS_DEFINE_READ_FUNCTION
 
-  std::optional<U64> find_u8(U8 b, U64 offset) {
+  std::optional<U64> find_u8(U8 b, U64 offset) const {
     return this->find_u8(b, offset, this->byte_size_);
   }
 
-  std::optional<U64> find_u8(U8 b, U64 offset, U64 end_offset) {
+  std::optional<U64> find_u8(U8 b, U64 offset, U64 end_offset) const {
     if (end_offset > this->byte_size_) {
       end_offset = this->byte_size_;
     }
@@ -99,7 +99,7 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
   }
 
   template <class Callback>
-  void enumerate_bytes(U64 offset, U64 size, Callback callback) {
+  void enumerate_bytes(U64 offset, U64 size, Callback callback) const {
     this->check_bounds(offset, size);
     U64 end_offset = offset + size;
     // TODO(strager): Avoid divisions.
@@ -126,7 +126,7 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
   }
 
  private:
-  Base_Reader* base_reader_;
+  const Base_Reader* base_reader_;
   std::vector<U32> block_indexes_;
   U32 block_size_;
   U32 byte_size_;
