@@ -55,12 +55,8 @@ TEST(Test_PE, pe_pdb_reference_in_pdb_example_dll) {
   std::optional<External_PDB_File_Reference> reference =
       get_pe_pdb_reference(pe);
   ASSERT_TRUE(reference.has_value());
-#if 0  // TODO(port)
-    EXPECT_EQ(
-      reference->pdb_guid.to_string(),
-      "597c058d-affe-4abf-a0ea-76a2e3a3d099"
-    );
-#endif
+  EXPECT_EQ(reference->pdb_guid.to_string(),
+            "597c058d-affe-4abf-a0ea-76a2e3a3d099");
   EXPECT_EQ(reference->pdb_path,
             u8"C:"
             u8"\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\pdb\\"

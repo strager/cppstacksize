@@ -2,6 +2,7 @@
 #define CPPSTACKSIZE_PE_H
 
 #include <cppstacksize/base.h>
+#include <cppstacksize/guid.h>
 #include <cppstacksize/reader.h>
 #include <exception>
 #include <stdexcept>
@@ -162,7 +163,7 @@ inline PE_File<Reader> parse_pe_file(const Reader* reader) {
 
 struct External_PDB_File_Reference {
   std::u8string pdb_path;
-  // GUID pdbGUID;
+  GUID pdb_guid;
 };
 
 template <class Reader>
@@ -201,12 +202,11 @@ parse_code_view_debug_directory_data(const Reader& reader) {
     return std::nullopt;
   }
   std::u8string pdb_path = reader.utf_8_c_string(24);
-  // TODO(port): GUID.
-  // let pdbGUIDBytes = new Uint8Array(16);
-  // reader.copyBytesInto(pdbGUIDBytes, 4, 16);
+  U8 pdb_guid_bytes[16];
+  reader.copy_bytes_into(pdb_guid_bytes, 4);
   return External_PDB_File_Reference{
       .pdb_path = std::move(pdb_path),
-      //.pdb_guid = new GUID(pdbGUIDBytes),
+      .pdb_guid = GUID(pdb_guid_bytes),
   };
 }
 }
