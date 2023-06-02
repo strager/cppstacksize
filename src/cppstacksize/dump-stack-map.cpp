@@ -1,4 +1,5 @@
 #include <cppstacksize/asm-stack-map.h>
+#include <cppstacksize/file.h>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -14,18 +15,8 @@ int main(int argc, char** argv) {
     std::exit(2);
   }
 
-  std::ifstream s(argv[1]);
-  std::stringstream machine_code_stream;
-  machine_code_stream << s.rdbuf();
-  if (!s) {
-    std::fprintf(stderr, "error: failed to read file %s\n", argv[1]);
-    std::exit(1);
-  }
-
-  std::string machine_code = std::move(machine_code_stream).str();
-  std::span<const U8> machine_code_bytes(
-      reinterpret_cast<const U8*>(machine_code.data()), machine_code.size());
-  Stack_Map map = analyze_x86_64_stack_map(machine_code_bytes);
+  Loaded_File machine_code = Loaded_File::load(argv[1]);
+  Stack_Map map = analyze_x86_64_stack_map(machine_code.data());
   for (Stack_Map_Touch& touch : map.touches) {
     std::cout << touch << '\n';
   }

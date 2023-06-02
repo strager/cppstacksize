@@ -30,6 +30,8 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/base.h',
     'src/cppstacksize/c-api.cpp',
     'src/cppstacksize/c-api.h',
+    'src/cppstacksize/file.cpp',
+    'src/cppstacksize/file.h',
     'src/cppstacksize/pdb.h',
     'src/cppstacksize/reader.cpp',
     'src/cppstacksize/reader.h',
