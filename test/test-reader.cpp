@@ -1,9 +1,11 @@
 #include <cppstacksize/base.h>
+#include <cppstacksize/pdb.h>
 #include <cppstacksize/reader.h>
 #include <deque>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <limits>
+#include <type_traits>
 
 using ::testing::ElementsAreArray;
 
@@ -113,13 +115,58 @@ struct Sub_File_Reader_With_Partial_Span_Reader_And_Implicit_Size {
   std::deque<Span_Reader> base_readers_;
 };
 
+struct PDB_Blocks_Reader_With_Block_Size_4_With_Span_Reader {
+  PDB_Blocks_Reader<Span_Reader> make_reader(std::span<const U8> data) {
+    Span_Reader* base_reader = &this->base_readers_.emplace_back(data);
+    U32 block_size = 4;
+    std::vector<U32> block_indexes;
+    for (U32 i = 0; i * block_size < base_reader->size(); ++i) {
+      block_indexes.push_back(i);
+    }
+    return PDB_Blocks_Reader<Span_Reader>(base_reader, block_indexes,
+                                          block_size, base_reader->size(),
+                                          /*streamIndex=*/0);
+  }
+  std::deque<Span_Reader> base_readers_;
+};
+
+struct PDB_Blocks_Reader_With_Block_Size_4_With_Subset_Of_Span_Reader {
+  PDB_Blocks_Reader<Span_Reader> make_reader(std::span<const U8> data) {
+    std::vector<U8>& all_bytes = this->datas_.emplace_back();
+    all_bytes.push_back(0xcc);
+    all_bytes.push_back(0xdd);
+    all_bytes.push_back(0xee);
+    all_bytes.push_back(0xff);
+    all_bytes.insert(all_bytes.end(), data.begin(), data.end());
+    all_bytes.push_back(0xcc);
+    all_bytes.push_back(0xdd);
+    all_bytes.push_back(0xee);
+    all_bytes.push_back(0xff);
+    all_bytes.push_back(0x00);
+
+    Span_Reader* base_reader = &this->base_readers_.emplace_back(all_bytes);
+    U32 block_size = 4;
+    std::vector<U32> block_indexes;
+    for (U32 i = 0; i * block_size < base_reader->size(); ++i) {
+      block_indexes.push_back(i + 1);
+    }
+    return PDB_Blocks_Reader<Span_Reader>(base_reader, block_indexes,
+                                          block_size, data.size(),
+                                          /*streamIndex=*/0);
+  }
+  std::deque<std::vector<U8>> datas_;
+  std::deque<Span_Reader> base_readers_;
+};
+
 using Reader_Factories = ::testing::Types<
     Span_Reader_Factory, Sub_File_Reader_With_Full_Span_Reader,
     Sub_File_Reader_With_Full_Span_Reader_And_Implicit_Size,
     Sub_File_Reader_With_Full_Span_Reader_And_Too_Big_Size,
     Sub_File_Reader_With_Partial_Span_Reader,
     Sub_File_Reader_Inside_Sub_File_Reader_With_Span_Reader,
-    Sub_File_Reader_With_Partial_Span_Reader_And_Implicit_Size>;
+    Sub_File_Reader_With_Partial_Span_Reader_And_Implicit_Size,
+    PDB_Blocks_Reader_With_Block_Size_4_With_Span_Reader,
+    PDB_Blocks_Reader_With_Block_Size_4_With_Subset_Of_Span_Reader>;
 TYPED_TEST_SUITE(Test_Reader, Reader_Factories);
 
 TYPED_TEST(Test_Reader, has_correct_size) {
@@ -149,13 +196,11 @@ TYPED_TEST(Test_Reader, reads_u16) {
 TYPED_TEST(Test_Reader, reads_u32) {
   static const U8 data[] = {1, 2, 3, 4, 5};
   auto r = this->make_reader(data);
-#if 0  // TODO(strager)
-  if (r instanceof PDB_Blocks_Reader) {
+  if (std::is_same_v<decltype(r), PDB_Blocks_Reader<Span_Reader>>) {
     // TODO(strager): Reading u32 straddling multiple blocks is not yet
     // implemented by PDB_Blocks_Reader.
     return;
   }
-#endif
   EXPECT_EQ(r.u32(0), 0x04030201);
   EXPECT_EQ(r.u32(1), 0x05040302);
 }
@@ -274,13 +319,11 @@ TYPED_TEST(Test_Reader, out_of_bounds_u16_fails) {
 TYPED_TEST(Test_Reader, out_of_bounds_u32_fails) {
   static const U8 data[] = {10, 20, 30, 40};
   auto r = this->make_reader(data);
-#if 0  // TODO(strager)
-  if (r instanceof PDB_Blocks_Reader) {
+  if (std::is_same_v<decltype(r), PDB_Blocks_Reader<Span_Reader>>) {
     // TODO(strager): Reading u32 straddling multiple blocks is not yet
     // implemented by PDB_Blocks_Reader.
     return;
   }
-#endif
   EXPECT_THROW({ r.u32(2); }, Out_Of_Bounds_Read);
 }
 

@@ -53,7 +53,7 @@ class Reader_Base {
 
  protected:
   void check_bounds(U64 offset, U64 size) {
-    U64 last_offset = offset + size - 1;
+    U64 last_offset = size == 0 ? offset : offset + size - 1;
     if (last_offset >= this->derived()->size() || last_offset < offset) {
       throw Out_Of_Bounds_Read();
     }
