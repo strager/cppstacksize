@@ -59,6 +59,7 @@ test_sources = [
   'test/cppstacksize/asm.h',
   'test/cppstacksize/example-file.h',
   'test/test-coff.cpp',
+  'test/test-pe.cpp',
   'test/test-reader-location.cpp',
   'test/test-reader.cpp',
 

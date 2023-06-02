@@ -12,6 +12,11 @@ class Example_File {
       : file_(Loaded_File::load(full_path(relative_path).c_str())),
         reader_(file_.data()) {}
 
+  Example_File(const Example_File&) = delete;
+  Example_File& operator=(const Example_File&) = delete;
+
+  std::span<const U8> data() { return this->file_.data(); }
+
   Span_Reader& reader() { return this->reader_; }
 
  private:
