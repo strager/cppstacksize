@@ -1,6 +1,10 @@
 #ifndef CPPSTACKSIZE_CODEVIEW_CONSTANTS_H
 #define CPPSTACKSIZE_CODEVIEW_CONSTANTS_H
 
+#include <array>
+#include <cppstacksize/base.h>
+#include <string_view>
+
 namespace cppstacksize {
 // CodeView signatures:
 enum {
@@ -104,6 +108,9 @@ enum {
   T_CHAR32 = 0x7b,
   T_PVOID = 0x0103,
 };
+
+extern std::array<U8, 0x680> special_type_size_map;
+extern std::array<std::u8string_view, 0x680> special_type_name_map;
 }
 
 #endif

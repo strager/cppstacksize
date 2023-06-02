@@ -19,6 +19,14 @@ using namespace std::literals::string_view_literals;
 class Unsupported_CodeView_Error : public std::exception {};
 
 template <class Reader>
+class CodeView_Type_Table {};
+
+struct CodeView_Type {
+  U64 byte_size;
+  std::u8string name;
+};
+
+template <class Reader>
 struct CodeView_Function {
   std::u8string name;
   Sub_File_Reader<Reader> reader;
@@ -153,7 +161,46 @@ struct CodeView_Function_Local {
   U32 type_id;
   Sub_File_Reader<Reader> reader;
   U64 record_offset;
+
+  std::optional<CodeView_Type> get_type(
+      CodeView_Type_Table<Reader>* type_table) {
+    return this->get_type(type_table, fallback_logger);
+  }
+
+  std::optional<CodeView_Type> get_type(CodeView_Type_Table<Reader>* type_table,
+                                        Logger& logger) {
+    std::optional<CodeView_Type> type =
+        get_codeview_type(this->type_id, type_table, logger);
+    if (!type.has_value()) {
+      logger.log(fmt::format("local has unknown type: 0x{:x}", this->type_id),
+                 this->reader.locate(this->record_offset));
+      return std::nullopt;
+    }
+    return type;
+  }
 };
+
+template <class Reader>
+std::optional<CodeView_Type> get_codeview_type(
+    U32 type_id, CodeView_Type_Table<Reader>* reader) {
+  return get_codeview_type(type_id, reader, fallback_logger);
+}
+
+template <class Reader>
+std::optional<CodeView_Type> get_codeview_type(U32 type_id,
+                                               CodeView_Type_Table<Reader>*,
+                                               Logger&) {
+  if (type_id < special_type_size_map.size()) {
+    U8 maybe_size = special_type_size_map[type_id];
+    if (maybe_size != 0xff) {
+      return CodeView_Type{
+          .byte_size = maybe_size,
+          .name = std::u8string(special_type_name_map[type_id]),
+      };
+    }
+  }
+  return std::nullopt;
+}
 
 template <class Reader>
 std::vector<CodeView_Function_Local<Reader>> get_codeview_function_locals(

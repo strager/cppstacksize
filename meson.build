@@ -30,6 +30,7 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/base.h',
     'src/cppstacksize/c-api.cpp',
     'src/cppstacksize/c-api.h',
+    'src/cppstacksize/codeview-constants.cpp',
     'src/cppstacksize/codeview-constants.h',
     'src/cppstacksize/codeview.h',
     'src/cppstacksize/file.cpp',
