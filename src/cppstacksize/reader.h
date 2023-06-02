@@ -18,7 +18,7 @@ struct Location {
   std::optional<U32> stream_index = std::nullopt;
   std::optional<U32> stream_offset = std::nullopt;
 
-  std::string to_string();
+  std::string to_string() const;
 };
 
 // Mixin class using CRTP.

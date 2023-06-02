@@ -6,7 +6,7 @@
 #include <fmt/format.h>
 
 namespace cppstacksize {
-std::string Location::to_string() {
+std::string Location::to_string() const {
   std::string result;
   fmt::format_to(std::back_inserter(result), "file offset 0x{:x}",
                  this->file_offset);
