@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_C_API_H
-#define CPPSTACKSIZE_C_API_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -27,5 +26,3 @@ void css_set_machine_code(CSS_Analyzer*, const void* data, size_t size);
 void css_get_stack_map(CSS_Analyzer*, const CSS_Stack_Map_Entry** out_entries,
                        size_t* out_entry_count);
 }
-
-#endif

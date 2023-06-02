@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_ASM_STACK_MAP_H
-#define CPPSTACKSIZE_ASM_STACK_MAP_H
+#pragma once
 
 #include <cppstacksize/base.h>
 #include <cppstacksize/register.h>
@@ -77,5 +76,3 @@ Stack_Map analyze_x86_64_stack_map(std::span<const U8> code);
 std::ostream& operator<<(std::ostream& out, Stack_Access_Kind);
 std::ostream& operator<<(std::ostream& out, const Stack_Map_Touch&);
 }
-
-#endif

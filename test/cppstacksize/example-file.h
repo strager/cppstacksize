@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_EXAMPLE_FILE_H
-#define CPPSTACKSIZE_EXAMPLE_FILE_H
+#pragma once
 
 #include <cppstacksize/file.h>
 #include <cppstacksize/reader.h>
@@ -26,5 +25,3 @@ class Example_File {
   Span_Reader reader_;
 };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_FILE_H
-#define CPPSTACKSIZE_FILE_H
+#pragma once
 
 #include <cppstacksize/base.h>
 #include <span>
@@ -18,5 +17,3 @@ class Loaded_File {
   std::string data_;
 };
 }
-
-#endif

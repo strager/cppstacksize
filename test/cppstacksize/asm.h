@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_ASM_H
-#define CPPSTACKSIZE_ASM_H
+#pragma once
 
 #include <cppstacksize/base.h>
 #include <span>
@@ -9,5 +8,3 @@
 namespace cppstacksize {
 std::span<const U8> assemble_x86_64(const char* assembly);
 }
-
-#endif

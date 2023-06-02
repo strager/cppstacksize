@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_LOGGER_H
-#define CPPSTACKSIZE_LOGGER_H
+#pragma once
 
 #include <cppstacksize/reader.h>
 #include <string_view>
@@ -19,5 +18,3 @@ class Console_Logger : public Logger {
 
 extern Logger& fallback_logger;
 }
-
-#endif

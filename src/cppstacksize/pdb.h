@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_PDB_H
-#define CPPSTACKSIZE_PDB_H
+#pragma once
 
 #include <cppstacksize/reader.h>
 #include <stdexcept>
@@ -133,5 +132,3 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
   U32 stream_index_;
 };
 }
-
-#endif

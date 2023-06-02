@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_BASE_H
-#define CPPSTACKSIZE_BASE_H
+#pragma once
 
 #include <cassert>
 #include <cstdint>
@@ -21,5 +20,3 @@ Out narrow_cast(In value) {
   return static_cast<Out>(value);
 }
 }
-
-#endif

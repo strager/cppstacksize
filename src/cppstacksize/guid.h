@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_GUID_H
-#define CPPSTACKSIZE_GUID_H
+#pragma once
 
 #include <cppstacksize/base.h>
 #include <span>
@@ -16,5 +15,3 @@ class GUID {
   U8 bytes_[16];
 };
 }
-
-#endif

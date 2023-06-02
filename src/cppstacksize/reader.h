@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_READER_H
-#define CPPSTACKSIZE_READER_H
+#pragma once
 
 #include <algorithm>
 #include <cppstacksize/base.h>
@@ -219,5 +218,3 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
   U64 sub_file_size_;
 };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_UTIL_H
-#define CPPSTACKSIZE_UTIL_H
+#pragma once
 
 #include <cppstacksize/base.h>
 
@@ -9,5 +8,3 @@ inline U64 align_up(U64 n, U64 alignment) {
   return (n + mask) & ~mask;
 }
 }
-
-#endif

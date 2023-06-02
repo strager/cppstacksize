@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_CODEVIEW_CONSTANTS_H
-#define CPPSTACKSIZE_CODEVIEW_CONSTANTS_H
+#pragma once
 
 #include <array>
 #include <cppstacksize/base.h>
@@ -112,5 +111,3 @@ enum {
 extern std::array<U8, 0x680> special_type_size_map;
 extern std::array<std::u8string_view, 0x680> special_type_name_map;
 }
-
-#endif

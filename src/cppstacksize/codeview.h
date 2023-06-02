@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_CODEVIEW_H
-#define CPPSTACKSIZE_CODEVIEW_H
+#pragma once
 
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview-constants.h>
@@ -252,5 +251,3 @@ void get_codeview_function_locals(
 done:;
 }
 }
-
-#endif

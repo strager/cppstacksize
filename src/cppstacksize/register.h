@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_REGISTER_H
-#define CPPSTACKSIZE_REGISTER_H
+#pragma once
 
 #include <cppstacksize/base.h>
 #include <iosfwd>
@@ -122,5 +121,3 @@ struct Register_File {
 
 std::ostream& operator<<(std::ostream& out, const Register_Value&);
 }
-
-#endif

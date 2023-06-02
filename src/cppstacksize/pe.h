@@ -1,5 +1,4 @@
-#ifndef CPPSTACKSIZE_PE_H
-#define CPPSTACKSIZE_PE_H
+#pragma once
 
 #include <cppstacksize/base.h>
 #include <cppstacksize/guid.h>
@@ -210,5 +209,3 @@ parse_code_view_debug_directory_data(const Reader& reader) {
   };
 }
 }
-
-#endif
