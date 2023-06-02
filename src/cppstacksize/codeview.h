@@ -47,9 +47,17 @@ struct CodeView_Function {
 };
 
 template <class Reader>
+std::vector<CodeView_Function<Reader>> find_all_codeview_functions(
+    Reader* reader) {
+  std::vector<CodeView_Function<Reader>> out_functions;
+  find_all_codeview_functions(reader, out_functions);
+  return out_functions;
+}
+
+template <class Reader>
 void find_all_codeview_functions(
     Reader* reader, std::vector<CodeView_Function<Reader>>& out_functions) {
-  return find_all_codeview_functions(reader, out_functions, fallback_logger);
+  find_all_codeview_functions(reader, out_functions, fallback_logger);
 }
 
 template <class Reader>
@@ -136,6 +144,65 @@ void find_all_codeview_functions_in_subsection(
 
     offset += record_size + 2;
   }
+}
+
+template <class Reader>
+struct CodeView_Function_Local {
+  std::u8string name;
+  U32 sp_offset;
+  U32 type_id;
+  Sub_File_Reader<Reader> reader;
+  U64 record_offset;
+};
+
+template <class Reader>
+std::vector<CodeView_Function_Local<Reader>> get_codeview_function_locals(
+    Sub_File_Reader<Reader> reader, U64 offset) {
+  std::vector<CodeView_Function_Local<Reader>> out_locals;
+  get_codeview_function_locals<Reader>(reader, offset, out_locals,
+                                       fallback_logger);
+  return out_locals;
+}
+
+template <class Reader>
+void get_codeview_function_locals(
+    Sub_File_Reader<Reader> reader, U64 offset,
+    std::vector<CodeView_Function_Local<Reader>>& out_locals, Logger&) {
+  U32 depth = 1;
+  while (offset < reader.size()) {
+    U64 record_size = reader.u16(offset + 0);
+    U16 record_type = reader.u16(offset + 2);
+    switch (record_type) {
+      case S_REGREL32: {
+        CodeView_Function_Local<Reader> local{
+            .name = reader.utf_8_c_string(offset + 14),
+            // TODO(strager): Verify that the register is RSP.
+            .sp_offset = reader.u32(offset + 4),
+            .type_id = reader.u32(offset + 8),
+            .reader = reader,
+            .record_offset = offset,
+        };
+        out_locals.push_back(local);
+        break;
+      }
+      case S_BLOCK32:
+        depth += 1;
+        break;
+      case S_END:
+        depth -= 1;
+        if (depth == 0) {
+          goto done;
+        }
+        break;
+      case S_PROC_ID_END:
+        goto done;
+      default:
+        break;
+    }
+
+    offset += record_size + 2;
+  }
+done:;
 }
 }
 
