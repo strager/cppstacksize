@@ -33,6 +33,7 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/file.cpp',
     'src/cppstacksize/file.h',
     'src/cppstacksize/pdb.h',
+    'src/cppstacksize/pe.h',
     'src/cppstacksize/reader.cpp',
     'src/cppstacksize/reader.h',
     'src/cppstacksize/register-debug.cpp',
@@ -55,8 +56,15 @@ test_sources = [
   'test/test-asm-stack-map.cpp',
   'test/test-register.cpp',
 
+  'test/cppstacksize/asm.h',
+  'test/cppstacksize/example-file.h',
+  'test/test-coff.cpp',
   'test/test-reader-location.cpp',
   'test/test-reader.cpp',
+
+  # HACK[example-file-path]: example-file.cpp uses __FILE__ which needs to expand to an
+  # absolute path. Make the source path absolute to make __FILE__ absolute.
+  meson.current_source_dir() / 'test/cppstacksize/example-file.cpp',
 ]
 # TODO(strager): Commit the generated file into source control and make this
 # step optional.

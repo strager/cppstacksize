@@ -151,6 +151,9 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
     }
   }
 
+  Base_Reader* base_reader() { return this->base_reader_; }
+  U64 sub_file_offset() { return this->sub_file_offset_; }
+
   U64 size() { return this->sub_file_size_; }
 
   Location locate(U64 offset) {
