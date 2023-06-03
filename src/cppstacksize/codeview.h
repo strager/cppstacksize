@@ -54,12 +54,12 @@ class CodeView_Type_Table {
 
   std::optional<Sub_File_Reader<Reader>> get_reader_for_type_entry_(
       U32 type_id) {
-    std::optional<U64> offset = this->_get_offset_of_type_entry(type_id);
+    std::optional<U64> offset = this->get_offset_of_type_entry_(type_id);
     if (!offset.has_value()) {
       return std::nullopt;
     }
-    U64 size = this->reader->u16(offset);
-    return Sub_File_Reader(this->reader, offset, size + 2);
+    U64 size = this->reader_->u16(*offset);
+    return Sub_File_Reader<Reader>(this->reader_, *offset, size + 2);
   }
 
   std::vector<U64> type_entry_offsets_;
@@ -383,9 +383,8 @@ std::optional<CodeView_Type> get_codeview_type(
 }
 
 template <class Reader>
-std::optional<CodeView_Type> get_codeview_type(U32 type_id,
-                                               CodeView_Type_Table<Reader>*,
-                                               Logger&) {
+std::optional<CodeView_Type> get_codeview_type(
+    U32 type_id, CodeView_Type_Table<Reader>* type_table, Logger& logger) {
   if (type_id < special_type_size_map.size()) {
     U8 maybe_size = special_type_size_map[type_id];
     if (maybe_size != 0xff) {
@@ -395,7 +394,135 @@ std::optional<CodeView_Type> get_codeview_type(U32 type_id,
       };
     }
   }
-  return std::nullopt;
+
+  std::optional<Sub_File_Reader<Reader>> type_entry_reader =
+      type_table->get_reader_for_type_entry_(type_id);
+  if (!type_entry_reader.has_value()) {
+    // FIXME(strager): This Location is wrong.
+    logger.log(fmt::format("cannot find type with ID: 0x{:x}", type_id),
+               Location());
+    return std::nullopt;
+  }
+  U16 type_entry_type = type_entry_reader->u16(2);
+  switch (type_entry_type) {
+    case LF_POINTER: {
+      U32 pointee_type_id = type_entry_reader->u32(4);
+      U32 pointer_attributes = type_entry_reader->u32(8);
+      bool is_const = pointer_attributes & (1 << 10);
+      U32 pointer_type = pointer_attributes & 0x1f;
+
+      U64 byte_size;
+      switch (pointer_type) {
+        case CV_PTR_64:
+          byte_size = 8;
+          break;
+
+        default:
+          logger.log(
+              fmt::format("unsupported pointer type: 0x{:x}", pointer_type),
+              type_entry_reader->locate(0));
+          byte_size = 0;
+          break;
+      }
+
+      std::optional<CodeView_Type> type =
+          get_codeview_type(pointee_type_id, type_table, logger);
+      if (!type.has_value()) {
+        type = CodeView_Type{.byte_size = 0, .name = u8"<unknown>"};
+      }
+      if (type->name.ends_with(u8"*")) {
+        type->name += u8"*";
+      } else {
+        type->name += u8" *";
+      }
+      if (is_const) {
+        type->name += u8"const";
+      }
+      type->byte_size = byte_size;
+      return type;
+    }
+
+    case LF_CLASS:
+    case LF_STRUCTURE: {
+      // TODO(strager): Deduplicate code with LF_UNION.
+      U16 properties = type_entry_reader->u16(6);
+      bool is_forward_declaration = properties & (1 << 7);
+      (void)is_forward_declaration;
+      // TODO(strager): Support big structs (size >= 0x8000). I think these are
+      // encoded with LF_LONG.
+      U64 byte_size = type_entry_reader->u16(20);
+      std::u8string name = type_entry_reader->utf_8_c_string(22);
+      return CodeView_Type{.byte_size = byte_size, .name = std::move(name)};
+    }
+
+    case LF_UNION: {
+      // TODO(strager): Deduplicate code with LF_STRUCTURE.
+      U16 properties = type_entry_reader->u16(6);
+      bool is_forward_declaration = properties & (1 << 7);
+      (void)is_forward_declaration;
+      // TODO(strager): Support big unions (size >= 0x8000). I think these are
+      // encoded with LF_LONG.
+      U64 byte_size = type_entry_reader->u16(12);
+      std::u8string name = type_entry_reader->utf_8_c_string(14);
+      return CodeView_Type{.byte_size = byte_size, .name = std::move(name)};
+    }
+
+    case LF_ARRAY: {
+      U32 element_type_id = type_entry_reader->u32(4);
+      std::optional<CodeView_Type> element_type =
+          get_codeview_type(element_type_id, type_table, logger);
+      // TODO(strager): Support big arrays (size >= 0x8000). I think these are
+      // encoded with LF_LONG.
+      U64 byte_size = type_entry_reader->u16(12);
+      std::u8string name = element_type.has_value()
+                               ? element_type->name + u8"[]"
+                               : u8"<unknown>[]";
+      return CodeView_Type{.byte_size = byte_size, .name = std::move(name)};
+    }
+
+    case LF_ENUM: {
+      U32 underlying_type_id = type_entry_reader->u32(8);
+      std::optional<CodeView_Type> underlying_type =
+          get_codeview_type(underlying_type_id, type_table, logger);
+      U64 byte_size =
+          underlying_type.has_value() ? underlying_type->byte_size : -1;
+      std::u8string name = type_entry_reader->utf_8_c_string(16);
+      return CodeView_Type{.byte_size = byte_size, .name = std::move(name)};
+    }
+
+    case LF_MODIFIER: {
+      U32 modified_type_id = type_entry_reader->u32(4);
+      U16 modifiers = type_entry_reader->u16(8);
+      bool is_const = modifiers & (1 << 0);
+      bool is_volatile = modifiers & (1 << 1);
+      bool is_unaligned = modifiers & (1 << 2);
+
+      std::optional<CodeView_Type> type =
+          get_codeview_type(modified_type_id, type_table, logger);
+      if (!type.has_value()) {
+        return std::nullopt;
+      }
+      if (is_volatile) {
+        type->name = u8"volatile " + type->name;
+      }
+      if (is_const) {
+        type->name = u8"const " + type->name;
+      }
+      // TODO(strager): is_unaligned
+      (void)is_unaligned;
+      return type;
+    }
+
+    case LF_PROCEDURE:
+      return CodeView_Type{.byte_size = static_cast<U64>(-1),
+                           .name = u8"<func>"};
+
+    default:
+      logger.log(fmt::format("unknown entry kind 0x{:x} for type ID 0x{:x}",
+                             type_entry_type, type_id),
+                 type_entry_reader->locate(0));
+      return std::nullopt;
+  }
 }
 
 template <class Reader>

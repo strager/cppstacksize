@@ -384,5 +384,183 @@ TEST(Test_CodeView, codeview_special_types) {
     EXPECT_EQ(actual_type->name, test_case.name);
   }
 }
+
+TEST(Test_CodeView, codeview_types) {
+  struct Test_Case {
+    U32 type_id;
+    U32 byte_size;
+    const char8_t* name;
+  };
+
+  struct Test_Case_Group {
+    const char* obj_name;
+    std::vector<Test_Case> test_cases;
+  };
+
+  static const Test_Case_Group test_case_groups[] = {
+      {"coff/pointer.obj",
+       {
+           {.type_id = 0x1004,
+            .byte_size = 8,
+            .name = u8"const volatile int *"},
+           {.type_id = 0x1005, .byte_size = 8, .name = u8"int **"},
+           {.type_id = 0x1008, .byte_size = 8, .name = u8"const int *const *"},
+           {.type_id = 0x1009, .byte_size = 8, .name = u8"const int *"},
+           {.type_id = 0x100b, .byte_size = 8, .name = u8"volatile int *"},
+           {.type_id = 0x100d, .byte_size = 8, .name = u8"int *const *"},
+           {.type_id = 0x100e, .byte_size = 8, .name = u8"const int **"},
+           {.type_id = 0x1010, .byte_size = 8, .name = u8"const void *"},
+           {.type_id = 0x1011, .byte_size = 8, .name = u8"int ***"},
+       }},
+
+      {"coff/struct.obj",
+       {
+           // Pointers:
+           {.type_id = 0x101e, .byte_size = 8, .name = u8"Empty_Struct *"},
+           {.type_id = 0x1028,
+            .byte_size = 8,
+            .name = u8"Forward_Declared_Struct *"},
+           {.type_id = 0x102d,
+            .byte_size = 8,
+            .name = u8"Struct_With_One_Int *"},
+           {.type_id = 0x102e,
+            .byte_size = 8,
+            .name = u8"Struct_With_Vtable *"},
+           {.type_id = 0x1030,
+            .byte_size = 8,
+            .name = u8"Struct_With_Bit_Field *"},
+           {.type_id = 0x1032,
+            .byte_size = 8,
+            .name = u8"Struct_With_Two_Ints *"},
+
+           // Non-pointers:
+           {.type_id = 0x1015, .byte_size = 8, .name = u8"Struct_With_Vtable"},
+           {.type_id = 0x101c, .byte_size = 1, .name = u8"Empty_Struct"},
+           {.type_id = 0x1020,
+            .byte_size = 8,
+            .name = u8"Struct_With_Two_Ints"},
+           {.type_id = 0x1025,
+            .byte_size = 1,
+            .name = u8"Struct_With_Bit_Field"},
+           {.type_id = 0x102b, .byte_size = 4, .name = u8"Struct_With_One_Int"},
+       }},
+
+      {"coff/enum.obj",
+       {
+           {.type_id = 0x1004, .byte_size = 4, .name = u8"Basic_Enum"},
+           {.type_id = 0x1008, .byte_size = 4, .name = u8"Enum_Class"},
+           {.type_id = 0x100b, .byte_size = 1, .name = u8"Enum_Class_One_Byte"},
+           {.type_id = 0x100d, .byte_size = 8, .name = u8"Basic_Enum *"},
+           {.type_id = 0x100f, .byte_size = 4, .name = u8"Empty_Enum"},
+       }},
+
+      {"coff/union.obj",
+       {
+           // Pointers:
+           {.type_id = 0x1004,
+            .byte_size = 8,
+            .name = u8"Forward_Declared_Union *"},
+           {.type_id = 0x100a, .byte_size = 8, .name = u8"Empty_Union *"},
+           {.type_id = 0x100f, .byte_size = 8, .name = u8"Union_With_Int *"},
+           {.type_id = 0x1014,
+            .byte_size = 8,
+            .name = u8"Union_With_Int_And_Double *"},
+
+           // Non-pointers:
+           {.type_id = 0x1007, .byte_size = 1, .name = u8"Empty_Union"},
+           {.type_id = 0x100d, .byte_size = 4, .name = u8"Union_With_Int"},
+           {.type_id = 0x1012,
+            .byte_size = 8,
+            .name = u8"Union_With_Int_And_Double"},
+       }},
+
+      {"coff/function-type.obj",
+       {
+           {.type_id = 0x1003, .byte_size = 8, .name = u8"<func> *"},
+           {.type_id = 0x1005, .byte_size = 8, .name = u8"<func> *"},
+           {.type_id = 0x1006, .byte_size = 8, .name = u8"<func> *"},
+           {.type_id = 0x1009, .byte_size = 8, .name = u8"<func> *"},
+           {.type_id = 0x100b, .byte_size = 8, .name = u8"<func> *"},
+           {.type_id = 0x100d, .byte_size = 8, .name = u8"<func> *"},
+           {.type_id = 0x100e, .byte_size = 8, .name = u8"<func> *"},
+           {.type_id = 0x100f, .byte_size = 8, .name = u8"<func> *"},
+           {.type_id = 0x1010, .byte_size = 8, .name = u8"<func> *"},
+       }},
+
+      {"coff/array.obj",
+       {
+           {.type_id = 0x1004, .byte_size = 4 * 2 * 3, .name = u8"int[][]"},
+           {.type_id = 0x1005, .byte_size = 8, .name = u8"int[]"},
+           {.type_id = 0x1006, .byte_size = 4, .name = u8"int[]"},
+       }},
+  };
+
+  for (const Test_Case_Group& test_case_group : test_case_groups) {
+    SCOPED_TRACE(test_case_group.obj_name);
+    Example_File file(test_case_group.obj_name);
+    PE_File<Span_Reader> pe = parse_pe_file(&file.reader());
+    using Reader = Sub_File_Reader<Span_Reader>;
+    Reader types_section_reader = pe.find_sections_by_name(u8".debug$T").at(0);
+    CodeView_Type_Table<Reader> type_table =
+        parse_codeview_types(&types_section_reader);
+
+    for (const Test_Case& test_case : test_case_group.test_cases) {
+      SCOPED_TRACE(test_case.type_id);
+      SCOPED_TRACE(u8string_to_string(test_case.name));
+
+      std::optional<CodeView_Type> actual_type =
+          get_codeview_type(test_case.type_id, &type_table);
+      ASSERT_TRUE(actual_type.has_value());
+      EXPECT_EQ(actual_type->byte_size, test_case.byte_size);
+      EXPECT_EQ(actual_type->name, test_case.name);
+    }
+  }
+}
+
+TEST(
+    Test_CodeView,
+    find_all_codeview_functions_doesnt_crash_if_byte_after_last_entry_is_not_4_byte_aligned) {
+  static constexpr U8 data[] = {
+      // CV_SIGNATURE_C13
+      0x04,
+      0x00,
+      0x00,
+      0x00,
+
+      // DEBUG_S_SYMBOLS type
+      0xf1,
+      0x00,
+      0x00,
+      0x00,
+      // DEBUG_S_SYMBOLS size
+      0x09,
+      0x00,
+      0x00,
+      0x00,
+
+      // S_COMPILE size
+      0x07,
+      0x00,
+      // S_COMPILE type
+      0x01,
+      0x00,
+      // S_COMPILE flags
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      // S_COMPILE version (0-terminated string)
+      0x00,
+
+      // Padding
+      0x00,
+      0x00,
+      0x00,
+  };
+  Span_Reader reader(data);
+  std::vector<CodeView_Function<Span_Reader>> funcs =
+      find_all_codeview_functions(&reader);
+  EXPECT_THAT(funcs, ::testing::IsEmpty());
+}
 }
 }
