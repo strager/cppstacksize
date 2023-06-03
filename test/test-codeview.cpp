@@ -90,7 +90,7 @@ TEST(Test_CodeView, primitives_obj_function_has_local_variables) {
     U64 expected_byte_size;
     std::u8string_view expected_name;
   };
-  CodeView_Type_Table<Reader>* type_table =
+  CodeView_Type_Table* type_table =
       nullptr;  // Primitive types do not need the type table.
   static const Test_Case expected_local_types[] = {
       {u8"c", 1, u8"char"},
@@ -200,7 +200,7 @@ TEST(Test_CodeView, int_parameters) {
     using Reader = Sub_File_Reader<Span_Reader>;
 
     Reader types_section_reader = pe.find_sections_by_name(u8".debug$T").at(0);
-    CodeView_Type_Table<Reader> type_table =
+    CodeView_Type_Table type_table =
         parse_codeview_types(&types_section_reader);
     Reader symbols_section_reader =
         pe.find_sections_by_name(u8".debug$S").at(1);
@@ -218,8 +218,7 @@ TEST(Test_CodeView, member_function_parameters) {
   using Reader = Sub_File_Reader<Span_Reader>;
 
   Reader types_section_reader = pe.find_sections_by_name(u8".debug$T").at(0);
-  CodeView_Type_Table<Reader> type_table =
-      parse_codeview_types(&types_section_reader);
+  CodeView_Type_Table type_table = parse_codeview_types(&types_section_reader);
   Reader symbols_section_reader = pe.find_sections_by_name(u8".debug$S").at(0);
   CodeView_Function func =
       find_all_codeview_functions(&symbols_section_reader).at(0);
@@ -370,12 +369,12 @@ TEST(Test_CodeView, codeview_special_types) {
       // Special types:
       {.type_id = 0x103, .byte_size = 8, .name = u8"std::nullptr_t"},
   };
-  CodeView_Type_Table<Span_Reader>* type_table =
+  CodeView_Type_Table* type_table =
       nullptr;  // Primitive types do not need the type table.
   for (const Test_Case& test_case : test_cases) {
     SCOPED_TRACE("type_id = " + std::to_string(test_case.type_id));
     std::optional<CodeView_Type> actual_type =
-        get_codeview_type(test_case.type_id, type_table);
+        type_table->get_type(test_case.type_id);
     ASSERT_TRUE(actual_type.has_value());
     EXPECT_EQ(actual_type->byte_size, test_case.byte_size);
     EXPECT_EQ(actual_type->name, test_case.name);
@@ -498,7 +497,7 @@ TEST(Test_CodeView, codeview_types) {
     PE_File<Span_Reader> pe = parse_pe_file(&file.reader());
     using Reader = Sub_File_Reader<Span_Reader>;
     Reader types_section_reader = pe.find_sections_by_name(u8".debug$T").at(0);
-    CodeView_Type_Table<Reader> type_table =
+    CodeView_Type_Table type_table =
         parse_codeview_types(&types_section_reader);
 
     for (const Test_Case& test_case : test_case_group.test_cases) {
@@ -506,7 +505,7 @@ TEST(Test_CodeView, codeview_types) {
       SCOPED_TRACE(u8string_to_string(test_case.name));
 
       std::optional<CodeView_Type> actual_type =
-          get_codeview_type(test_case.type_id, &type_table);
+          type_table.get_type(test_case.type_id);
       ASSERT_TRUE(actual_type.has_value());
       EXPECT_EQ(actual_type->byte_size, test_case.byte_size);
       EXPECT_EQ(actual_type->name, test_case.name);

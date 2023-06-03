@@ -428,7 +428,7 @@ TEST(Test_PDB,
 
   PDB_TPI<Reader> tpi_header = parse_pdb_tpi_stream_header(&streams[2]);
   // TODO[start-type-id]
-  CodeView_Type_Table<Sub_File_Reader<Reader>> type_table =
+  CodeView_Type_Table type_table =
       parse_codeview_types_without_header(&tpi_header.type_reader);
   EXPECT_EQ(function.get_caller_stack_size(type_table), 40);
 }
