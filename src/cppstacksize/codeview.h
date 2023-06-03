@@ -362,18 +362,19 @@ void find_all_codeview_functions_in_subsection(
   }
 }
 
-template <class Reader>
 struct CodeView_Function_Local {
   std::u8string name;
   U32 sp_offset;
   U32 type_id;
   Location location;
 
+  template <class Reader>
   std::optional<CodeView_Type> get_type(
       CodeView_Type_Table<Reader>* type_table) {
     return this->get_type(type_table, fallback_logger);
   }
 
+  template <class Reader>
   std::optional<CodeView_Type> get_type(CodeView_Type_Table<Reader>* type_table,
                                         Logger& logger) {
     std::optional<CodeView_Type> type =
@@ -537,9 +538,9 @@ std::optional<CodeView_Type> get_codeview_type(
 }
 
 template <class Reader>
-std::vector<CodeView_Function_Local<Reader>> get_codeview_function_locals(
+std::vector<CodeView_Function_Local> get_codeview_function_locals(
     Sub_File_Reader<Reader> reader, U64 offset) {
-  std::vector<CodeView_Function_Local<Reader>> out_locals;
+  std::vector<CodeView_Function_Local> out_locals;
   get_codeview_function_locals<Reader>(reader, offset, out_locals,
                                        fallback_logger);
   return out_locals;
@@ -548,14 +549,14 @@ std::vector<CodeView_Function_Local<Reader>> get_codeview_function_locals(
 template <class Reader>
 void get_codeview_function_locals(
     Sub_File_Reader<Reader> reader, U64 offset,
-    std::vector<CodeView_Function_Local<Reader>>& out_locals, Logger&) {
+    std::vector<CodeView_Function_Local>& out_locals, Logger&) {
   U32 depth = 1;
   while (offset < reader.size()) {
     U64 record_size = reader.u16(offset + 0);
     U16 record_type = reader.u16(offset + 2);
     switch (record_type) {
       case S_REGREL32: {
-        CodeView_Function_Local<Reader> local{
+        CodeView_Function_Local local{
             .name = reader.utf_8_c_string(offset + 14),
             // TODO(strager): Verify that the register is RSP.
             .sp_offset = reader.u32(offset + 4),
