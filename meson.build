@@ -72,6 +72,7 @@ test_sources = [
   'test/test-codeview.cpp',
   'test/test-coff.cpp',
   'test/test-guid.cpp',
+  'test/test-pdb.cpp',
   'test/test-pe.cpp',
   'test/test-reader-location.cpp',
   'test/test-reader.cpp',
