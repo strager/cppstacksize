@@ -1,5 +1,6 @@
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/example-file.h>
+#include <cppstacksize/pdb.h>
 #include <cppstacksize/pe.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -246,6 +247,82 @@ TEST(Test_CodeView, member_function_parameters) {
       func_by_name[u8"S::static_v_iiii"]->get_caller_stack_size(type_table), 32)
       << "static void f(int, int, int, int) has shadow space for four "
          "registers (no implicit 'this')";
+}
+
+TEST(Test_CodeView, split_coff_and_pdb_fails_to_load_type_info_from_coff) {
+  Example_File file("coff-pdb/example.obj");
+  PE_File<Span_Reader> pe = parse_pe_file(&file.reader());
+  using Reader = Sub_File_Reader<Span_Reader>;
+  Reader section_reader = pe.find_sections_by_name(u8".debug$T").at(0);
+
+  try {
+    parse_codeview_types(&section_reader);
+    ADD_FAILURE() << "parse_code_view_types should have thrown";
+  } catch (CodeView_Types_In_Separate_PDB_File& error) {
+    EXPECT_EQ(
+        error.pdb_path,
+        u8"C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\test\\coff-"
+        u8"pdb\\example.pdb");
+    EXPECT_EQ(error.pdb_guid.to_string(),
+              "015182d6-09fa-4590-89e2-5abf55ea3c33");
+  }
+}
+
+#if 0  // TODO(port): Needs PDB parsing.
+TEST(Test_CodeView, coff_can_load_type_info_from_pdb_tpi_and_ipi) {
+  Example_File obj_file("coff-pdb/example.obj");
+  Example_File pdb_file("coff-pdb/example.pdb");
+
+  auto pdb_streams = parse_pdb_stream_directory(
+      &pdb_file.reader(), parse_pdb_header(&pdb_file.reader()));
+  auto pdb_tpi_header = parse_pdb_tpi_stream_header(pdb_streams[2]);
+  auto pdb_type_table =
+      parse_codeview_types_without_header_async(pdb_tpi_header.type_reader);
+  auto pdb_ipi_header = parse_pdb_tpi_stream_header_async(pdb_streams[4]);
+  auto pdb_type_index_table =
+      parse_codeview_types_without_header(pdb_ipi_header.type_reader);
+
+  PE_File<Span_Reader> obj = parse_pe_file(&obj_file.reader());
+  using Reader = Sub_File_Reader<Span_Reader>;
+  Reader coff_section_reader = obj.find_sections_by_name(u8".debug$S").at(0);
+  std::vector<CodeView_Function<Reader>> coff_funcs;
+  find_all_codeview_functions(&coff_section_reader, coff_funcs);
+
+  EXPECT_EQ(coff_funcs.at(0).get_caller_stack_size(pdb_type_table,
+                                                   pdb_type_index_table),
+            40);
+}
+#endif
+
+TEST(Test_CodeView, function_code_offset_and_size_from_pdb) {
+  Example_File pdb_file("pdb-pe/temporary.pdb");
+  using Reader = PDB_Blocks_Reader<Span_Reader>;
+  Reader codeview_reader(&pdb_file.reader(), {9},
+                         /*block_size=*/4096,
+                         /*byte_size=*/648,
+                         /*stream_index=*/10);
+  std::vector<CodeView_Function<Reader>> functions;
+  find_all_codeview_functions_2(&codeview_reader, functions);
+  std::map<std::u8string, CodeView_Function<Reader>*> functions_by_name;
+  for (CodeView_Function<Reader>& func : functions) {
+    functions_by_name[func.name] = &func;
+  }
+
+  CodeView_Function<Reader>* local_variable_func =
+      functions_by_name[u8"local_variable"];
+  EXPECT_EQ(local_variable_func->code_section_index, 0);
+  EXPECT_EQ(local_variable_func->code_offset, 0x0000);
+  EXPECT_EQ(local_variable_func->code_size, 57);
+
+  CodeView_Function<Reader>* temporary_func = functions_by_name[u8"temporary"];
+  EXPECT_EQ(temporary_func->code_section_index, 0);
+  EXPECT_EQ(temporary_func->code_offset, 0x0040);
+  EXPECT_EQ(temporary_func->code_size, 57);
+
+  CodeView_Function<Reader>* start_func = functions_by_name[u8"_start"];
+  EXPECT_EQ(start_func->code_section_index, 0);
+  EXPECT_EQ(start_func->code_offset, 0x0080);
+  EXPECT_EQ(start_func->code_size, 3);
 }
 
 TEST(Test_CodeView, codeview_special_types) {

@@ -282,6 +282,21 @@ void find_all_codeview_functions(
   }
 }
 
+// FIXME(strager): Why do we need findAllCodeViewFunctionsAsync with .obj but
+// findAllCodeViewFunctions2Async with .pdb?
+template <class Reader>
+void find_all_codeview_functions_2(
+    Reader* reader, std::vector<CodeView_Function<Reader>>& out_functions,
+    Logger& logger = fallback_logger) {
+  U32 signature = reader->u32(0);
+  if (signature != CV_SIGNATURE_C13) {
+    throw new Unsupported_CodeView_Error();
+  }
+
+  find_all_codeview_functions_in_subsection<Reader>(
+      Sub_File_Reader(reader, 4, reader->size() - 4), out_functions, logger);
+}
+
 template <class Reader>
 void find_all_codeview_functions_in_subsection(
     Sub_File_Reader<Reader> reader,
