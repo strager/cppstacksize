@@ -363,10 +363,10 @@ TEST(Test_PDB, example_pdb_has_example_cpp_caller_and_callee_functions) {
   std::vector<Reader> streams =
       parse_pdb_stream_directory(&file.reader(), super_block);
 
-  std::vector<CodeView_Function<Reader>> functions =
+  std::vector<CodeView_Function> functions =
       find_all_codeview_functions_2(&streams[15]);
   std::vector<std::u8string_view> function_names;
-  for (CodeView_Function<Reader>& function : functions) {
+  for (CodeView_Function& function : functions) {
     function_names.push_back(function.name);
   }
 
@@ -381,7 +381,7 @@ TEST(Test_PDB, example_pdb_has_example_cpp_caller_variables) {
   std::vector<Reader> streams =
       parse_pdb_stream_directory(&file.reader(), super_block);
 
-  CodeView_Function<Reader> function =
+  CodeView_Function function =
       find_all_codeview_functions_2(&streams[15]).at(1);
   std::vector<CodeView_Function_Local> locals =
       function.get_locals(function.byte_offset);
@@ -400,7 +400,7 @@ TEST(Test_PDB, example_pdb_has_example_cpp_callee_variables) {
   std::vector<Reader> streams =
       parse_pdb_stream_directory(&file.reader(), super_block);
 
-  CodeView_Function<Reader> function =
+  CodeView_Function function =
       find_all_codeview_functions_2(&streams[15]).at(0);
   std::vector<CodeView_Function_Local> locals =
       function.get_locals(function.byte_offset);
@@ -421,7 +421,7 @@ TEST(Test_PDB,
   std::vector<Reader> streams =
       parse_pdb_stream_directory(&file.reader(), super_block);
 
-  CodeView_Function<Reader> function =
+  CodeView_Function function =
       find_all_codeview_functions_2(&streams[15]).at(0);
   std::vector<CodeView_Function_Local> locals =
       function.get_locals(function.byte_offset);

@@ -17,12 +17,11 @@ TEST(Test_CodeView, primitives_obj_has_one_function) {
   using Reader = Sub_File_Reader<Span_Reader>;
   Reader section_reader = pe.find_sections_by_name(u8".debug$S").at(0);
 
-  std::vector<CodeView_Function<Reader>> functions;
+  std::vector<CodeView_Function> functions;
   find_all_codeview_functions(&section_reader, functions);
   ASSERT_EQ(functions.size(), 1);
   EXPECT_EQ(functions[0].name, u8"primitives");
-  EXPECT_EQ(functions[0].reader.locate(functions[0].byte_offset).file_offset,
-            0x237);
+  EXPECT_EQ(functions[0].location().file_offset, 0x237);
   EXPECT_EQ(functions[0].self_stack_size, 88);
   // TODO[coff-relocations]: Perform relocations to get the correct
   // codeSectionIndex and codeOffset.
@@ -39,8 +38,7 @@ TEST(Test_CodeView, primitives_obj_function_has_local_variables) {
   using Reader = Sub_File_Reader<Span_Reader>;
   Reader section_reader = pe.find_sections_by_name(u8".debug$S").at(0);
 
-  CodeView_Function<Reader> func =
-      find_all_codeview_functions(&section_reader).at(0);
+  CodeView_Function func = find_all_codeview_functions(&section_reader).at(0);
   std::vector<CodeView_Function_Local> locals =
       func.get_locals(func.byte_offset);
 
@@ -129,8 +127,7 @@ TEST(Test_CodeView, loads_all_variables_in_all_blocks) {
   using Reader = Sub_File_Reader<Span_Reader>;
   Reader section_reader = pe.find_sections_by_name(u8".debug$S").at(0);
 
-  CodeView_Function<Reader> func =
-      find_all_codeview_functions(&section_reader).at(0);
+  CodeView_Function func = find_all_codeview_functions(&section_reader).at(0);
   std::vector<CodeView_Function_Local> locals =
       func.get_locals(func.byte_offset);
 
@@ -207,7 +204,7 @@ TEST(Test_CodeView, int_parameters) {
         parse_codeview_types(&types_section_reader);
     Reader symbols_section_reader =
         pe.find_sections_by_name(u8".debug$S").at(1);
-    CodeView_Function<Reader> func =
+    CodeView_Function func =
         find_all_codeview_functions(&symbols_section_reader).at(0);
 
     EXPECT_EQ(func.get_caller_stack_size(type_table),
@@ -224,13 +221,13 @@ TEST(Test_CodeView, member_function_parameters) {
   CodeView_Type_Table<Reader> type_table =
       parse_codeview_types(&types_section_reader);
   Reader symbols_section_reader = pe.find_sections_by_name(u8".debug$S").at(0);
-  CodeView_Function<Reader> func =
+  CodeView_Function func =
       find_all_codeview_functions(&symbols_section_reader).at(0);
 
-  std::vector<CodeView_Function<Reader>> functions;
+  std::vector<CodeView_Function> functions;
   find_all_codeview_functions(&symbols_section_reader, functions);
-  std::map<std::u8string, CodeView_Function<Reader>*> func_by_name;
-  for (CodeView_Function<Reader>& func : functions) {
+  std::map<std::u8string, CodeView_Function*> func_by_name;
+  for (CodeView_Function& func : functions) {
     func_by_name[func.name] = &func;
   }
 
@@ -285,7 +282,7 @@ TEST(Test_CodeView, coff_can_load_type_info_from_pdb_tpi_and_ipi) {
   PE_File<Span_Reader> obj = parse_pe_file(&obj_file.reader());
   using Reader = Sub_File_Reader<Span_Reader>;
   Reader coff_section_reader = obj.find_sections_by_name(u8".debug$S").at(0);
-  std::vector<CodeView_Function<Reader>> coff_funcs;
+  std::vector<CodeView_Function> coff_funcs;
   find_all_codeview_functions(&coff_section_reader, coff_funcs);
 
   EXPECT_EQ(coff_funcs.at(0).get_caller_stack_size(pdb_type_table,
@@ -301,25 +298,25 @@ TEST(Test_CodeView, function_code_offset_and_size_from_pdb) {
                          /*block_size=*/4096,
                          /*byte_size=*/648,
                          /*stream_index=*/10);
-  std::vector<CodeView_Function<Reader>> functions;
+  std::vector<CodeView_Function> functions;
   find_all_codeview_functions_2(&codeview_reader, functions);
-  std::map<std::u8string, CodeView_Function<Reader>*> functions_by_name;
-  for (CodeView_Function<Reader>& func : functions) {
+  std::map<std::u8string, CodeView_Function*> functions_by_name;
+  for (CodeView_Function& func : functions) {
     functions_by_name[func.name] = &func;
   }
 
-  CodeView_Function<Reader>* local_variable_func =
+  CodeView_Function* local_variable_func =
       functions_by_name[u8"local_variable"];
   EXPECT_EQ(local_variable_func->code_section_index, 0);
   EXPECT_EQ(local_variable_func->code_offset, 0x0000);
   EXPECT_EQ(local_variable_func->code_size, 57);
 
-  CodeView_Function<Reader>* temporary_func = functions_by_name[u8"temporary"];
+  CodeView_Function* temporary_func = functions_by_name[u8"temporary"];
   EXPECT_EQ(temporary_func->code_section_index, 0);
   EXPECT_EQ(temporary_func->code_offset, 0x0040);
   EXPECT_EQ(temporary_func->code_size, 57);
 
-  CodeView_Function<Reader>* start_func = functions_by_name[u8"_start"];
+  CodeView_Function* start_func = functions_by_name[u8"_start"];
   EXPECT_EQ(start_func->code_section_index, 0);
   EXPECT_EQ(start_func->code_offset, 0x0080);
   EXPECT_EQ(start_func->code_size, 3);
@@ -558,8 +555,7 @@ TEST(
       0x00,
   };
   Span_Reader reader(data);
-  std::vector<CodeView_Function<Span_Reader>> funcs =
-      find_all_codeview_functions(&reader);
+  std::vector<CodeView_Function> funcs = find_all_codeview_functions(&reader);
   EXPECT_THAT(funcs, ::testing::IsEmpty());
 }
 }

@@ -3,11 +3,13 @@
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview-constants.h>
 #include <cppstacksize/logger.h>
+#include <cppstacksize/pdb-reader.h>
 #include <cppstacksize/pe.h>
 #include <cppstacksize/util.h>
 #include <exception>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 // TODO(strager): Switch to <format>.
@@ -119,10 +121,13 @@ struct CodeView_Type {
 
 struct CodeView_Function_Local;
 
-template <class Reader>
 struct CodeView_Function {
   std::u8string name;
-  Sub_File_Reader<Reader> reader;
+  // TODO(strager): Collapse the Sub_File_Reader<Sub_File_Reader<...>>.
+  std::variant<Sub_File_Reader<Span_Reader>,
+               Sub_File_Reader<Sub_File_Reader<Span_Reader>>,
+               Sub_File_Reader<PDB_Blocks_Reader<Span_Reader>>>
+      reader;
   U64 byte_offset;
   U32 self_stack_size = static_cast<U32>(-1);
 
@@ -141,7 +146,7 @@ struct CodeView_Function {
   U32 code_size = static_cast<U32>(-1);
 
   // Associated PE or COFF file, if any.
-  PE_File<Reader>* pe_file = nullptr;
+  // TODO(port): PE_File<Reader>* pe_file = nullptr;
 
   bool has_func_id_type;
   U32 type_id;
@@ -165,7 +170,7 @@ struct CodeView_Function {
           type_index_table.get_offset_of_type_entry_(type_id);
       if (!func_id_type_offset.has_value()) {
         logger.log(fmt::format("cannot find type with ID: 0x{:x}", type_id),
-                   this->reader.locate(this->byte_offset));
+                   this->location());
         return -1;
       }
       // TODO(strager): Check size.
@@ -190,7 +195,7 @@ struct CodeView_Function {
     if (!func_type_offset.has_value()) {
       // FIXME(strager): Location is wrong if this->has_func_id_type is true.
       logger.log(fmt::format("cannot find type with ID: 0x{:x}", type_id),
-                 this->reader.locate(this->byte_offset));
+                 this->location());
       return -1;
     }
     U64 func_type_record_type_offset = *func_type_offset + 2;
@@ -241,26 +246,31 @@ struct CodeView_Function {
   }
 
   std::vector<CodeView_Function_Local> get_locals(U64 offset);
+
+  Location location() {
+    return std::visit(
+        [&](auto& reader) { return reader.locate(this->byte_offset); },
+        this->reader);
+  }
 };
 
 template <class Reader>
-std::vector<CodeView_Function<Reader>> find_all_codeview_functions(
-    Reader* reader) {
-  std::vector<CodeView_Function<Reader>> out_functions;
+std::vector<CodeView_Function> find_all_codeview_functions(Reader* reader) {
+  std::vector<CodeView_Function> out_functions;
   find_all_codeview_functions(reader, out_functions);
   return out_functions;
 }
 
 template <class Reader>
 void find_all_codeview_functions(
-    Reader* reader, std::vector<CodeView_Function<Reader>>& out_functions) {
+    Reader* reader, std::vector<CodeView_Function>& out_functions) {
   find_all_codeview_functions(reader, out_functions, fallback_logger);
 }
 
 template <class Reader>
-void find_all_codeview_functions(
-    Reader* reader, std::vector<CodeView_Function<Reader>>& out_functions,
-    Logger& logger) {
+void find_all_codeview_functions(Reader* reader,
+                                 std::vector<CodeView_Function>& out_functions,
+                                 Logger& logger) {
   U32 signature = reader->u32(0);
   if (signature != CV_SIGNATURE_C13) {
     throw Unsupported_CodeView_Error();
@@ -291,9 +301,9 @@ void find_all_codeview_functions(
 }
 
 template <class Reader>
-std::vector<CodeView_Function<Reader>> find_all_codeview_functions_2(
+std::vector<CodeView_Function> find_all_codeview_functions_2(
     Reader* reader, Logger& logger = fallback_logger) {
-  std::vector<CodeView_Function<Reader>> functions;
+  std::vector<CodeView_Function> functions;
   find_all_codeview_functions_2(reader, functions, logger);
   return functions;
 }
@@ -302,7 +312,7 @@ std::vector<CodeView_Function<Reader>> find_all_codeview_functions_2(
 // findAllCodeViewFunctions2Async with .pdb?
 template <class Reader>
 void find_all_codeview_functions_2(
-    Reader* reader, std::vector<CodeView_Function<Reader>>& out_functions,
+    Reader* reader, std::vector<CodeView_Function>& out_functions,
     Logger& logger = fallback_logger) {
   U32 signature = reader->u32(0);
   if (signature != CV_SIGNATURE_C13) {
@@ -316,7 +326,7 @@ void find_all_codeview_functions_2(
 template <class Reader>
 void find_all_codeview_functions_in_subsection(
     Sub_File_Reader<Reader> reader,
-    std::vector<CodeView_Function<Reader>>& out_functions, Logger& logger) {
+    std::vector<CodeView_Function>& out_functions, Logger& logger) {
   U64 offset = 0;
 
   while (offset < reader.size()) {
@@ -330,7 +340,7 @@ void find_all_codeview_functions_in_subsection(
     switch (record_type) {
       case S_GPROC32:
       case S_GPROC32_ID: {
-        CodeView_Function<Reader> func{
+        CodeView_Function func{
             .name = reader.utf_8_c_string(offset + 39),
             .reader = reader,
             .byte_offset = offset,
@@ -352,8 +362,7 @@ void find_all_codeview_functions_in_subsection(
                      reader.locate(offset + 0));
           break;
         }
-        CodeView_Function<Reader>& func =
-            out_functions[out_functions.size() - 1];
+        CodeView_Function& func = out_functions[out_functions.size() - 1];
         func.self_stack_size = reader.u32(offset + 4);
         break;
       }
@@ -590,12 +599,15 @@ void get_codeview_function_locals(
 done:;
 }
 
-template <class Reader>
-inline std::vector<CodeView_Function_Local>
-CodeView_Function<Reader>::get_locals(U64 offset) {
+inline std::vector<CodeView_Function_Local> CodeView_Function::get_locals(
+    U64 offset) {
   std::vector<CodeView_Function_Local> out_locals;
-  get_codeview_function_locals<Reader>(this->reader, offset, out_locals,
-                                       fallback_logger);
+  std::visit(
+      [&](auto& reader) {
+        get_codeview_function_locals(reader, offset, out_locals,
+                                     fallback_logger);
+      },
+      this->reader);
   return out_locals;
 }
 }
