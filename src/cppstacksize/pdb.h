@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cppstacksize/guid.h>
 #include <cppstacksize/logger.h>
 #include <cppstacksize/reader.h>
+#include <cppstacksize/util.h>
 #include <stdexcept>
 #include <vector>
 
@@ -173,6 +175,22 @@ PDB_Super_Block parse_pdb_header(Reader& reader, Logger& = fallback_logger) {
   return super_block;
 }
 
+/// A parsed PDB info stream (stream #1).
+struct PDB_Info {
+  GUID guid;
+
+  std::string get_guid_string() { return this->guid.to_string(); }
+};
+
+/// Parse a PDB's stream #1.
+template <class Reader>
+PDB_Info parse_pdb_info_stream(const Reader& reader,
+                               Logger& = fallback_logger) {
+  U8 guid_bytes[16];
+  reader.copy_bytes_into(guid_bytes, 12);
+  return PDB_Info{.guid = GUID(guid_bytes)};
+}
+
 template <class Reader>
 std::vector<PDB_Blocks_Reader<Reader>> parse_pdb_stream_directory(
     const Reader* reader, const PDB_Super_Block& super_block,
@@ -220,5 +238,98 @@ std::vector<PDB_Blocks_Reader<Reader>> parse_pdb_stream_directory(
                                                 stream_size, stream_index));
   }
   return streams;
+}
+
+struct PDB_DBI_Module_Segment {
+  std::optional<U16> pe_section_index;
+  U64 offset;
+  U64 size;
+};
+
+struct PDB_DBI_Module {
+  std::u8string linked_object_path;
+  std::u8string source_object_path;
+  U16 debug_info_stream_index;
+  std::vector<PDB_DBI_Module_Segment> segments;
+};
+
+struct PDB_DBI {
+  std::vector<PDB_DBI_Module> modules;
+};
+
+template <class Reader>
+PDB_DBI parse_pdb_dbi_stream(const Reader& reader,
+                             Logger& logger = fallback_logger) {
+  PDB_DBI dbi;
+  if (reader.size() == 0) {
+    return dbi;
+  }
+
+  U32 module_info_size = reader.u32(0x18);
+  U64 module_infos_begin = 0x40;
+  Sub_File_Reader<Reader> module_infos_reader(&reader, module_infos_begin,
+                                              module_info_size);
+  U64 offset = 0;
+  while (offset < module_infos_reader.size()) {
+    offset = align_up(offset, 4);
+    U16 module_section_section = module_infos_reader.u16(offset + 0x04);
+    U16 module_section_offset = module_infos_reader.u16(offset + 0x08);
+    U16 module_section_size = module_infos_reader.u16(offset + 0x0c);
+    U16 module_sym_stream = module_infos_reader.u16(offset + 0x22);
+    std::optional<U64> module_name_null_terminator_offset =
+        module_infos_reader.find_u8(0, offset + 0x40);
+    if (!module_name_null_terminator_offset.has_value()) {
+      logger.log("incomplete module info entry",
+                 module_infos_reader.locate(offset));
+      break;
+    }
+    std::u8string module_name = module_infos_reader.utf_8_string(
+        offset + 0x40, *module_name_null_terminator_offset - (offset + 0x40));
+    offset = *module_name_null_terminator_offset + 1;
+    std::optional<U64> obj_name_null_terminator_offset =
+        module_infos_reader.find_u8(0, offset);
+    if (!obj_name_null_terminator_offset.has_value()) {
+      logger.log("incomplete module info entry",
+                 module_infos_reader.locate(offset));
+      break;
+    }
+    std::u8string obj_name = module_infos_reader.utf_8_string(
+        offset, *obj_name_null_terminator_offset - offset);
+    offset = *obj_name_null_terminator_offset + 1;
+
+    dbi.modules.push_back(PDB_DBI_Module{
+        .linked_object_path = std::move(obj_name),
+        .source_object_path = std::move(module_name),
+        .debug_info_stream_index = module_sym_stream,
+        .segments =
+            {
+                PDB_DBI_Module_Segment{
+                    .pe_section_index =
+                        module_section_section == 0 ||
+                                module_section_section == 0xffff
+                            ? std::nullopt
+                            : std::optional<U16>(module_section_section - 1),
+                    .offset = module_section_offset,
+                    .size = module_section_size,
+                },
+            },
+    });
+  }
+  return dbi;
+}
+
+template <class Reader>
+struct PDB_TPI {
+  Sub_File_Reader<Reader> type_reader;
+};
+
+template <class Reader>
+PDB_TPI<Reader> parse_pdb_tpi_stream_header(const Reader* reader,
+                                            Logger& = fallback_logger) {
+  U32 header_size = reader->u32(0x4);
+  U32 type_records_size = reader->u32(0x10);
+  return PDB_TPI<Reader>{
+      .type_reader = Sub_File_Reader(reader, header_size, type_records_size),
+  };
 }
 }

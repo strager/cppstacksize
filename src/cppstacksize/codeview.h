@@ -84,7 +84,7 @@ CodeView_Type_Table<Reader> parse_codeview_types(Reader* reader,
 
 template <class Reader>
 CodeView_Type_Table<Reader> parse_codeview_types_without_header(
-    Reader* reader, Logger& logger) {
+    Reader* reader, Logger& logger = fallback_logger) {
   return parse_codeview_types_without_header(reader, 0, logger);
 }
 
@@ -144,17 +144,21 @@ struct CodeView_Function {
   bool has_func_id_type;
   U32 type_id;
 
-  U32 get_caller_stack_size(CodeView_Type_Table<Reader>& type_table) {
+  template <class Type_Table_Reader>
+  U32 get_caller_stack_size(
+      CodeView_Type_Table<Type_Table_Reader>& type_table) {
     return this->get_caller_stack_size(type_table, type_table, fallback_logger);
   }
 
-  U32 get_caller_stack_size(CodeView_Type_Table<Reader>& type_table,
-                            CodeView_Type_Table<Reader>& type_index_table,
-                            Logger& logger) {
-    Reader& reader = *type_table.reader_;
+  template <class Type_Table_Reader, class Type_Index_Table_Reader>
+  U32 get_caller_stack_size(
+      CodeView_Type_Table<Type_Table_Reader>& type_table,
+      CodeView_Type_Table<Type_Index_Table_Reader>& type_index_table,
+      Logger& logger) {
+    Type_Table_Reader& reader = *type_table.reader_;
     U32 type_id = this->type_id;
     if (this->has_func_id_type) {
-      Reader& index_reader = *type_index_table.reader_;
+      Type_Index_Table_Reader& index_reader = *type_index_table.reader_;
       std::optional<U64> func_id_type_offset =
           type_index_table.get_offset_of_type_entry_(type_id);
       if (!func_id_type_offset.has_value()) {
@@ -280,6 +284,14 @@ void find_all_codeview_functions(
     }
     offset += subsection_size;
   }
+}
+
+template <class Reader>
+std::vector<CodeView_Function<Reader>> find_all_codeview_functions_2(
+    Reader* reader, Logger& logger = fallback_logger) {
+  std::vector<CodeView_Function<Reader>> functions;
+  find_all_codeview_functions_2(reader, functions, logger);
+  return functions;
 }
 
 // FIXME(strager): Why do we need findAllCodeViewFunctionsAsync with .obj but

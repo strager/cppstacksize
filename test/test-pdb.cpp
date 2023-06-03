@@ -5,6 +5,9 @@
 #include <cppstacksize/pe.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <string_view>
+
+using namespace std::literals::string_view_literals;
 
 namespace cppstacksize {
 namespace {
@@ -279,6 +282,171 @@ TEST(Test_PDB, can_read_stream_directory_block_indexes_from_real_pdb_file) {
           {.blocks = {}, .size = 4294967295},
           {.blocks = {}, .size = 0},
       }));
+}
+
+TEST(Test_PDB, read_info_stream) {
+  Example_File file("pdb/example.pdb");
+  // Stream #1 from example.pdb.
+  PDB_Blocks_Reader info_reader(&file.reader(), {84},
+                                /*block_size=*/4096,
+                                /*byte_size=*/174,
+                                /*stream_index=*/0);
+
+  PDB_Info info = parse_pdb_info_stream(info_reader);
+  EXPECT_EQ(info.get_guid_string(), "597c058d-affe-4abf-a0ea-76a2e3a3d099");
+}
+
+TEST(Test_PDB, read_dbi_stream) {
+  Example_File file("pdb/example.pdb");
+  // Stream #3 from example.pdb.
+  PDB_Blocks_Reader dbi_reader(&file.reader(),
+                               {65, 66, 67, 68, 69, 70, 71, 72, 73},
+                               /*block_size=*/4096,
+                               /*byte_size=*/32795,
+                               /*stream_index=*/3);
+
+  PDB_DBI dbi = parse_pdb_dbi_stream(dbi_reader);
+  ASSERT_EQ(dbi.modules.size(), 29);
+
+  EXPECT_EQ(dbi.modules[0].linked_object_path,
+            u8"C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\"
+            u8"test\\pdb\\example.obj");
+  EXPECT_EQ(dbi.modules[0].source_object_path,
+            u8"C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\"
+            u8"test\\pdb\\example.obj");
+  EXPECT_EQ(dbi.modules[0].debug_info_stream_index, 15);
+  ASSERT_EQ(dbi.modules[0].segments.size(), 1);
+  EXPECT_EQ(dbi.modules[0].segments[0].pe_section_index, 0);
+  EXPECT_EQ(dbi.modules[0].segments[0].offset, 0x0000);
+  EXPECT_EQ(dbi.modules[0].segments[0].size, 160);
+
+  EXPECT_EQ(dbi.modules[1].linked_object_path,
+            u8"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\"
+            u8"VC\\Tools\\MSVC\\14.31.31103\\lib\\x64\\MSVCRT.lib");
+  EXPECT_EQ(dbi.modules[1].source_object_path,
+            u8"d:\\a01\\_work\\43\\s\\Intermediate\\vctools\\"
+            u8"msvcrt.nativeproj_110336922\\objr\\amd64\\dll_dllmain.obj");
+  EXPECT_EQ(dbi.modules[1].debug_info_stream_index, 37);
+  ASSERT_EQ(dbi.modules[1].segments.size(), 1);
+  EXPECT_EQ(dbi.modules[1].segments[0].pe_section_index, 0);
+  EXPECT_EQ(dbi.modules[1].segments[0].offset, 0x00a0);
+  EXPECT_EQ(dbi.modules[1].segments[0].size, 80);
+
+  EXPECT_EQ(dbi.modules[28].source_object_path, u8"* Linker *");
+  EXPECT_EQ(dbi.modules[28].linked_object_path, u8"");
+  EXPECT_EQ(dbi.modules[28].debug_info_stream_index, 35);
+  ASSERT_EQ(dbi.modules[28].segments.size(), 1);
+  EXPECT_EQ(dbi.modules[28].segments[0].pe_section_index, std::nullopt);
+  EXPECT_EQ(dbi.modules[28].segments[0].offset, 0x0000);
+  EXPECT_EQ(dbi.modules[28].segments[0].size, 0xffff);
+}
+
+TEST(Test_PDB, read_tpi_stream) {
+  Example_File file("pdb/example.pdb");
+  // Stream #2 from example.pdb.
+  using Reader = PDB_Blocks_Reader<Span_Reader>;
+  Reader tpi_reader(&file.reader(), {83, 8, 74, 75, 76, 77, 78, 79, 80, 81, 82},
+                    /*block_size=*/4096,
+                    /*byte_size=*/41736,
+                    /*stream_index=*/2);
+
+  PDB_TPI<Reader> tpi = parse_pdb_tpi_stream_header(&tpi_reader);
+  EXPECT_EQ(tpi.type_reader.sub_file_offset(), 0x38);
+  EXPECT_EQ(tpi.type_reader.size(), 41680);
+  // TODO[start-type-id]
+}
+
+TEST(Test_PDB, example_pdb_has_example_cpp_caller_and_callee_functions) {
+  Example_File file("pdb/example.pdb");
+  using Reader = PDB_Blocks_Reader<Span_Reader>;
+  PDB_Super_Block super_block = parse_pdb_header(file.reader());
+  std::vector<Reader> streams =
+      parse_pdb_stream_directory(&file.reader(), super_block);
+
+  std::vector<CodeView_Function<Reader>> functions =
+      find_all_codeview_functions_2(&streams[15]);
+  std::vector<std::u8string_view> function_names;
+  for (CodeView_Function<Reader>& function : functions) {
+    function_names.push_back(function.name);
+  }
+
+  EXPECT_THAT(function_names, ::testing::UnorderedElementsAreArray(
+                                  {u8"callee"sv, u8"caller"sv}));
+}
+
+TEST(Test_PDB, example_pdb_has_example_cpp_caller_variables) {
+  Example_File file("pdb/example.pdb");
+  using Reader = PDB_Blocks_Reader<Span_Reader>;
+  PDB_Super_Block super_block = parse_pdb_header(file.reader());
+  std::vector<Reader> streams =
+      parse_pdb_stream_directory(&file.reader(), super_block);
+
+  CodeView_Function<Reader> function =
+      find_all_codeview_functions_2(&streams[15]).at(1);
+  std::vector<CodeView_Function_Local<Reader>> locals =
+      get_codeview_function_locals(function.reader, function.byte_offset);
+
+  std::vector<std::u8string_view> local_names;
+  for (CodeView_Function_Local<Reader>& local : locals) {
+    local_names.push_back(local.name);
+  }
+  EXPECT_THAT(local_names, ::testing::UnorderedElementsAreArray({u8"a"sv}));
+}
+
+TEST(Test_PDB, example_pdb_has_example_cpp_callee_variables) {
+  Example_File file("pdb/example.pdb");
+  using Reader = PDB_Blocks_Reader<Span_Reader>;
+  PDB_Super_Block super_block = parse_pdb_header(file.reader());
+  std::vector<Reader> streams =
+      parse_pdb_stream_directory(&file.reader(), super_block);
+
+  CodeView_Function<Reader> function =
+      find_all_codeview_functions_2(&streams[15]).at(0);
+  std::vector<CodeView_Function_Local<Reader>> locals =
+      get_codeview_function_locals(function.reader, function.byte_offset);
+
+  std::vector<std::u8string_view> local_names;
+  for (CodeView_Function_Local<Reader>& local : locals) {
+    local_names.push_back(local.name);
+  }
+  EXPECT_THAT(local_names, ::testing::UnorderedElementsAreArray(
+                               {u8"a"sv, u8"b"sv, u8"c"sv, u8"d"sv, u8"e"sv}));
+}
+
+TEST(Test_PDB,
+     calculates_caller_stack_size_for_callee_function_in_example_pdb) {
+  Example_File file("pdb/example.pdb");
+  using Reader = PDB_Blocks_Reader<Span_Reader>;
+  PDB_Super_Block super_block = parse_pdb_header(file.reader());
+  std::vector<Reader> streams =
+      parse_pdb_stream_directory(&file.reader(), super_block);
+
+  CodeView_Function<Reader> function =
+      find_all_codeview_functions_2(&streams[15]).at(0);
+  std::vector<CodeView_Function_Local<Reader>> locals =
+      get_codeview_function_locals(function.reader, function.byte_offset);
+
+  PDB_TPI<Reader> tpi_header = parse_pdb_tpi_stream_header(&streams[2]);
+  // TODO[start-type-id]
+  CodeView_Type_Table<Sub_File_Reader<Reader>> type_table =
+      parse_codeview_types_without_header(&tpi_header.type_reader);
+  EXPECT_EQ(function.get_caller_stack_size(type_table), 40);
+}
+
+TEST(Test_PDB, parsing_header_rejects_obj_file) {
+  Example_File file("coff/small.obj");
+  EXPECT_THROW({ parse_pdb_header(file.reader()); }, PDB_Magic_Mismatch);
+}
+
+TEST(Test_PDB, parsing_header_rejects_empty_file) {
+  Span_Reader reader(std::span<const U8>{});
+  EXPECT_THROW({ parse_pdb_header(reader); }, PDB_Magic_Mismatch);
+}
+
+TEST(Test_PDB, empty_dbi_stream_contains_no_modules) {
+  Span_Reader dbi_reader(std::span<const U8>{});
+  PDB_DBI dbi = parse_pdb_dbi_stream(dbi_reader);
+  EXPECT_THAT(dbi.modules, ::testing::IsEmpty());
 }
 }
 }
