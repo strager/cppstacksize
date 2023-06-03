@@ -122,6 +122,33 @@ TEST(Test_CodeView, primitives_obj_function_has_local_variables) {
   }
 }
 
+TEST(Test_CodeView, loads_all_variables_in_all_blocks) {
+  Example_File file("coff/block.obj");
+  PE_File<Span_Reader> pe = parse_pe_file(&file.reader());
+  using Reader = Sub_File_Reader<Span_Reader>;
+  Reader section_reader = pe.find_sections_by_name(u8".debug$S").at(0);
+
+  CodeView_Function<Reader> func =
+      find_all_codeview_functions(&section_reader).at(0);
+  std::vector<CodeView_Function_Local<Reader>> locals =
+      get_codeview_function_locals(func.reader, func.byte_offset);
+
+  std::vector<std::u8string> local_names;
+  for (CodeView_Function_Local<Reader>& local : locals) {
+    local_names.push_back(local.name);
+  }
+
+  EXPECT_THAT(local_names, ::testing::UnorderedElementsAreArray({
+                               u8"before_blocks",
+                               u8"before_innermost_blocks",
+                               u8"inside_first_innermost_block",
+                               u8"between_innermost_blocks",
+                               u8"inside_second_innermost_block",
+                               u8"after_innermost_blocks",
+                               u8"after_blocks",
+                           }));
+}
+
 TEST(Test_CodeView, codeview_special_types) {
   struct Test_Case {
     U32 type_id;
