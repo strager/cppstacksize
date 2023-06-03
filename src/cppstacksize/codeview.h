@@ -367,8 +367,7 @@ struct CodeView_Function_Local {
   std::u8string name;
   U32 sp_offset;
   U32 type_id;
-  Sub_File_Reader<Reader> reader;
-  U64 record_offset;
+  Location location;
 
   std::optional<CodeView_Type> get_type(
       CodeView_Type_Table<Reader>* type_table) {
@@ -381,7 +380,7 @@ struct CodeView_Function_Local {
         get_codeview_type(this->type_id, type_table, logger);
     if (!type.has_value()) {
       logger.log(fmt::format("local has unknown type: 0x{:x}", this->type_id),
-                 this->reader.locate(this->record_offset));
+                 this->location);
       return std::nullopt;
     }
     return type;
@@ -561,8 +560,7 @@ void get_codeview_function_locals(
             // TODO(strager): Verify that the register is RSP.
             .sp_offset = reader.u32(offset + 4),
             .type_id = reader.u32(offset + 8),
-            .reader = reader,
-            .record_offset = offset,
+            .location = reader.locate(offset),
         };
         out_locals.push_back(local);
         break;
