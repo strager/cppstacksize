@@ -39,6 +39,7 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/guid.h',
     'src/cppstacksize/logger.cpp',
     'src/cppstacksize/logger.h',
+    'src/cppstacksize/pdb-reader.h',
     'src/cppstacksize/pdb.h',
     'src/cppstacksize/pe.h',
     'src/cppstacksize/reader.cpp',

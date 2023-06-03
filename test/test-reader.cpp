@@ -1,5 +1,5 @@
 #include <cppstacksize/base.h>
-#include <cppstacksize/pdb.h>
+#include <cppstacksize/pdb-reader.h>
 #include <cppstacksize/reader.h>
 #include <deque>
 #include <gmock/gmock.h>
