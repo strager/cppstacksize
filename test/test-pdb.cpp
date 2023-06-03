@@ -384,7 +384,7 @@ TEST(Test_PDB, example_pdb_has_example_cpp_caller_variables) {
   CodeView_Function<Reader> function =
       find_all_codeview_functions_2(&streams[15]).at(1);
   std::vector<CodeView_Function_Local> locals =
-      get_codeview_function_locals(function.reader, function.byte_offset);
+      function.get_locals(function.byte_offset);
 
   std::vector<std::u8string_view> local_names;
   for (CodeView_Function_Local& local : locals) {
@@ -403,7 +403,7 @@ TEST(Test_PDB, example_pdb_has_example_cpp_callee_variables) {
   CodeView_Function<Reader> function =
       find_all_codeview_functions_2(&streams[15]).at(0);
   std::vector<CodeView_Function_Local> locals =
-      get_codeview_function_locals(function.reader, function.byte_offset);
+      function.get_locals(function.byte_offset);
 
   std::vector<std::u8string_view> local_names;
   for (CodeView_Function_Local& local : locals) {
@@ -424,7 +424,7 @@ TEST(Test_PDB,
   CodeView_Function<Reader> function =
       find_all_codeview_functions_2(&streams[15]).at(0);
   std::vector<CodeView_Function_Local> locals =
-      get_codeview_function_locals(function.reader, function.byte_offset);
+      function.get_locals(function.byte_offset);
 
   PDB_TPI<Reader> tpi_header = parse_pdb_tpi_stream_header(&streams[2]);
   // TODO[start-type-id]

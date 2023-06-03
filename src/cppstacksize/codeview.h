@@ -117,6 +117,8 @@ struct CodeView_Type {
   std::u8string name;
 };
 
+struct CodeView_Function_Local;
+
 template <class Reader>
 struct CodeView_Function {
   std::u8string name;
@@ -237,6 +239,8 @@ struct CodeView_Function {
         return -1;
     }
   }
+
+  std::vector<CodeView_Function_Local> get_locals(U64 offset);
 };
 
 template <class Reader>
@@ -584,5 +588,14 @@ void get_codeview_function_locals(
     offset += record_size + 2;
   }
 done:;
+}
+
+template <class Reader>
+inline std::vector<CodeView_Function_Local>
+CodeView_Function<Reader>::get_locals(U64 offset) {
+  std::vector<CodeView_Function_Local> out_locals;
+  get_codeview_function_locals<Reader>(this->reader, offset, out_locals,
+                                       fallback_logger);
+  return out_locals;
 }
 }

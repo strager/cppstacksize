@@ -42,7 +42,7 @@ TEST(Test_CodeView, primitives_obj_function_has_local_variables) {
   CodeView_Function<Reader> func =
       find_all_codeview_functions(&section_reader).at(0);
   std::vector<CodeView_Function_Local> locals =
-      get_codeview_function_locals(func.reader, func.byte_offset);
+      func.get_locals(func.byte_offset);
 
   std::map<std::u8string, CodeView_Function_Local*> locals_by_name;
   std::vector<std::u8string> local_names;
@@ -132,7 +132,7 @@ TEST(Test_CodeView, loads_all_variables_in_all_blocks) {
   CodeView_Function<Reader> func =
       find_all_codeview_functions(&section_reader).at(0);
   std::vector<CodeView_Function_Local> locals =
-      get_codeview_function_locals(func.reader, func.byte_offset);
+      func.get_locals(func.byte_offset);
 
   std::vector<std::u8string> local_names;
   for (CodeView_Function_Local& local : locals) {
