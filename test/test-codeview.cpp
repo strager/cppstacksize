@@ -149,6 +149,105 @@ TEST(Test_CodeView, loads_all_variables_in_all_blocks) {
                            }));
 }
 
+TEST(Test_CodeView, int_parameters) {
+  struct Test_Case {
+    const char* description;
+    const char* obj_name;
+    U64 expected_caller_stack_size;
+  };
+
+  static constexpr Test_Case test_cases[] = {
+      {
+          .description =
+              "void callee(void) has shadow space for four registers",
+          .obj_name = "coff/parameters-int-0-callee.obj",
+          .expected_caller_stack_size = 32,
+      },
+      {
+          .description = "void callee(int) has shadow space for four registers",
+          .obj_name = "coff/parameters-int-1-callee.obj",
+          .expected_caller_stack_size = 32,
+      },
+      {
+          .description =
+              "void callee(int, int) has shadow space for four registers",
+          .obj_name = "coff/parameters-int-2-callee.obj",
+          .expected_caller_stack_size = 32,
+      },
+      {
+          .description = "void callee(int, int, int, int) has shadow space for "
+                         "four registers",
+          .obj_name = "coff/parameters-int-4-callee.obj",
+          .expected_caller_stack_size = 32,
+      },
+      {
+          .description = "void callee(int, int, int, int, int) has shadow "
+                         "space for four registers plus space for int on stack",
+          .obj_name = "coff/parameters-int-5-callee.obj",
+          .expected_caller_stack_size = 40,
+      },
+      {
+          .description =
+              "void callee(int, int, int, int, int, int) has shadow space for "
+              "four registers plus space for two ints on stack",
+          .obj_name = "coff/parameters-int-6-callee.obj",
+          .expected_caller_stack_size = 48,
+      },
+  };
+
+  for (const Test_Case& test_case : test_cases) {
+    SCOPED_TRACE(test_case.description);
+    Example_File file(test_case.obj_name);
+    PE_File<Span_Reader> pe = parse_pe_file(&file.reader());
+    using Reader = Sub_File_Reader<Span_Reader>;
+
+    Reader types_section_reader = pe.find_sections_by_name(u8".debug$T").at(0);
+    CodeView_Type_Table<Reader> type_table =
+        parse_codeview_types(&types_section_reader);
+    Reader symbols_section_reader =
+        pe.find_sections_by_name(u8".debug$S").at(1);
+    CodeView_Function<Reader> func =
+        find_all_codeview_functions(&symbols_section_reader).at(0);
+
+    EXPECT_EQ(func.get_caller_stack_size(type_table),
+              test_case.expected_caller_stack_size);
+  }
+}
+
+TEST(Test_CodeView, member_function_parameters) {
+  Example_File file("coff/member-function.obj");
+  PE_File<Span_Reader> pe = parse_pe_file(&file.reader());
+  using Reader = Sub_File_Reader<Span_Reader>;
+
+  Reader types_section_reader = pe.find_sections_by_name(u8".debug$T").at(0);
+  CodeView_Type_Table<Reader> type_table =
+      parse_codeview_types(&types_section_reader);
+  Reader symbols_section_reader = pe.find_sections_by_name(u8".debug$S").at(0);
+  CodeView_Function<Reader> func =
+      find_all_codeview_functions(&symbols_section_reader).at(0);
+
+  std::vector<CodeView_Function<Reader>> functions;
+  find_all_codeview_functions(&symbols_section_reader, functions);
+  std::map<std::u8string, CodeView_Function<Reader>*> func_by_name;
+  for (CodeView_Function<Reader>& func : functions) {
+    func_by_name[func.name] = &func;
+  }
+
+  EXPECT_EQ(func_by_name[u8"S::v"]->get_caller_stack_size(type_table), 32)
+      << "non-static void f() has shadow space for four registers";
+  EXPECT_EQ(func_by_name[u8"S::v_i"]->get_caller_stack_size(type_table), 32)
+      << "non-static void f(int) has shadow space for four registers";
+  EXPECT_EQ(func_by_name[u8"S::v_iii"]->get_caller_stack_size(type_table), 32)
+      << "non-static void f(int, int, int) has shadow space for four registers";
+  EXPECT_EQ(func_by_name[u8"S::v_iiii"]->get_caller_stack_size(type_table), 40)
+      << "non-static void f(int, int, int, int) has shadow space for four "
+         "registers plus space for int on stack (implicit 'this')";
+  EXPECT_EQ(
+      func_by_name[u8"S::static_v_iiii"]->get_caller_stack_size(type_table), 32)
+      << "static void f(int, int, int, int) has shadow space for four "
+         "registers (no implicit 'this')";
+}
+
 TEST(Test_CodeView, codeview_special_types) {
   struct Test_Case {
     U32 type_id;

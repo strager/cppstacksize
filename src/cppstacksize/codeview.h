@@ -7,6 +7,7 @@
 #include <cppstacksize/util.h>
 #include <exception>
 #include <string>
+#include <utility>
 #include <vector>
 
 // TODO(strager): Switch to <format>.
@@ -17,8 +18,99 @@ using namespace std::literals::string_view_literals;
 
 class Unsupported_CodeView_Error : public std::exception {};
 
+// TODO(strager): Use ExternalPDBFileReference.
+class CodeView_Types_In_Separate_PDB_File : public std::exception {
+ public:
+  std::u8string pdb_path;
+  GUID pdb_guid;
+
+  explicit CodeView_Types_In_Separate_PDB_File(std::u8string pdb_path,
+                                               GUID pdb_guid)
+      : pdb_path(std::move(pdb_path)), pdb_guid(pdb_guid) {}
+
+  const char* what() const noexcept override {
+    return "CodeView types cannot be loaded because they are in a separate PDB "
+           "file";
+  }
+};
+
 template <class Reader>
-class CodeView_Type_Table {};
+class CodeView_Type_Table {
+ public:
+  explicit CodeView_Type_Table(Reader* reader, U32 start_type_id)
+      : reader_(reader), start_type_id_(start_type_id) {}
+
+  void add_type_entry_at_offset_(U64 offset) {
+    this->type_entry_offsets_.push_back(offset);
+  }
+
+  std::optional<U64> get_offset_of_type_entry_(U32 type_id) {
+    U32 index = type_id - this->start_type_id_;
+    if (index < 0 || index >= this->type_entry_offsets_.size()) {
+      return std::nullopt;
+    }
+    return this->type_entry_offsets_[index];
+  }
+
+  std::optional<Sub_File_Reader<Reader>> get_reader_for_type_entry_(
+      U32 type_id) {
+    std::optional<U64> offset = this->_get_offset_of_type_entry(type_id);
+    if (!offset.has_value()) {
+      return std::nullopt;
+    }
+    U64 size = this->reader->u16(offset);
+    return Sub_File_Reader(this->reader, offset, size + 2);
+  }
+
+  std::vector<U64> type_entry_offsets_;
+  Reader* reader_;
+  U32 start_type_id_;
+};
+
+template <class Reader>
+CodeView_Type_Table<Reader> parse_codeview_types(Reader* reader) {
+  return parse_codeview_types(reader, fallback_logger);
+}
+
+template <class Reader>
+CodeView_Type_Table<Reader> parse_codeview_types(Reader* reader,
+                                                 Logger& logger) {
+  U32 signature = reader->u32(0);
+  if (signature != CV_SIGNATURE_C13) {
+    throw Unsupported_CodeView_Error();
+  }
+  return parse_codeview_types_without_header(reader, 4, logger);
+}
+
+template <class Reader>
+CodeView_Type_Table<Reader> parse_codeview_types_without_header(
+    Reader* reader, Logger& logger) {
+  return parse_codeview_types_without_header(reader, 0, logger);
+}
+
+template <class Reader>
+CodeView_Type_Table<Reader> parse_codeview_types_without_header(Reader* reader,
+                                                                U64 offset,
+                                                                Logger&) {
+  // FIXME[start-type-id]: This should be a parameter. PDB can overwrite the
+  // initial type ID.
+  U32 start_type_id = 0x1000;
+  CodeView_Type_Table<Reader> table(reader, start_type_id);
+  while (offset < reader->size()) {
+    U64 record_size = reader->u16(offset + 0);
+    U16 record_type = reader->u16(offset + 2);
+    if (record_type == LF_TYPESERVER2) {
+      std::u8string pdb_path = reader->utf_8_c_string(offset + 24);
+      U8 pdb_guid_bytes[16];
+      reader->copy_bytes_into(pdb_guid_bytes, 8);
+      throw CodeView_Types_In_Separate_PDB_File(std::move(pdb_path),
+                                                GUID(pdb_guid_bytes));
+    }
+    table.add_type_entry_at_offset_(offset);
+    offset += record_size + 2;
+  }
+  return table;
+}
 
 struct CodeView_Type {
   U64 byte_size;
@@ -51,6 +143,96 @@ struct CodeView_Function {
 
   bool has_func_id_type;
   U32 type_id;
+
+  U32 get_caller_stack_size(CodeView_Type_Table<Reader>& type_table) {
+    return this->get_caller_stack_size(type_table, type_table, fallback_logger);
+  }
+
+  U32 get_caller_stack_size(CodeView_Type_Table<Reader>& type_table,
+                            CodeView_Type_Table<Reader>& type_index_table,
+                            Logger& logger) {
+    Reader& reader = *type_table.reader_;
+    U32 type_id = this->type_id;
+    if (this->has_func_id_type) {
+      Reader& index_reader = *type_index_table.reader_;
+      std::optional<U64> func_id_type_offset =
+          type_index_table.get_offset_of_type_entry_(type_id);
+      if (!func_id_type_offset.has_value()) {
+        logger.log(fmt::format("cannot find type with ID: 0x{:x}", type_id),
+                   this->reader.locate(this->byte_offset));
+        return -1;
+      }
+      // TODO(strager): Check size.
+      U64 func_id_type_record_type_offset = *func_id_type_offset + 2;
+      U64 func_id_type_record_type =
+          index_reader.u16(func_id_type_record_type_offset);
+      switch (func_id_type_record_type) {
+        case LF_FUNC_ID:
+        case LF_MFUNC_ID:
+          type_id = index_reader.u32(*func_id_type_offset + 8);
+          break;
+        default:
+          logger.log(fmt::format("unrecognized function ID record type: 0x{:x}",
+                                 func_id_type_record_type),
+                     reader.locate(func_id_type_record_type_offset));
+          return -1;
+      }
+    }
+
+    std::optional<U64> func_type_offset =
+        type_table.get_offset_of_type_entry_(type_id);
+    if (!func_type_offset.has_value()) {
+      // FIXME(strager): Location is wrong if this->has_func_id_type is true.
+      logger.log(fmt::format("cannot find type with ID: 0x{:x}", type_id),
+                 this->reader.locate(this->byte_offset));
+      return -1;
+    }
+    U64 func_type_record_type_offset = *func_type_offset + 2;
+    // TODO(strager): Check size.
+    U16 func_type_record_type = reader.u16(func_type_record_type_offset);
+
+    U32 this_type_id = T_NOTYPE;
+    U64 calling_convention_offset;
+    U64 parameter_count;
+    switch (func_type_record_type) {
+      case LF_PROCEDURE:
+        calling_convention_offset = *func_type_offset + 8;
+        parameter_count = reader.u16(*func_type_offset + 10);
+        break;
+
+      case LF_MFUNCTION:
+        this_type_id = reader.u32(*func_type_offset + 12);
+        calling_convention_offset = *func_type_offset + 16;
+        parameter_count = reader.u16(*func_type_offset + 18);
+        break;
+
+      default:
+        logger.log(fmt::format("unrecognized function type record type: 0x{:x}",
+                               func_type_record_type),
+                   reader.locate(func_type_record_type_offset));
+        return -1;
+    }
+
+    U8 calling_convention = reader.u8(calling_convention_offset);
+    switch (calling_convention) {
+      case CV_CALL_NEAR_C: {
+        if (this_type_id != T_NOTYPE) {
+          // HACK(strager): Assume that thisTypeID refers to a pointer type.
+          // The 'this' parameter would thus be one register (u64) wide like
+          // other parameters.
+          parameter_count += 1;
+        }
+        return std::max(parameter_count, U64{4}) * 8;
+      }
+
+      default:
+        logger.log(
+            fmt::format("unrecognized function calling convention: 0x{:x}",
+                        calling_convention),
+            reader.locate(calling_convention_offset));
+        return -1;
+    }
+  }
 };
 
 template <class Reader>
