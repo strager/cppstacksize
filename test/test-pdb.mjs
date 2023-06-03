@@ -430,8 +430,8 @@ describe("PDB file", (t) => {
 
       let dbi = await parsePDBTPIStreamHeaderAsync(tpiReader);
       assert.ok(dbi.typeReader instanceof SubFileReader);
-      assert.ok(dbi.typeReader.subFileOffset, 0x20);
-      assert.ok(dbi.typeReader.subFileSize, 41680);
+      assert.strictEqual(dbi.typeReader.subFileOffset, 0x38);
+      assert.strictEqual(dbi.typeReader.subFileSize, 41680);
       // TODO[start-type-id]
     });
 
