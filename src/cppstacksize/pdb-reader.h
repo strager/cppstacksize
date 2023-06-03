@@ -108,8 +108,9 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
     // TODO(strager): Avoid divisions.
     // TODO(strager): Avoid multiplications.
     U64 begin_block_index_index = offset / this->block_size_;
-    U64 end_block_index_index = end_offset / this->block_size_;
+    U64 end_block_index_index = (end_offset - 1) / this->block_size_;
     U64 relative_offset = offset % this->block_size_;
+    CSS_ASSERT(end_block_index_index < this->block_indexes_.size());
 
     for (U64 block_index_index = begin_block_index_index;
          block_index_index <= end_block_index_index; ++block_index_index) {
@@ -117,7 +118,7 @@ class PDB_Blocks_Reader : public Reader_Base<PDB_Blocks_Reader<Base_Reader_T>> {
 
       bool is_last_block = block_index_index == end_block_index_index;
       U64 size_needed_in_block =
-          (is_last_block ? end_offset & (this->block_size_ - 1)
+          (is_last_block ? ((end_offset - 1) & (this->block_size_ - 1)) + 1
                          : this->block_size_) -
           relative_offset;
 
