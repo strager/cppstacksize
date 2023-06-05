@@ -18,6 +18,8 @@ class Example_File {
 
   const Span_Reader& reader() { return this->reader_; }
 
+  Loaded_File loaded_file() && { return std::move(this->file_); }
+
  private:
   static std::string full_path(const char* relative_path);
 

@@ -292,18 +292,19 @@ struct CodeView_Function {
   U32 code_size = static_cast<U32>(-1);
 
   // Associated PE or COFF file, if any.
-  // TODO(port): PE_File<Reader>* pe_file = nullptr;
+  PE_File<Span_Reader>* pe_file = nullptr;
 
   bool has_func_id_type;
   U32 type_id;
 
-  U32 get_caller_stack_size(CodeView_Type_Table& type_table) {
-    return this->get_caller_stack_size(type_table, type_table, fallback_logger);
+  U32 get_caller_stack_size(CodeView_Type_Table& type_table,
+                            Logger& logger = fallback_logger) {
+    return this->get_caller_stack_size(type_table, type_table, logger);
   }
 
   U32 get_caller_stack_size(CodeView_Type_Table& type_table,
                             CodeView_Type_Table& type_index_table,
-                            Logger& logger) {
+                            Logger& logger = fallback_logger) {
     // TODO(strager): Refactor the std::visit mess.
     return std::visit(
         [&](auto* reader_ptr) -> U32 {
@@ -406,6 +407,27 @@ struct CodeView_Function {
   }
 
   std::vector<CodeView_Function_Local> get_locals(U64 offset);
+
+  // Returns null if no PEFile is associated with this function.
+  std::optional<Sub_File_Reader<Sub_File_Reader<Span_Reader>>>
+  get_instruction_bytes_reader(Logger& logger = fallback_logger) {
+    if (this->pe_file == nullptr) {
+      return std::nullopt;
+    }
+    if (this->code_section_index >= this->pe_file->sections.size()) {
+      logger.log(fmt::format("could not find section index {} in PE file "
+                             "referenced by CodeView function",
+                             this->code_section_index),
+                 this->location());
+      return std::nullopt;
+    }
+    PE_Section& code_section =
+        this->pe_file->sections[this->code_section_index];
+    Sub_File_Reader section_reader =
+        this->pe_file->reader_for_section(code_section);
+    return Sub_File_Reader<decltype(section_reader)>(
+        &section_reader, this->code_offset, this->code_size);
+  }
 
   Location location() {
     return std::visit(

@@ -42,6 +42,7 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/pdb-reader.h',
     'src/cppstacksize/pdb.h',
     'src/cppstacksize/pe.h',
+    'src/cppstacksize/project.h',
     'src/cppstacksize/reader.cpp',
     'src/cppstacksize/reader.h',
     'src/cppstacksize/register-debug.cpp',
@@ -75,6 +76,7 @@ test_sources = [
   'test/test-guid.cpp',
   'test/test-pdb.cpp',
   'test/test-pe.cpp',
+  'test/test-project.cpp',
   'test/test-reader-location.cpp',
   'test/test-reader.cpp',
 
