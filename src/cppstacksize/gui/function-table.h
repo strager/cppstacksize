@@ -6,13 +6,14 @@
 #include <span>
 
 namespace cppstacksize {
+class Logger;
 class Project;
 struct CodeView_Function;
 
 class Function_Table_Model : public QAbstractTableModel {
   Q_OBJECT
  public:
-  explicit Function_Table_Model(Project *project, QObject *parent = nullptr);
+  explicit Function_Table_Model(Project *, Logger *, QObject *parent = nullptr);
   ~Function_Table_Model();
 
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -30,5 +31,6 @@ class Function_Table_Model : public QAbstractTableModel {
   CodeView_Type_Table *type_table_ = nullptr;
   CodeView_Type_Table *type_index_table_ = nullptr;
   Project *project_;
+  Logger *logger_;
 };
 }

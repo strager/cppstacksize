@@ -562,12 +562,8 @@ struct CodeView_Function_Local {
   U32 type_id;
   Location location;
 
-  std::optional<CodeView_Type> get_type(CodeView_Type_Table* type_table) const {
-    return this->get_type(type_table, fallback_logger);
-  }
-
-  std::optional<CodeView_Type> get_type(CodeView_Type_Table* type_table,
-                                        Logger& logger) const {
+  std::optional<CodeView_Type> get_type(
+      CodeView_Type_Table* type_table, Logger& logger = fallback_logger) const {
     std::optional<CodeView_Type> type =
         type_table->get_type(this->type_id, logger);
     if (!type.has_value()) {

@@ -4,8 +4,9 @@
 #include <cppstacksize/project.h>
 
 namespace cppstacksize {
-Function_Table_Model::Function_Table_Model(Project* project, QObject* parent)
-    : QAbstractTableModel(parent), project_(project) {}
+Function_Table_Model::Function_Table_Model(Project* project, Logger* logger,
+                                           QObject* parent)
+    : QAbstractTableModel(parent), project_(project), logger_(logger) {}
 
 Function_Table_Model::~Function_Table_Model() = default;
 
@@ -29,7 +30,7 @@ QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
       case 2:
         if (this->type_table_ != nullptr &&
             this->type_index_table_ != nullptr) {
-          Logger& func_logger = fallback_logger;  // TODO(port)
+          Logger& func_logger = *this->logger_;  // TODO(port)
           return func->get_caller_stack_size(
               *this->type_table_, *this->type_index_table_, func_logger);
           // TODO(port):
@@ -68,10 +69,10 @@ QVariant Function_Table_Model::headerData(int section,
 void Function_Table_Model::sync_data_from_project() {
   this->beginResetModel();
 
-  this->functions_ = this->project_->get_all_functions();
-  Logger& logger = fallback_logger;  // TODO(port)
-  this->type_table_ = this->project_->get_type_table(logger);
-  this->type_index_table_ = this->project_->get_type_index_table(logger);
+  this->functions_ = this->project_->get_all_functions(*this->logger_);
+  this->type_table_ = this->project_->get_type_table(*this->logger_);
+  this->type_index_table_ =
+      this->project_->get_type_index_table(*this->logger_);
 
   this->endResetModel();
 }

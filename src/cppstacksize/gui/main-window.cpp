@@ -53,6 +53,15 @@ Main_Window::Main_Window() {
   dock = new QDockWidget();
   dock->setWidget(&this->stack_map_table_);
   this->addDockWidget(Qt::RightDockWidgetArea, dock);
+
+  this->log_table_.setShowGrid(false);
+  this->log_table_.verticalHeader()->setVisible(true);
+  this->log_table_.setSortingEnabled(false);
+  this->log_table_.setSelectionBehavior(QAbstractItemView::SelectRows);
+  this->log_table_.setModel(&this->logger_);
+  dock = new QDockWidget();
+  dock->setWidget(&this->log_table_);
+  this->addDockWidget(Qt::BottomDockWidgetArea, dock);
 }
 
 void Main_Window::open_files(std::span<const QString> file_paths) {

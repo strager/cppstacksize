@@ -5,13 +5,15 @@
 #include <vector>
 
 namespace cppstacksize {
+class Logger;
 class Project;
 struct CodeView_Function;
 
 class Locals_Table_Model : public QAbstractTableModel {
   Q_OBJECT
  public:
-  explicit Locals_Table_Model(Project *project, QObject *parent = nullptr);
+  explicit Locals_Table_Model(Project *project, Logger *,
+                              QObject *parent = nullptr);
   ~Locals_Table_Model();
 
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -25,6 +27,7 @@ class Locals_Table_Model : public QAbstractTableModel {
 
  private:
   Project *project_;
+  Logger *logger_;
   const CodeView_Function *function_ = nullptr;
   std::vector<CodeView_Function_Local> locals_;
 };

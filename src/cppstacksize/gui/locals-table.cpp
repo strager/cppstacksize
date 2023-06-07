@@ -4,8 +4,9 @@
 #include <cppstacksize/project.h>
 
 namespace cppstacksize {
-Locals_Table_Model::Locals_Table_Model(Project* project, QObject* parent)
-    : QAbstractTableModel(parent), project_(project) {}
+Locals_Table_Model::Locals_Table_Model(Project* project, Logger* logger,
+                                       QObject* parent)
+    : QAbstractTableModel(parent), project_(project), logger_(logger) {}
 
 Locals_Table_Model::~Locals_Table_Model() = default;
 
@@ -28,20 +29,22 @@ QVariant Locals_Table_Model::data(const QModelIndex& index, int role) const {
       case 0:
         return QString(local.name.c_str());
       case 1: {
-        // TODO(port): Logger.
+        // TODO(port): Local logger.
+        Logger& logger = *this->logger_;
         // TODO(perf): Should we cache get_type?
         std::optional<CodeView_Type> type =
-            local.get_type(this->project_->get_type_table());
+            local.get_type(this->project_->get_type_table(), logger);
         if (!type.has_value()) {
           return "?";
         }
         return QString(type->name.c_str());
       }
       case 2: {
-        // TODO(port): Logger.
+        // TODO(port): Local logger.
+        Logger& logger = *this->logger_;
         // TODO(perf): Should we cache get_type?
         std::optional<CodeView_Type> type =
-            local.get_type(this->project_->get_type_table());
+            local.get_type(this->project_->get_type_table(), logger);
         if (!type.has_value()) {
           return "?";
         }

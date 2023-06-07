@@ -1,20 +1,17 @@
 #pragma once
 
 #include <QAbstractTableModel>
-#include <cppstacksize/asm-stack-map.h>
-#include <vector>
+#include <cppstacksize/logger.h>
+#include <cppstacksize/reader.h>
+#include <deque>
+#include <string_view>
 
 namespace cppstacksize {
-class Logger;
-class Project;
-struct CodeView_Function;
-
-class Stack_Map_Table_Model : public QAbstractTableModel {
+class Log_Table_Model : public QAbstractTableModel, public Logger {
   Q_OBJECT
  public:
-  explicit Stack_Map_Table_Model(Project *project, Logger *,
-                                 QObject *parent = nullptr);
-  ~Stack_Map_Table_Model();
+  explicit Log_Table_Model(QObject *parent = nullptr);
+  ~Log_Table_Model();
 
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -23,11 +20,9 @@ class Stack_Map_Table_Model : public QAbstractTableModel {
   QVariant headerData(int section, Qt::Orientation orientation,
                       int role) const override;
 
-  void set_function(const CodeView_Function *function);
+  void log(std::string_view message, const Location &location) override;
 
  private:
-  Project *project_;
-  Logger *logger_;
-  Stack_Map stack_map_;
+  std::deque<Captured_Log_Message> messages_;
 };
 }

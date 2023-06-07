@@ -5,8 +5,9 @@
 #include <cppstacksize/project.h>
 
 namespace cppstacksize {
-Stack_Map_Table_Model::Stack_Map_Table_Model(Project* project, QObject* parent)
-    : QAbstractTableModel(parent), project_(project) {}
+Stack_Map_Table_Model::Stack_Map_Table_Model(Project* project, Logger* logger,
+                                             QObject* parent)
+    : QAbstractTableModel(parent), project_(project), logger_(logger) {}
 
 Stack_Map_Table_Model::~Stack_Map_Table_Model() = default;
 
@@ -56,9 +57,8 @@ void Stack_Map_Table_Model::set_function(const CodeView_Function* function) {
   this->beginResetModel();
   this->stack_map_.clear();
   if (function) {
-    Logger& logger = fallback_logger;  // TODO(port)
     std::optional<Sub_File_Reader<Span_Reader>> instructions_reader =
-        function->get_instruction_bytes_reader(logger);
+        function->get_instruction_bytes_reader(*this->logger_);
     if (instructions_reader.has_value()) {
       std::vector<U8> instruction_bytes(instructions_reader->size());
       instructions_reader->copy_bytes_into(instruction_bytes, 0);

@@ -71,6 +71,7 @@ gui_moc_files = qt6.compile_moc(
   headers: [
     'src/cppstacksize/gui/function-table.h',
     'src/cppstacksize/gui/locals-table.h',
+    'src/cppstacksize/gui/log-table.h',
     'src/cppstacksize/gui/main-window.h',
     'src/cppstacksize/gui/stack-map-table.h',
   ],
@@ -83,6 +84,8 @@ executable(
     'src/cppstacksize/gui/function-table.h',
     'src/cppstacksize/gui/locals-table.cpp',
     'src/cppstacksize/gui/locals-table.h',
+    'src/cppstacksize/gui/log-table.cpp',
+    'src/cppstacksize/gui/log-table.h',
     'src/cppstacksize/gui/main-window.cpp',
     'src/cppstacksize/gui/main-window.h',
     'src/cppstacksize/gui/main.cpp',
