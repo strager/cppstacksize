@@ -71,6 +71,7 @@ void Function_Table_Model::sync_data_from_project() {
   this->type_table_ = this->project_->get_type_table(*this->logger_);
   this->type_index_table_ =
       this->project_->get_type_index_table(*this->logger_);
+  this->function_data_cache_.clear();
 
   this->endResetModel();
 }
