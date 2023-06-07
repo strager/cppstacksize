@@ -70,6 +70,7 @@ cppstacksize_lib_dep = declare_dependency(
 gui_moc_files = qt6.compile_moc(
   headers: [
     'src/cppstacksize/gui/function-table.h',
+    'src/cppstacksize/gui/main-window.h',
   ],
   dependencies: [cppstacksize_lib_dep, qt6_dep],
 )
@@ -78,6 +79,8 @@ executable(
   [
     'src/cppstacksize/gui/function-table.cpp',
     'src/cppstacksize/gui/function-table.h',
+    'src/cppstacksize/gui/main-window.cpp',
+    'src/cppstacksize/gui/main-window.h',
     'src/cppstacksize/gui/main.cpp',
     gui_moc_files,
   ],
