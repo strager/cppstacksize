@@ -85,6 +85,8 @@ class Project {
     this->type_index_table_is_dirty_ = true;
   }
 
+  void clear() { *this = Project(); }
+
   // Possibly returns nullptr.
   CodeView_Type_Table* get_type_table(Logger& logger = fallback_logger) {
     if (this->type_table_is_dirty_) {

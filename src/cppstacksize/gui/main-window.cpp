@@ -34,6 +34,7 @@ void Main_Window::do_open() {
 
   bool updated = false;
   if (dialog.exec()) {
+    this->project_.clear();
     QStringList selected_paths = dialog.selectedFiles();
     for (QString &path : selected_paths) {
       std::string path_std_string = std::move(path).toStdString();
