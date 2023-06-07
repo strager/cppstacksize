@@ -43,26 +43,26 @@ Main_Window::Main_Window() {
   this->addDockWidget(Qt::RightDockWidgetArea, dock);
 }
 
+void Main_Window::open_files(std::span<const QString> file_paths) {
+  this->project_.clear();
+
+  for (const QString &path : file_paths) {
+    std::string path_std_string = path.toStdString();
+    qDebug() << "adding file" << path_std_string.c_str() << "to project";
+    this->project_.add_file(path_std_string,
+                            Loaded_File::load(path_std_string.c_str()));
+  }
+
+  this->function_table_model_.sync_data_from_project();
+}
+
 void Main_Window::do_open() {
   QFileDialog dialog(this);
   dialog.setFileMode(QFileDialog::ExistingFiles);
   dialog.setNameFilter(tr("Binaries (*.dll *.exe *.obj *.pdb)"));
 
-  bool updated = false;
   if (dialog.exec()) {
-    this->project_.clear();
-    QStringList selected_paths = dialog.selectedFiles();
-    for (QString &path : selected_paths) {
-      std::string path_std_string = std::move(path).toStdString();
-      qDebug() << "adding file" << path_std_string.c_str() << "to project";
-      this->project_.add_file(path_std_string,
-                              Loaded_File::load(path_std_string.c_str()));
-      updated = true;
-    }
-  }
-
-  if (updated) {
-    this->function_table_model_.sync_data_from_project();
+    this->open_files(dialog.selectedFiles());
   }
 }
 

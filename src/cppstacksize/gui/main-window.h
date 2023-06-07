@@ -14,6 +14,8 @@ class Main_Window : public QMainWindow {
  public:
   explicit Main_Window();
 
+  void open_files(std::span<const QString>);
+
  private slots:
   void do_open();
   void changed_selected_function(const QItemSelection &selected,
