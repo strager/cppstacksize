@@ -135,9 +135,21 @@ class Project {
     return std::nullopt;
   }
 
-  std::vector<CodeView_Function> get_all_functions(
+  std::span<const CodeView_Function> get_all_functions(
       Logger& logger = fallback_logger) {
-    std::vector<CodeView_Function> funcs;
+    if (this->functions_are_dirty_) {
+      this->load_functions(logger);
+      this->functions_are_dirty_ = false;
+    } else {
+      // TODO(strager): Copy logs from prior load?
+    }
+    return this->functions_cache_;
+  }
+
+ private:
+  void load_functions(Logger& logger) {
+    this->functions_cache_.clear();
+
     for (std::unique_ptr<Project_File>& file : this->files_) {
       file->try_load_pdb_generic_headers(logger);
       file->try_load_pe_file(logger);
@@ -151,7 +163,8 @@ class Project {
       for (const PDB_DBI_Module& module : file->pdb_dbi->modules) {
         PDB_Blocks_Reader<Reader>& codeview_stream =
             file->pdb_streams->at(module.debug_info_stream_index);
-        find_all_codeview_functions_2(&codeview_stream, funcs, logger);
+        find_all_codeview_functions_2(&codeview_stream, this->functions_cache_,
+                                      logger);
       }
     }
 
@@ -159,19 +172,20 @@ class Project {
       if (!file->pe_file.has_value()) continue;
       // TODO(strager): Only attach to functions from PDBs linked with this PE
       // (according to the PDB's GUID).
-      for (CodeView_Function& func : funcs) {
+      for (CodeView_Function& func : this->functions_cache_) {
         func.pe_file = &*file->pe_file;
       }
 
       file->try_load_debug_s_sections();
       for (Sub_File_Reader<Reader>& section_reader : file->debug_s_sections) {
-        find_all_codeview_functions(&section_reader, funcs);
+        find_all_codeview_functions(&section_reader, this->functions_cache_);
       }
     }
-    return funcs;
   }
 
- private:
   std::vector<std::unique_ptr<Project_File>> files_;
+
+  std::vector<CodeView_Function> functions_cache_;
+  bool functions_are_dirty_ = true;
 };
 }

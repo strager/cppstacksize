@@ -410,7 +410,7 @@ struct CodeView_Function {
 
   // Returns null if no PEFile is associated with this function.
   std::optional<Sub_File_Reader<Sub_File_Reader<Span_Reader>>>
-  get_instruction_bytes_reader(Logger& logger = fallback_logger) {
+  get_instruction_bytes_reader(Logger& logger = fallback_logger) const {
     if (this->pe_file == nullptr) {
       return std::nullopt;
     }

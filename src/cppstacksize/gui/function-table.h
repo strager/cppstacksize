@@ -3,6 +3,7 @@
 #include <QAbstractTableModel>
 #include <cppstacksize/codeview.h>
 #include <optional>
+#include <span>
 
 namespace cppstacksize {
 class Project;
@@ -24,7 +25,7 @@ class Function_Table_Model : public QAbstractTableModel {
   void sync_data_from_project();
 
  private:
-  std::vector<CodeView_Function> functions_;
+  std::span<const CodeView_Function> functions_;
   std::optional<CodeView_Type_Table> type_table_;
   std::optional<CodeView_Type_Table> type_index_table_;
   Project *project_;

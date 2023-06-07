@@ -13,16 +13,16 @@ TEST(Test_Project, loads_complete_obj_file) {
                    std::move(obj_file).loaded_file());
 
   // Function table should load.
-  std::vector<CodeView_Function> funcs = project.get_all_functions();
-  EXPECT_EQ(funcs.at(0).name, u8"callee");
+  std::span<const CodeView_Function> funcs = project.get_all_functions();
+  ASSERT_GT(funcs.size(), 0);
+  EXPECT_EQ(funcs[0].name, u8"callee");
   // Type table should load.
   std::optional<CodeView_Type_Table> type_table = project.get_type_table();
   ASSERT_TRUE(type_table.has_value());
   std::optional<CodeView_Type_Table> type_index_table =
       project.get_type_index_table();
   ASSERT_TRUE(type_index_table.has_value());
-  EXPECT_EQ(funcs.at(0).get_caller_stack_size(*type_table, *type_index_table),
-            32);
+  EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 32);
 }
 
 TEST(Test_Project, loads_complete_pdb_file) {
@@ -31,16 +31,16 @@ TEST(Test_Project, loads_complete_pdb_file) {
   project.add_file("example.pdb", std::move(pdb_file).loaded_file());
 
   // Function table should load.
-  std::vector<CodeView_Function> funcs = project.get_all_functions();
-  EXPECT_EQ(funcs.at(0).name, u8"callee");
+  std::span<const CodeView_Function> funcs = project.get_all_functions();
+  ASSERT_GT(funcs.size(), 0);
+  EXPECT_EQ(funcs[0].name, u8"callee");
   // Type tables should load.
   std::optional<CodeView_Type_Table> type_table = project.get_type_table();
   ASSERT_TRUE(type_table.has_value());
   std::optional<CodeView_Type_Table> type_index_table =
       project.get_type_index_table();
   ASSERT_TRUE(type_index_table.has_value());
-  EXPECT_EQ(funcs.at(0).get_caller_stack_size(*type_table, *type_index_table),
-            40);
+  EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 40);
 }
 
 TEST(Test_Project, loads_unlinked_pdb_and_obj) {
@@ -51,16 +51,16 @@ TEST(Test_Project, loads_unlinked_pdb_and_obj) {
   project.add_file("example.obj", std::move(obj_file).loaded_file());
 
   // Function table should load from .obj.
-  std::vector<CodeView_Function> funcs = project.get_all_functions();
-  EXPECT_EQ(funcs.at(0).name, u8"callee");
+  std::span<const CodeView_Function> funcs = project.get_all_functions();
+  ASSERT_GT(funcs.size(), 0);
+  EXPECT_EQ(funcs[0].name, u8"callee");
   // Type tables should load from .pdb.
   std::optional<CodeView_Type_Table> type_table = project.get_type_table();
   ASSERT_TRUE(type_table.has_value());
   std::optional<CodeView_Type_Table> type_index_table =
       project.get_type_index_table();
   ASSERT_TRUE(type_index_table.has_value());
-  EXPECT_EQ(funcs.at(0).get_caller_stack_size(*type_table, *type_index_table),
-            40);
+  EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 40);
 }
 
 TEST(Test_Project, loads_unlinked_obj_and_pdb) {
@@ -71,16 +71,16 @@ TEST(Test_Project, loads_unlinked_obj_and_pdb) {
   project.add_file("example.pdb", std::move(pdb_file).loaded_file());
 
   // Function table should load from .obj.
-  std::vector<CodeView_Function> funcs = project.get_all_functions();
-  EXPECT_EQ(funcs.at(0).name, u8"callee");
+  std::span<const CodeView_Function> funcs = project.get_all_functions();
+  ASSERT_GT(funcs.size(), 0);
+  EXPECT_EQ(funcs[0].name, u8"callee");
   // Type tables should load from .pdb.
   std::optional<CodeView_Type_Table> type_table = project.get_type_table();
   ASSERT_TRUE(type_table.has_value());
   std::optional<CodeView_Type_Table> type_index_table =
       project.get_type_index_table();
   ASSERT_TRUE(type_index_table.has_value());
-  EXPECT_EQ(funcs.at(0).get_caller_stack_size(*type_table, *type_index_table),
-            40);
+  EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 40);
 }
 
 TEST(Test_Project, pdb_functions_link_to_loaded_dll) {
@@ -97,9 +97,9 @@ TEST(Test_Project, pdb_functions_link_to_loaded_dll) {
     }
 
     // Function table should load from .pdb.
-    std::vector<CodeView_Function> funcs = project.get_all_functions();
-    std::map<std::u8string, CodeView_Function*> funcs_by_name;
-    for (CodeView_Function& func : funcs) {
+    std::span<const CodeView_Function> funcs = project.get_all_functions();
+    std::map<std::u8string, const CodeView_Function*> funcs_by_name;
+    for (const CodeView_Function& func : funcs) {
       funcs_by_name[func.name] = &func;
     }
 
