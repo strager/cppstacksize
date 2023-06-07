@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractTableModel>
+#include <QCache>
 #include <cppstacksize/codeview.h>
 #include <optional>
 #include <span>
@@ -27,10 +28,19 @@ class Function_Table_Model : public QAbstractTableModel {
   const CodeView_Function *get_function(const QModelIndex &) const;
 
  private:
+  struct Cached_Function_Data {
+    U32 caller_stack_size;
+  };
+
+  // Possibly returns nullptr.
+  Cached_Function_Data *get_function_data(const QModelIndex &index) const;
+  Cached_Function_Data *get_function_data(U64 row) const;
+
   std::span<const CodeView_Function> functions_;
   CodeView_Type_Table *type_table_ = nullptr;
   CodeView_Type_Table *type_index_table_ = nullptr;
   Project *project_;
   Logger *logger_;
+  mutable QCache<U64, Cached_Function_Data> function_data_cache_;
 };
 }
