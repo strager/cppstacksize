@@ -6,6 +6,7 @@ project(
 )
 
 cmake = import('cmake')
+qt6 = import('qt6')
 
 capstone_cmake_options = cmake.subproject_options()
 capstone_cmake_options.add_cmake_defines({
@@ -19,6 +20,8 @@ capstone_proj = cmake.subproject('capstone', options: capstone_cmake_options)
 
 fmt_proj = subproject('fmt')
 gtest_proj = subproject('gtest')
+
+qt6_dep = dependency('qt6', modules: ['Core', 'Gui', 'Widgets'])
 
 cppstacksize_includes = include_directories('src/')
 cppstacksize_lib = static_library(
@@ -62,6 +65,13 @@ cppstacksize_lib_dep = declare_dependency(
   # TODO(strager): Remove uses of fmt from our headers and make the dependency
   # private.
   dependencies: [fmt_proj.get_variable('fmt_dep')],
+)
+
+executable(
+  'cppstacksize-gui',
+  ['src/cppstacksize/gui/main.cpp'],
+  cpp_pch: ['src/cppstacksize/gui/pch.h'],
+  dependencies: [cppstacksize_lib_dep, qt6_dep],
 )
 
 test_sources = [
