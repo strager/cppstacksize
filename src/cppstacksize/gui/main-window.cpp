@@ -1,5 +1,6 @@
 #include <QAction>
 #include <QFileDialog>
+#include <QHeaderView>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <cppstacksize/gui/main-window.h>
@@ -13,6 +14,17 @@ Main_Window::Main_Window() {
   open_action->setStatusTip("Load PDB or DLL files");
   connect(open_action, &QAction::triggered, this, &Main_Window::do_open);
   file_menu->addAction(open_action);
+
+  this->function_table_.setShowGrid(false);
+  this->function_table_.verticalHeader()->setVisible(false);
+  this->function_table_.setSortingEnabled(true);
+  this->function_table_.setSelectionBehavior(QAbstractItemView::SelectRows);
+  this->function_table_.setSelectionMode(
+      QAbstractItemView::SelectionMode::SingleSelection);
+  this->function_table_sorter_.setSourceModel(&this->function_table_model_);
+  this->function_table_.setModel(&this->function_table_sorter_);
+
+  this->setCentralWidget(&this->function_table_);
 }
 
 void Main_Window::do_open() {
