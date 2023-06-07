@@ -6,7 +6,10 @@
 namespace cppstacksize {
 Locals_Table_Model::Locals_Table_Model(Project* project, Logger* logger,
                                        QObject* parent)
-    : QAbstractTableModel(parent), project_(project), logger_(logger) {}
+    : QAbstractTableModel(parent),
+      project_(project),
+      logger_(logger),
+      local_data_cache_(100) {}
 
 Locals_Table_Model::~Locals_Table_Model() = default;
 
@@ -24,31 +27,24 @@ QVariant Locals_Table_Model::data(const QModelIndex& index, int role) const {
     if (row >= this->locals_.size()) {
       return QVariant();
     }
-    const CodeView_Function_Local& local = this->locals_[index.row()];
     switch (index.column()) {
-      case 0:
+      case 0: {
+        const CodeView_Function_Local& local = this->locals_[index.row()];
         return QString(local.name.c_str());
+      }
       case 1: {
-        // TODO(port): Local logger.
-        Logger& logger = *this->logger_;
-        // TODO(perf): Should we cache get_type?
-        std::optional<CodeView_Type> type =
-            local.get_type(this->project_->get_type_table(), logger);
-        if (!type.has_value()) {
+        Cached_Local_Data* data = this->get_local_data(row);
+        if (!data->type.has_value()) {
           return "?";
         }
-        return QString(type->name.c_str());
+        return QString(data->type->name.c_str());
       }
       case 2: {
-        // TODO(port): Local logger.
-        Logger& logger = *this->logger_;
-        // TODO(perf): Should we cache get_type?
-        std::optional<CodeView_Type> type =
-            local.get_type(this->project_->get_type_table(), logger);
-        if (!type.has_value()) {
+        Cached_Local_Data* data = this->get_local_data(row);
+        if (!data->type.has_value()) {
           return "?";
         }
-        return narrow_cast<qulonglong>(type->byte_size);
+        return narrow_cast<qulonglong>(data->type->byte_size);
       }
       default:
         __builtin_unreachable();
@@ -83,6 +79,24 @@ void Locals_Table_Model::set_function(const CodeView_Function* function) {
   } else {
     this->locals_.clear();
   }
+  this->local_data_cache_.clear();
   this->endResetModel();
+}
+
+Locals_Table_Model::Cached_Local_Data* Locals_Table_Model::get_local_data(
+    U64 row) const {
+  CSS_ASSERT(row < this->locals_.size());
+
+  Cached_Local_Data* data = this->local_data_cache_[row];
+  if (data == nullptr) {
+    const CodeView_Function_Local& local = this->locals_[row];
+    // TODO(port): Local logger.
+    Logger& logger = *this->logger_;
+    data = new Cached_Local_Data{
+        .type = local.get_type(this->project_->get_type_table(), logger),
+    };
+    this->local_data_cache_.insert(row, data);
+  }
+  return data;
 }
 }
