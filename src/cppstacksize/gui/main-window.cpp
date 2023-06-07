@@ -25,6 +25,9 @@ Main_Window::Main_Window() {
       QAbstractItemView::SelectionMode::SingleSelection);
   this->function_table_sorter_.setSourceModel(&this->function_table_model_);
   this->function_table_.setModel(&this->function_table_sorter_);
+  connect(this->function_table_.selectionModel(),
+          &QItemSelectionModel::selectionChanged, this,
+          &Main_Window::changed_selected_function);
   this->setCentralWidget(&this->function_table_);
 
   this->locals_table_.setShowGrid(false);
@@ -35,11 +38,20 @@ Main_Window::Main_Window() {
       QAbstractItemView::SelectionMode::SingleSelection);
   this->locals_table_sorter_.setSourceModel(&this->locals_table_model_);
   this->locals_table_.setModel(&this->locals_table_sorter_);
-  connect(this->function_table_.selectionModel(),
-          &QItemSelectionModel::selectionChanged, this,
-          &Main_Window::changed_selected_function);
   QDockWidget *dock = new QDockWidget();
   dock->setWidget(&this->locals_table_);
+  this->addDockWidget(Qt::RightDockWidgetArea, dock);
+
+  this->stack_map_table_.setShowGrid(false);
+  this->stack_map_table_.verticalHeader()->setVisible(false);
+  this->stack_map_table_.setSortingEnabled(true);
+  this->stack_map_table_.setSelectionBehavior(QAbstractItemView::SelectRows);
+  this->stack_map_table_.setSelectionMode(
+      QAbstractItemView::SelectionMode::SingleSelection);
+  this->stack_map_table_sorter_.setSourceModel(&this->stack_map_table_model_);
+  this->stack_map_table_.setModel(&this->stack_map_table_sorter_);
+  dock = new QDockWidget();
+  dock->setWidget(&this->stack_map_table_);
   this->addDockWidget(Qt::RightDockWidgetArea, dock);
 }
 
@@ -89,5 +101,6 @@ void Main_Window::changed_selected_function(
                                      this->function_table_sorter_.mapToSource(
                                          selected_indexes.at(0)));
   this->locals_table_model_.set_function(selected_function);
+  this->stack_map_table_model_.set_function(selected_function);
 }
 }

@@ -69,6 +69,8 @@ struct Stack_Map_Touch {
 struct Stack_Map {
   Register_File registers;
   std::vector<Stack_Map_Touch> touches;
+
+  void clear() { *this = Stack_Map(); }
 };
 
 Stack_Map analyze_x86_64_stack_map(std::span<const U8> code);

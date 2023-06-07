@@ -72,6 +72,7 @@ gui_moc_files = qt6.compile_moc(
     'src/cppstacksize/gui/function-table.h',
     'src/cppstacksize/gui/locals-table.h',
     'src/cppstacksize/gui/main-window.h',
+    'src/cppstacksize/gui/stack-map-table.h',
   ],
   dependencies: [cppstacksize_lib_dep, qt6_dep],
 )
@@ -85,6 +86,8 @@ executable(
     'src/cppstacksize/gui/main-window.cpp',
     'src/cppstacksize/gui/main-window.h',
     'src/cppstacksize/gui/main.cpp',
+    'src/cppstacksize/gui/stack-map-table.cpp',
+    'src/cppstacksize/gui/stack-map-table.h',
     gui_moc_files,
   ],
   cpp_pch: ['src/cppstacksize/gui/pch.h'],

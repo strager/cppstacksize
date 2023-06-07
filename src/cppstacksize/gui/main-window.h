@@ -6,6 +6,7 @@
 #include <QTableView>
 #include <cppstacksize/gui/function-table.h>
 #include <cppstacksize/gui/locals-table.h>
+#include <cppstacksize/gui/stack-map-table.h>
 #include <cppstacksize/project.h>
 
 namespace cppstacksize {
@@ -32,5 +33,10 @@ class Main_Window : public QMainWindow {
   QTableView locals_table_;
   Locals_Table_Model locals_table_model_ = Locals_Table_Model(&this->project_);
   QSortFilterProxyModel locals_table_sorter_;
+
+  QTableView stack_map_table_;
+  Stack_Map_Table_Model stack_map_table_model_ =
+      Stack_Map_Table_Model(&this->project_);
+  QSortFilterProxyModel stack_map_table_sorter_;
 };
 }
