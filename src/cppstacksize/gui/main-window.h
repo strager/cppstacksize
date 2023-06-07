@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <cppstacksize/project.h>
 
 namespace cppstacksize {
 class Main_Window : public QMainWindow {
@@ -10,5 +11,8 @@ class Main_Window : public QMainWindow {
 
  private slots:
   void do_open();
+
+ private:
+  Project project_;
 };
 }

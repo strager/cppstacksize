@@ -21,9 +21,11 @@ void Main_Window::do_open() {
   dialog.setNameFilter(tr("Binaries (*.dll *.exe *.obj *.pdb)"));
   if (dialog.exec()) {
     QStringList selected_paths = dialog.selectedFiles();
-    qDebug() << "selected:";
-    for (QStringView path : selected_paths) {
-      qDebug() << "-" << path;
+    for (QString &path : selected_paths) {
+      std::string path_std_string = std::move(path).toStdString();
+      qDebug() << "adding file" << path_std_string.c_str() << "to project";
+      this->project_.add_file(path_std_string,
+                              Loaded_File::load(path_std_string.c_str()));
     }
   }
 }
