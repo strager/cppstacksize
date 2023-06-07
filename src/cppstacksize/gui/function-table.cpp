@@ -17,23 +17,20 @@ int Function_Table_Model::columnCount(const QModelIndex&) const { return 3; }
 
 QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
   if (role == Qt::DisplayRole) {
-    CSS_ASSERT(index.row() >= 0);
-    U64 row = narrow_cast<U64>(index.row());
-    CSS_ASSERT(row < this->functions_.size());
-    if (row >= this->functions_.size()) {
+    const CodeView_Function* func = this->get_function(index);
+    if (func == nullptr) {
       return QVariant();
     }
-    const CodeView_Function& func = this->functions_[index.row()];
     switch (index.column()) {
       case 0:
-        return QString(func.name.c_str());
+        return QString(func->name.c_str());
       case 1:
-        return func.self_stack_size;
+        return func->self_stack_size;
       case 2:
         if (this->type_table_ != nullptr &&
             this->type_index_table_ != nullptr) {
           Logger& func_logger = fallback_logger;  // TODO(port)
-          return func.get_caller_stack_size(
+          return func->get_caller_stack_size(
               *this->type_table_, *this->type_index_table_, func_logger);
           // TODO(port):
           // if (func_logger.did_log_message()) {
@@ -77,5 +74,16 @@ void Function_Table_Model::sync_data_from_project() {
   this->type_index_table_ = this->project_->get_type_index_table(logger);
 
   this->endResetModel();
+}
+
+const CodeView_Function* Function_Table_Model::get_function(
+    const QModelIndex& index) const {
+  CSS_ASSERT(index.row() >= 0);
+  U64 row = narrow_cast<U64>(index.row());
+  CSS_ASSERT(row < this->functions_.size());
+  if (row >= this->functions_.size()) {
+    return nullptr;
+  }
+  return &this->functions_[index.row()];
 }
 }
