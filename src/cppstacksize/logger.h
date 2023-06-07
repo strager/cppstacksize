@@ -3,7 +3,11 @@
 #include <cppstacksize/base.h>
 #include <cppstacksize/reader.h>
 #include <deque>
+#include <iterator>
 #include <string_view>
+
+// TODO(strager): Switch to <format>.
+#include <fmt/format.h>
 
 namespace cppstacksize {
 class Logger {
@@ -44,6 +48,8 @@ class Capturing_Logger : public Logger {
       if (need_newline) {
         result += '\n';
       }
+      fmt::format_to(std::back_inserter(result), "{} ({})", message.message,
+                     message.location.to_string());
       result += message.message;
       need_newline = true;
     }
