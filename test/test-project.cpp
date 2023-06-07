@@ -17,11 +17,10 @@ TEST(Test_Project, loads_complete_obj_file) {
   ASSERT_GT(funcs.size(), 0);
   EXPECT_EQ(funcs[0].name, u8"callee");
   // Type table should load.
-  std::optional<CodeView_Type_Table> type_table = project.get_type_table();
-  ASSERT_TRUE(type_table.has_value());
-  std::optional<CodeView_Type_Table> type_index_table =
-      project.get_type_index_table();
-  ASSERT_TRUE(type_index_table.has_value());
+  CodeView_Type_Table* type_table = project.get_type_table();
+  ASSERT_NE(type_table, nullptr);
+  CodeView_Type_Table* type_index_table = project.get_type_index_table();
+  ASSERT_NE(type_index_table, nullptr);
   EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 32);
 }
 
@@ -35,11 +34,10 @@ TEST(Test_Project, loads_complete_pdb_file) {
   ASSERT_GT(funcs.size(), 0);
   EXPECT_EQ(funcs[0].name, u8"callee");
   // Type tables should load.
-  std::optional<CodeView_Type_Table> type_table = project.get_type_table();
-  ASSERT_TRUE(type_table.has_value());
-  std::optional<CodeView_Type_Table> type_index_table =
-      project.get_type_index_table();
-  ASSERT_TRUE(type_index_table.has_value());
+  CodeView_Type_Table* type_table = project.get_type_table();
+  ASSERT_NE(type_table, nullptr);
+  CodeView_Type_Table* type_index_table = project.get_type_index_table();
+  ASSERT_NE(type_index_table, nullptr);
   EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 40);
 }
 
@@ -55,11 +53,10 @@ TEST(Test_Project, loads_unlinked_pdb_and_obj) {
   ASSERT_GT(funcs.size(), 0);
   EXPECT_EQ(funcs[0].name, u8"callee");
   // Type tables should load from .pdb.
-  std::optional<CodeView_Type_Table> type_table = project.get_type_table();
-  ASSERT_TRUE(type_table.has_value());
-  std::optional<CodeView_Type_Table> type_index_table =
-      project.get_type_index_table();
-  ASSERT_TRUE(type_index_table.has_value());
+  CodeView_Type_Table* type_table = project.get_type_table();
+  ASSERT_NE(type_table, nullptr);
+  CodeView_Type_Table* type_index_table = project.get_type_index_table();
+  ASSERT_NE(type_index_table, nullptr);
   EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 40);
 }
 
@@ -75,11 +72,10 @@ TEST(Test_Project, loads_unlinked_obj_and_pdb) {
   ASSERT_GT(funcs.size(), 0);
   EXPECT_EQ(funcs[0].name, u8"callee");
   // Type tables should load from .pdb.
-  std::optional<CodeView_Type_Table> type_table = project.get_type_table();
-  ASSERT_TRUE(type_table.has_value());
-  std::optional<CodeView_Type_Table> type_index_table =
-      project.get_type_index_table();
-  ASSERT_TRUE(type_index_table.has_value());
+  CodeView_Type_Table* type_table = project.get_type_table();
+  ASSERT_NE(type_table, nullptr);
+  CodeView_Type_Table* type_index_table = project.get_type_index_table();
+  ASSERT_NE(type_index_table, nullptr);
   EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 40);
 }
 

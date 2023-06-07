@@ -4,6 +4,7 @@
 #include <cppstacksize/file.h>
 #include <cppstacksize/pdb.h>
 #include <cppstacksize/pe.h>
+#include <cppstacksize/util.h>
 #include <memory>
 #include <optional>
 
@@ -81,58 +82,26 @@ class Project {
         std::make_unique<Project_File>(std::move(name), std::move(file)));
   }
 
-  std::optional<CodeView_Type_Table> get_type_table(
-      Logger& logger = fallback_logger) {
-    for (std::unique_ptr<Project_File>& file : this->files_) {
-      file->try_load_pdb_generic_headers(logger);
-      if (file->pdb_streams.has_value()) {
-        if (!file->pdb_tpi_header.has_value()) {
-          file->pdb_tpi_header =
-              parse_pdb_tpi_stream_header(&file->pdb_streams->at(2), logger);
-        }
-        // TODO[start-type-id]
-        return parse_codeview_types_without_header(
-            &file->pdb_tpi_header->type_reader, logger);
-      }
-
-      file->try_load_debug_t_sections();
-      for (Sub_File_Reader<Span_Reader>& section_reader :
-           file->debug_t_sections) {
-        try {
-          return parse_codeview_types(&section_reader);
-        } catch (CodeView_Types_In_Separate_PDB_File&) {
-          // Ignore.
-        }
-      }
+  // Possibly returns nullptr.
+  CodeView_Type_Table* get_type_table(Logger& logger = fallback_logger) {
+    if (this->type_table_is_dirty_) {
+      this->load_type_table(logger);
+      this->type_table_is_dirty_ = false;
+    } else {
+      // TODO(strager): Copy logs from prior load?
     }
-    return std::nullopt;
+    return get(this->type_table_cache_);
   }
 
-  std::optional<CodeView_Type_Table> get_type_index_table(
-      Logger& logger = fallback_logger) {
-    for (std::unique_ptr<Project_File>& file : this->files_) {
-      file->try_load_pdb_generic_headers(logger);
-      if (file->pdb_streams.has_value()) {
-        if (!file->pdb_ipi_header.has_value()) {
-          file->pdb_ipi_header =
-              parse_pdb_tpi_stream_header(&file->pdb_streams->at(4), logger);
-        }
-        // TODO[start-type-id]
-        return parse_codeview_types_without_header(
-            &file->pdb_ipi_header->type_reader, logger);
-      }
-
-      file->try_load_debug_t_sections();
-      for (Sub_File_Reader<Span_Reader>& section_reader :
-           file->debug_t_sections) {
-        try {
-          return parse_codeview_types(&section_reader);
-        } catch (CodeView_Types_In_Separate_PDB_File&) {
-          // Ignore.
-        }
-      }
+  // Possibly returns nullptr.
+  CodeView_Type_Table* get_type_index_table(Logger& logger = fallback_logger) {
+    if (this->type_index_table_is_dirty_) {
+      this->load_type_index_table(logger);
+      this->type_index_table_is_dirty_ = false;
+    } else {
+      // TODO(strager): Copy logs from prior load?
     }
-    return std::nullopt;
+    return get(this->type_index_table_cache_);
   }
 
   std::span<const CodeView_Function> get_all_functions(
@@ -147,6 +116,60 @@ class Project {
   }
 
  private:
+  void load_type_table(Logger& logger) {
+    for (std::unique_ptr<Project_File>& file : this->files_) {
+      file->try_load_pdb_generic_headers(logger);
+      if (file->pdb_streams.has_value()) {
+        if (!file->pdb_tpi_header.has_value()) {
+          file->pdb_tpi_header =
+              parse_pdb_tpi_stream_header(&file->pdb_streams->at(2), logger);
+        }
+        // TODO[start-type-id]
+        this->type_table_cache_ = parse_codeview_types_without_header(
+            &file->pdb_tpi_header->type_reader, logger);
+        return;
+      }
+
+      file->try_load_debug_t_sections();
+      for (Sub_File_Reader<Span_Reader>& section_reader :
+           file->debug_t_sections) {
+        try {
+          this->type_table_cache_ = parse_codeview_types(&section_reader);
+          return;
+        } catch (CodeView_Types_In_Separate_PDB_File&) {
+          // Ignore.
+        }
+      }
+    }
+  }
+
+  void load_type_index_table(Logger& logger) {
+    for (std::unique_ptr<Project_File>& file : this->files_) {
+      file->try_load_pdb_generic_headers(logger);
+      if (file->pdb_streams.has_value()) {
+        if (!file->pdb_ipi_header.has_value()) {
+          file->pdb_ipi_header =
+              parse_pdb_tpi_stream_header(&file->pdb_streams->at(4), logger);
+        }
+        // TODO[start-type-id]
+        this->type_index_table_cache_ = parse_codeview_types_without_header(
+            &file->pdb_ipi_header->type_reader, logger);
+        return;
+      }
+
+      file->try_load_debug_t_sections();
+      for (Sub_File_Reader<Span_Reader>& section_reader :
+           file->debug_t_sections) {
+        try {
+          this->type_index_table_cache_ = parse_codeview_types(&section_reader);
+          return;
+        } catch (CodeView_Types_In_Separate_PDB_File&) {
+          // Ignore.
+        }
+      }
+    }
+  }
+
   void load_functions(Logger& logger) {
     this->functions_cache_.clear();
 
@@ -187,5 +210,11 @@ class Project {
 
   std::vector<CodeView_Function> functions_cache_;
   bool functions_are_dirty_ = true;
+
+  std::optional<CodeView_Type_Table> type_table_cache_;
+  bool type_table_is_dirty_ = true;
+
+  std::optional<CodeView_Type_Table> type_index_table_cache_;
+  bool type_index_table_is_dirty_ = true;
 };
 }

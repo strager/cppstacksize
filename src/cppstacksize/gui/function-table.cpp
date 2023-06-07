@@ -30,8 +30,8 @@ QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
       case 1:
         return func.self_stack_size;
       case 2:
-        if (this->type_table_.has_value() &&
-            this->type_index_table_.has_value()) {
+        if (this->type_table_ != nullptr &&
+            this->type_index_table_ != nullptr) {
           Logger& func_logger = fallback_logger;  // TODO(port)
           return func.get_caller_stack_size(
               *this->type_table_, *this->type_index_table_, func_logger);
@@ -70,11 +70,12 @@ QVariant Function_Table_Model::headerData(int section,
 
 void Function_Table_Model::sync_data_from_project() {
   this->beginResetModel();
-  this->functions_ = this->project_->get_all_functions();
-  this->endResetModel();
 
+  this->functions_ = this->project_->get_all_functions();
   Logger& logger = fallback_logger;  // TODO(port)
   this->type_table_ = this->project_->get_type_table(logger);
   this->type_index_table_ = this->project_->get_type_index_table(logger);
+
+  this->endResetModel();
 }
 }

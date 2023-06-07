@@ -26,8 +26,8 @@ class Function_Table_Model : public QAbstractTableModel {
 
  private:
   std::span<const CodeView_Function> functions_;
-  std::optional<CodeView_Type_Table> type_table_;
-  std::optional<CodeView_Type_Table> type_index_table_;
+  CodeView_Type_Table *type_table_ = nullptr;
+  CodeView_Type_Table *type_index_table_ = nullptr;
   Project *project_;
 };
 }
