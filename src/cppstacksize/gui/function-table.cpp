@@ -1,22 +1,49 @@
+#include <cppstacksize/base.h>
+#include <cppstacksize/codeview.h>
 #include <cppstacksize/gui/function-table.h>
+#include <cppstacksize/project.h>
 
 namespace cppstacksize {
-Function_Table_Model::Function_Table_Model(QObject *parent)
-    : QAbstractTableModel(parent) {}
+Function_Table_Model::Function_Table_Model(Project* project, QObject* parent)
+    : QAbstractTableModel(parent), project_(project) {}
 
-int Function_Table_Model::rowCount(const QModelIndex &) const { return 2; }
+Function_Table_Model::~Function_Table_Model() = default;
 
-int Function_Table_Model::columnCount(const QModelIndex &) const { return 3; }
+int Function_Table_Model::rowCount(const QModelIndex&) const {
+  return narrow_cast<int>(this->functions_.size());
+}
 
-QVariant Function_Table_Model::data(const QModelIndex &index, int role) const {
+int Function_Table_Model::columnCount(const QModelIndex&) const { return 3; }
+
+QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
   if (role == Qt::DisplayRole) {
+    CSS_ASSERT(index.row() >= 0);
+    U64 row = narrow_cast<U64>(index.row());
+    CSS_ASSERT(row < this->functions_.size());
+    if (row >= this->functions_.size()) {
+      return QVariant();
+    }
+    const CodeView_Function& func = this->functions_[index.row()];
     switch (index.column()) {
       case 0:
-        return QString("function_%1").arg(index.row());
+        return QString(func.name.c_str());
       case 1:
-        return index.row() * 8;
+        return func.self_stack_size;
       case 2:
-        return 32;
+        if (this->type_table_.has_value() &&
+            this->type_index_table_.has_value()) {
+          Logger& func_logger = fallback_logger;  // TODO(port)
+          return func.get_caller_stack_size(
+              *this->type_table_, *this->type_index_table_, func_logger);
+          // TODO(port):
+          // if (func_logger.did_log_message()) {
+          //   td.title = func_logger.get_logged_messages_string_for_tool_tip();
+          // }
+        } else {
+          // TODO(strager): Indicate which PDB file needs to be loaded.
+          // TODO(port): td.title = "CodeView types cannot be loaded because
+          // they are in a separate PDB file";
+        }
       default:
         __builtin_unreachable();
         break;
@@ -39,5 +66,15 @@ QVariant Function_Table_Model::headerData(int section,
     }
   }
   return QVariant();
+}
+
+void Function_Table_Model::sync_data_from_project() {
+  this->beginResetModel();
+  this->functions_ = this->project_->get_all_functions();
+  this->endResetModel();
+
+  Logger& logger = fallback_logger;  // TODO(port)
+  this->type_table_ = this->project_->get_type_table(logger);
+  this->type_index_table_ = this->project_->get_type_index_table(logger);
 }
 }

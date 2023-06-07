@@ -16,10 +16,11 @@ class Main_Window : public QMainWindow {
   void do_open();
 
  private:
-  QTableView function_table_;
-  Function_Table_Model function_table_model_;
-  QSortFilterProxyModel function_table_sorter_;
-
   Project project_;
+
+  QTableView function_table_;
+  Function_Table_Model function_table_model_ =
+      Function_Table_Model(&this->project_);
+  QSortFilterProxyModel function_table_sorter_;
 };
 }

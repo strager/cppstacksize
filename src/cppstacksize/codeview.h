@@ -81,7 +81,7 @@ class CodeView_Type_Table {
         this->reader_);
   }
 
-  std::optional<U64> get_offset_of_type_entry_(U32 type_id) {
+  std::optional<U64> get_offset_of_type_entry_(U32 type_id) const {
     U32 index = type_id - this->start_type_id_;
     if (index < 0 || index >= this->type_entry_offsets_.size()) {
       return std::nullopt;
@@ -297,14 +297,14 @@ struct CodeView_Function {
   bool has_func_id_type;
   U32 type_id;
 
-  U32 get_caller_stack_size(CodeView_Type_Table& type_table,
+  U32 get_caller_stack_size(const CodeView_Type_Table& type_table,
                             Logger& logger = fallback_logger) {
     return this->get_caller_stack_size(type_table, type_table, logger);
   }
 
-  U32 get_caller_stack_size(CodeView_Type_Table& type_table,
-                            CodeView_Type_Table& type_index_table,
-                            Logger& logger = fallback_logger) {
+  U32 get_caller_stack_size(const CodeView_Type_Table& type_table,
+                            const CodeView_Type_Table& type_index_table,
+                            Logger& logger = fallback_logger) const {
     // TODO(strager): Refactor the std::visit mess.
     return std::visit(
         [&](auto* reader_ptr) -> U32 {
@@ -429,7 +429,7 @@ struct CodeView_Function {
         &section_reader, this->code_offset, this->code_size);
   }
 
-  Location location() {
+  Location location() const {
     return std::visit(
         [&](auto& reader) { return reader.locate(this->byte_offset); },
         this->reader);
