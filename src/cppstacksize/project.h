@@ -80,6 +80,7 @@ class Project {
   void add_file(std::string name, Loaded_File file) {
     this->files_.push_back(
         std::make_unique<Project_File>(std::move(name), std::move(file)));
+    this->functions_are_dirty_ = true;
   }
 
   // Possibly returns nullptr.

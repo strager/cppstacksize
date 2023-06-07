@@ -1,6 +1,7 @@
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/example-file.h>
 #include <cppstacksize/project.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <vector>
 
@@ -77,6 +78,22 @@ TEST(Test_Project, loads_unlinked_obj_and_pdb) {
   CodeView_Type_Table* type_index_table = project.get_type_index_table();
   ASSERT_NE(type_index_table, nullptr);
   EXPECT_EQ(funcs[0].get_caller_stack_size(*type_table, *type_index_table), 40);
+}
+
+TEST(Test_Project, loads_functions_from_obj_after_loading_functionless_pdb) {
+  Example_File obj_file("coff-pdb/example.obj");
+  Example_File pdb_file("coff-pdb/example.pdb");
+  Project project;
+  project.add_file("example.pdb", std::move(pdb_file).loaded_file());
+
+  // This .pdb file has no functions, only types.
+  std::span<const CodeView_Function> funcs = project.get_all_functions();
+  EXPECT_THAT(funcs, ::testing::IsEmpty());
+
+  project.add_file("example.obj", std::move(obj_file).loaded_file());
+  funcs = project.get_all_functions();
+  EXPECT_GT(funcs.size(), 0)
+      << "loading example.obj should have added functions";
 }
 
 TEST(Test_Project, pdb_functions_link_to_loaded_dll) {
