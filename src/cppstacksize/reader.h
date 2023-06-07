@@ -142,7 +142,7 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
 
   explicit Sub_File_Reader(const Base_Reader* base_reader, U64 offset,
                            U64 size) {
-    // TODO(port): Combine nested Sub_File_Reader-s.
+    // TODO(port): Automatically combine nested Sub_File_Reader-s.
     this->base_reader_ = base_reader;
     // TODO(strager): Ensure offset does not exceed base_reader->size().
     this->sub_file_offset_ = offset;
@@ -155,6 +155,16 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
 
   const Base_Reader* base_reader() const { return this->base_reader_; }
   U64 sub_file_offset() const { return this->sub_file_offset_; }
+
+  Sub_File_Reader<Base_Reader> sub_reader(U64 offset) {
+    return this->sub_reader(offset, this->size());
+  }
+
+  Sub_File_Reader<Base_Reader> sub_reader(U64 offset, U64 size) {
+    // TODO(strager): Limit size.
+    return Sub_File_Reader<Base_Reader>(this->base_reader_,
+                                        this->sub_file_offset_ + offset, size);
+  }
 
   U64 size() const { return this->sub_file_size_; }
 

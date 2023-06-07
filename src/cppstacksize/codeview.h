@@ -409,8 +409,8 @@ struct CodeView_Function {
   std::vector<CodeView_Function_Local> get_locals(U64 offset) const;
 
   // Returns null if no PEFile is associated with this function.
-  std::optional<Sub_File_Reader<Sub_File_Reader<Span_Reader>>>
-  get_instruction_bytes_reader(Logger& logger = fallback_logger) const {
+  std::optional<Sub_File_Reader<Span_Reader>> get_instruction_bytes_reader(
+      Logger& logger = fallback_logger) const {
     if (this->pe_file == nullptr) {
       return std::nullopt;
     }
@@ -425,8 +425,7 @@ struct CodeView_Function {
         this->pe_file->sections[this->code_section_index];
     Sub_File_Reader section_reader =
         this->pe_file->reader_for_section(code_section);
-    return Sub_File_Reader<decltype(section_reader)>(
-        &section_reader, this->code_offset, this->code_size);
+    return section_reader.sub_reader(this->code_offset, this->code_size);
   }
 
   Location location() const {

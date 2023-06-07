@@ -339,7 +339,6 @@ TYPED_TEST(Test_Reader, out_of_bounds_utf_8_string_fails) {
   EXPECT_THROW({ r.utf_8_string(0, 4); }, Out_Of_Bounds_Read);
   EXPECT_THROW({ r.utf_8_string(0, 100); }, Out_Of_Bounds_Read);
 }
-}
 
 TYPED_TEST(Test_Reader, out_of_bounds_copy_bytes_into_fails) {
   static const U8 data[] = {0x6c, 0x6f, 0x6c};
@@ -362,5 +361,26 @@ TYPED_TEST(Test_Reader, out_of_bounds_copy_bytes_into_fails) {
         r.copy_bytes_into(buffer, 4);
       },
       Out_Of_Bounds_Read);
+}
+
+TEST(Test_Sub_File_Reader, combine_nested_readers) {
+  static const U8 data[] = {10, 20, 30, 40, 50, 60};
+  Span_Reader base_reader(data);
+  Sub_File_Reader inner_reader(&base_reader, 1, 5);
+  Sub_File_Reader outer_reader = inner_reader.sub_reader(1);
+  EXPECT_EQ(outer_reader.base_reader(), &base_reader);
+  EXPECT_EQ(outer_reader.sub_file_offset(), 1 + 1);
+  EXPECT_EQ(outer_reader.size(), 4);
+}
+
+TEST(Test_Sub_File_Reader, combine_nested_readers_with_outer_size) {
+  static const U8 data[] = {10, 20, 30, 40, 50, 60};
+  Span_Reader base_reader(data);
+  Sub_File_Reader inner_reader(&base_reader, 1, 5);
+  Sub_File_Reader outer_reader = inner_reader.sub_reader(1, 3);
+  EXPECT_EQ(outer_reader.base_reader(), &base_reader);
+  EXPECT_EQ(outer_reader.sub_file_offset(), 1 + 1);
+  EXPECT_EQ(outer_reader.size(), 3);
+}
 }
 }
