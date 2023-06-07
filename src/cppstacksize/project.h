@@ -81,6 +81,8 @@ class Project {
     this->files_.push_back(
         std::make_unique<Project_File>(std::move(name), std::move(file)));
     this->functions_are_dirty_ = true;
+    this->type_table_is_dirty_ = true;
+    this->type_index_table_is_dirty_ = true;
   }
 
   // Possibly returns nullptr.

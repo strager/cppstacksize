@@ -96,6 +96,21 @@ TEST(Test_Project, loads_functions_from_obj_after_loading_functionless_pdb) {
       << "loading example.obj should have added functions";
 }
 
+TEST(Test_Project, loads_types_from_pdb_after_loading_typeless_obj) {
+  Example_File obj_file("coff-pdb/example.obj");
+  Example_File pdb_file("coff-pdb/example.pdb");
+  Project project;
+  project.add_file("example.obj", std::move(obj_file).loaded_file());
+
+  // This .obj file has no types, only functions.
+  EXPECT_EQ(project.get_type_table(), nullptr);
+  EXPECT_EQ(project.get_type_index_table(), nullptr);
+
+  project.add_file("example.pdb", std::move(pdb_file).loaded_file());
+  EXPECT_NE(project.get_type_table(), nullptr);
+  EXPECT_NE(project.get_type_index_table(), nullptr);
+}
+
 TEST(Test_Project, pdb_functions_link_to_loaded_dll) {
   for (U32 i = 0; i < 2; ++i) {
     Example_File pdb_reader("pdb-pe/temporary.pdb");
