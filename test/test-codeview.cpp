@@ -264,19 +264,18 @@ TEST(Test_CodeView, split_coff_and_pdb_fails_to_load_type_info_from_coff) {
   }
 }
 
-#if 0  // TODO(port): Needs PDB parsing.
 TEST(Test_CodeView, coff_can_load_type_info_from_pdb_tpi_and_ipi) {
   Example_File obj_file("coff-pdb/example.obj");
   Example_File pdb_file("coff-pdb/example.pdb");
 
   auto pdb_streams = parse_pdb_stream_directory(
-      &pdb_file.reader(), parse_pdb_header(&pdb_file.reader()));
-  auto pdb_tpi_header = parse_pdb_tpi_stream_header(pdb_streams[2]);
+      &pdb_file.reader(), parse_pdb_header(pdb_file.reader()));
+  auto pdb_tpi_header = parse_pdb_tpi_stream_header(&pdb_streams[2]);
   auto pdb_type_table =
-      parse_codeview_types_without_header_async(pdb_tpi_header.type_reader);
-  auto pdb_ipi_header = parse_pdb_tpi_stream_header_async(pdb_streams[4]);
+      parse_codeview_types_without_header(&pdb_tpi_header.type_reader);
+  auto pdb_ipi_header = parse_pdb_tpi_stream_header(&pdb_streams[4]);
   auto pdb_type_index_table =
-      parse_codeview_types_without_header(pdb_ipi_header.type_reader);
+      parse_codeview_types_without_header(&pdb_ipi_header.type_reader);
 
   PE_File<Span_Reader> obj = parse_pe_file(&obj_file.reader());
   using Reader = Sub_File_Reader<Span_Reader>;
@@ -288,7 +287,6 @@ TEST(Test_CodeView, coff_can_load_type_info_from_pdb_tpi_and_ipi) {
                                                    pdb_type_index_table),
             40);
 }
-#endif
 
 TEST(Test_CodeView, function_code_offset_and_size_from_pdb) {
   Example_File pdb_file("pdb-pe/temporary.pdb");
