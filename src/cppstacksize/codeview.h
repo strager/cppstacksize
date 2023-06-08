@@ -406,7 +406,8 @@ struct CodeView_Function {
         type_table.reader_);
   }
 
-  std::vector<CodeView_Function_Local> get_locals(U64 offset) const;
+  std::vector<CodeView_Function_Local> get_locals(
+      U64 offset, Logger& logger = fallback_logger) const;
 
   // Returns null if no PEFile is associated with this function.
   std::optional<Sub_File_Reader<Span_Reader>> get_instruction_bytes_reader(
@@ -625,12 +626,11 @@ done:;
 }
 
 inline std::vector<CodeView_Function_Local> CodeView_Function::get_locals(
-    U64 offset) const {
+    U64 offset, Logger& logger) const {
   std::vector<CodeView_Function_Local> out_locals;
   std::visit(
       [&](auto& reader) {
-        get_codeview_function_locals(reader, offset, out_locals,
-                                     fallback_logger);
+        get_codeview_function_locals(reader, offset, out_locals, logger);
       },
       this->reader);
   return out_locals;

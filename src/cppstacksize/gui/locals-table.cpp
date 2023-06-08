@@ -112,8 +112,8 @@ void Locals_Table_Model::set_function(const CodeView_Function* function) {
   this->beginResetModel();
   this->function_ = function;
   if (this->function_) {
-    // TODO(port): Logger.
-    this->locals_ = this->function_->get_locals(this->function_->byte_offset);
+    this->locals_ = this->function_->get_locals(this->function_->byte_offset,
+                                                *this->logger_);
   } else {
     this->locals_.clear();
   }
