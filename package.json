@@ -1,7 +1,6 @@
 {
   "scripts": {
-    "fmt": "prettier --write \"contrib/*.mjs\" \"src/*.html\" \"src/*.mjs\" \"test/*.mjs\" \"*.json\"",
-    "serve": "node contrib/server.mjs",
+    "fmt": "prettier --write \"src/*.mjs\" \"test/*.mjs\" \"*.json\"",
     "test": "node --test test/"
   },
   "dependencies": {
