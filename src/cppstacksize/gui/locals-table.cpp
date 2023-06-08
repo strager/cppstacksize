@@ -58,7 +58,7 @@ QVariant Locals_Table_Model::data(const QModelIndex& index, int role) const {
       switch (index.column()) {
         case 1:
         case 2:
-          if (!this->get_local_data(row)->type.has_value()) {
+          if (!this->get_local_data(row)->errors_for_tool_tip.empty()) {
             return warning_background_brush;
           }
           break;
