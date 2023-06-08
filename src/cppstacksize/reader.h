@@ -142,7 +142,6 @@ class Sub_File_Reader : public Reader_Base<Sub_File_Reader<Base_Reader_T>> {
 
   explicit Sub_File_Reader(const Base_Reader* base_reader, U64 offset,
                            U64 size) {
-    // TODO(port): Automatically combine nested Sub_File_Reader-s.
     this->base_reader_ = base_reader;
     // TODO(strager): Ensure offset does not exceed base_reader->size().
     this->sub_file_offset_ = offset;
