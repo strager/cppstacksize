@@ -48,12 +48,13 @@ QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
 
     case Qt::BackgroundRole:
       switch (index.column()) {
-        case 2:
-          if (this->get_function_data(index.row()) == nullptr) {
+        case 2: {
+          Cached_Function_Data* data = this->get_function_data(index.row());
+          if (data == nullptr || !data->errors_for_tool_tip.empty()) {
             return warning_background_brush;
           }
           break;
-
+        }
         case 0:
         case 1:
         default:
@@ -63,14 +64,19 @@ QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
 
     case Qt::ToolTipRole:
       switch (index.column()) {
-        case 2:
-          if (this->get_function_data(index.row()) == nullptr) {
+        case 2: {
+          Cached_Function_Data* data = this->get_function_data(index.row());
+          if (data == nullptr) {
             // TODO(strager): Indicate which PDB file needs to be loaded.
             return QString(
                 "CodeView types cannot be loaded because they are in a "
                 "separate PDB file");
           }
+          if (!data->errors_for_tool_tip.empty()) {
+            return QString(data->errors_for_tool_tip.c_str());
+          }
           break;
+        }
 
         case 0:
         case 1:
@@ -135,16 +141,14 @@ Function_Table_Model::get_function_data(U64 row) const {
 
   Cached_Function_Data* data = this->function_data_cache_[row];
   if (data == nullptr) {
-    Logger& func_logger = *this->logger_;  // TODO(port)
+    Capturing_Logger func_logger(this->logger_);
     U32 caller_stack_size = this->functions_[row].get_caller_stack_size(
         *this->type_table_, *this->type_index_table_, func_logger);
-    // TODO(port):
-    // if (func_logger.did_log_message()) {
-    //   td.title = func_logger.get_logged_messages_string_for_tool_tip();
-    // }
     data = new Cached_Function_Data{
         .caller_stack_size = caller_stack_size,
     };
+    data->errors_for_tool_tip =
+        func_logger.get_logged_messages_string_for_tool_tip();
     this->function_data_cache_.insert(row, data);
   }
   return data;

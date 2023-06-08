@@ -30,6 +30,8 @@ class Function_Table_Model : public QAbstractTableModel {
  private:
   struct Cached_Function_Data {
     U32 caller_stack_size;
+    // If empty, there were no errors.
+    std::string errors_for_tool_tip;
   };
 
   // Possibly returns nullptr.
