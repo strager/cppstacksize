@@ -471,6 +471,9 @@ void find_all_codeview_functions(Reader* reader,
         find_all_codeview_functions_in_subsection(
             reader->sub_reader(offset, subsection_size), out_functions, logger);
         break;
+      case DEBUG_S_LINES:
+        // TODO[obj-lines]
+        break;
       default:
         // Ignore.
         break;

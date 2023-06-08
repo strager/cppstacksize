@@ -13,11 +13,17 @@ enum {
 // Subsection types:
 enum {
   DEBUG_S_SYMBOLS = 0xf1,
+  DEBUG_S_LINES = 0xf2,
 };
 
 // Calling conventions:
 enum {
   CV_CALL_NEAR_C = 0x00,
+};
+
+enum {
+  // CodeView line table flags:
+  CV_LINES_HAVE_COLUMNS = 0x0001,
 };
 
 // Pointer types:

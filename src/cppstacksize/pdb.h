@@ -122,6 +122,8 @@ struct PDB_DBI_Module {
   std::u8string linked_object_path;
   std::u8string source_object_path;
   U16 debug_info_stream_index;
+  U32 symbols_size;
+  U32 c13_line_info_size;
   std::vector<PDB_DBI_Module_Segment> segments;
 };
 
@@ -148,6 +150,8 @@ PDB_DBI parse_pdb_dbi_stream(const Reader& reader,
     U16 module_section_offset = module_infos_reader.u16(offset + 0x08);
     U16 module_section_size = module_infos_reader.u16(offset + 0x0c);
     U16 module_sym_stream = module_infos_reader.u16(offset + 0x22);
+    U16 symbols_size = module_infos_reader.u16(offset + 0x24);
+    U16 c13_line_info_size = module_infos_reader.u16(offset + 0x2c);
     std::optional<U64> module_name_null_terminator_offset =
         module_infos_reader.find_u8(0, offset + 0x40);
     if (!module_name_null_terminator_offset.has_value()) {
@@ -173,6 +177,8 @@ PDB_DBI parse_pdb_dbi_stream(const Reader& reader,
         .linked_object_path = std::move(obj_name),
         .source_object_path = std::move(module_name),
         .debug_info_stream_index = module_sym_stream,
+        .symbols_size = symbols_size,
+        .c13_line_info_size = c13_line_info_size,
         .segments =
             {
                 PDB_DBI_Module_Segment{
