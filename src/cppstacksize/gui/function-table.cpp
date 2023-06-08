@@ -1,6 +1,7 @@
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/gui/function-table.h>
+#include <cppstacksize/gui/style.h>
 #include <cppstacksize/project.h>
 
 namespace cppstacksize {
@@ -20,30 +21,47 @@ int Function_Table_Model::rowCount(const QModelIndex&) const {
 int Function_Table_Model::columnCount(const QModelIndex&) const { return 3; }
 
 QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
-  if (role == Qt::DisplayRole) {
-    const CodeView_Function* func = this->get_function(index);
-    if (func == nullptr) {
-      return QVariant();
-    }
-    switch (index.column()) {
-      case 0:
-        return QString(func->name.c_str());
-      case 1:
-        return func->self_stack_size;
-      case 2: {
-        Cached_Function_Data* data = this->get_function_data(index.row());
-        if (data == nullptr) {
-          // TODO(strager): Indicate which PDB file needs to be loaded.
-          // TODO(port): td.title = "CodeView types cannot be loaded because
-          // they are in a separate PDB file";
-          return QVariant();
+  const CodeView_Function* func = this->get_function(index);
+  if (func == nullptr) {
+    return QVariant();
+  }
+  switch (role) {
+    case Qt::DisplayRole:
+      switch (index.column()) {
+        case 0:
+          return QString(func->name.c_str());
+        case 1:
+          return func->self_stack_size;
+        case 2: {
+          Cached_Function_Data* data = this->get_function_data(index.row());
+          if (data == nullptr) {
+            // TODO(strager): Indicate which PDB file needs to be loaded.
+            // TODO(port): td.title = "CodeView types cannot be loaded because
+            // they are in a separate PDB file";
+            return QVariant();
+          }
+          return data->caller_stack_size;
         }
-        return data->caller_stack_size;
+        default:
+          __builtin_unreachable();
+          break;
       }
-      default:
-        __builtin_unreachable();
-        break;
-    }
+      break;
+
+    case Qt::BackgroundRole:
+      switch (index.column()) {
+        case 2:
+          if (this->get_function_data(index.row()) == nullptr) {
+            return warning_background_brush;
+          }
+          break;
+
+        case 0:
+        case 1:
+        default:
+          break;
+      }
+      break;
   }
   return QVariant();
 }

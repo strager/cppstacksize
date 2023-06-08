@@ -1,6 +1,7 @@
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/gui/locals-table.h>
+#include <cppstacksize/gui/style.h>
 #include <cppstacksize/project.h>
 
 namespace cppstacksize {
@@ -20,36 +21,56 @@ int Locals_Table_Model::rowCount(const QModelIndex&) const {
 int Locals_Table_Model::columnCount(const QModelIndex&) const { return 3; }
 
 QVariant Locals_Table_Model::data(const QModelIndex& index, int role) const {
-  if (role == Qt::DisplayRole) {
-    CSS_ASSERT(index.row() >= 0);
-    U64 row = narrow_cast<U64>(index.row());
-    CSS_ASSERT(row < this->locals_.size());
-    if (row >= this->locals_.size()) {
-      return QVariant();
-    }
-    switch (index.column()) {
-      case 0: {
-        const CodeView_Function_Local& local = this->locals_[index.row()];
-        return QString(local.name.c_str());
-      }
-      case 1: {
-        Cached_Local_Data* data = this->get_local_data(row);
-        if (!data->type.has_value()) {
-          return "?";
+  CSS_ASSERT(index.row() >= 0);
+  U64 row = narrow_cast<U64>(index.row());
+  CSS_ASSERT(row < this->locals_.size());
+  if (row >= this->locals_.size()) {
+    return QVariant();
+  }
+  switch (role) {
+    case Qt::DisplayRole:
+      switch (index.column()) {
+        case 0: {
+          const CodeView_Function_Local& local = this->locals_[index.row()];
+          return QString(local.name.c_str());
         }
-        return QString(data->type->name.c_str());
-      }
-      case 2: {
-        Cached_Local_Data* data = this->get_local_data(row);
-        if (!data->type.has_value()) {
-          return "?";
+        case 1: {
+          Cached_Local_Data* data = this->get_local_data(row);
+          if (!data->type.has_value()) {
+            return "?";
+          }
+          return QString(data->type->name.c_str());
         }
-        return narrow_cast<qulonglong>(data->type->byte_size);
+        case 2: {
+          Cached_Local_Data* data = this->get_local_data(row);
+          if (!data->type.has_value()) {
+            return "?";
+          }
+          return narrow_cast<qulonglong>(data->type->byte_size);
+        }
+        default:
+          __builtin_unreachable();
+          break;
       }
-      default:
-        __builtin_unreachable();
-        break;
-    }
+      break;
+
+    case Qt::BackgroundRole:
+      switch (index.column()) {
+        case 1:
+        case 2:
+          if (!this->get_local_data(row)->type.has_value()) {
+            return warning_background_brush;
+          }
+          break;
+
+        case 0:
+        default:
+          break;
+      }
+      break;
+
+    default:
+      break;
   }
   return QVariant();
 }

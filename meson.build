@@ -91,6 +91,7 @@ executable(
     'src/cppstacksize/gui/main.cpp',
     'src/cppstacksize/gui/stack-map-table.cpp',
     'src/cppstacksize/gui/stack-map-table.h',
+    'src/cppstacksize/gui/style.h',
     gui_moc_files,
   ],
   cpp_pch: ['src/cppstacksize/gui/pch.h'],
