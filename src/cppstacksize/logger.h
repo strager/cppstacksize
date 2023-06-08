@@ -50,7 +50,6 @@ class Capturing_Logger : public Logger {
       }
       fmt::format_to(std::back_inserter(result), "{} ({})", message.message,
                      message.location.to_string());
-      result += message.message;
       need_newline = true;
     }
     return result;

@@ -30,6 +30,8 @@ class Locals_Table_Model : public QAbstractTableModel {
  private:
   struct Cached_Local_Data {
     std::optional<CodeView_Type> type;
+    // If empty, there were no errors.
+    std::string errors_for_tool_tip;
   };
 
   Cached_Local_Data *get_local_data(U64 row) const;

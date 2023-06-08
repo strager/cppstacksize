@@ -1,3 +1,4 @@
+#include "qnamespace.h"
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/gui/function-table.h>
@@ -35,9 +36,6 @@ QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
         case 2: {
           Cached_Function_Data* data = this->get_function_data(index.row());
           if (data == nullptr) {
-            // TODO(strager): Indicate which PDB file needs to be loaded.
-            // TODO(port): td.title = "CodeView types cannot be loaded because
-            // they are in a separate PDB file";
             return QVariant();
           }
           return data->caller_stack_size;
@@ -53,6 +51,24 @@ QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
         case 2:
           if (this->get_function_data(index.row()) == nullptr) {
             return warning_background_brush;
+          }
+          break;
+
+        case 0:
+        case 1:
+        default:
+          break;
+      }
+      break;
+
+    case Qt::ToolTipRole:
+      switch (index.column()) {
+        case 2:
+          if (this->get_function_data(index.row()) == nullptr) {
+            // TODO(strager): Indicate which PDB file needs to be loaded.
+            return QString(
+                "CodeView types cannot be loaded because they are in a "
+                "separate PDB file");
           }
           break;
 

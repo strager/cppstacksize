@@ -69,6 +69,23 @@ QVariant Locals_Table_Model::data(const QModelIndex& index, int role) const {
       }
       break;
 
+    case Qt::ToolTipRole:
+      switch (index.column()) {
+        case 1:
+        case 2: {
+          Cached_Local_Data* data = this->get_local_data(row);
+          if (!data->errors_for_tool_tip.empty()) {
+            return QString(data->errors_for_tool_tip.c_str());
+          }
+          break;
+        }
+
+        case 0:
+        default:
+          break;
+      }
+      break;
+
     default:
       break;
   }
@@ -110,12 +127,13 @@ Locals_Table_Model::Cached_Local_Data* Locals_Table_Model::get_local_data(
 
   Cached_Local_Data* data = this->local_data_cache_[row];
   if (data == nullptr) {
+    Capturing_Logger logger(this->logger_);
     const CodeView_Function_Local& local = this->locals_[row];
-    // TODO(port): Local logger.
-    Logger& logger = *this->logger_;
     data = new Cached_Local_Data{
         .type = local.get_type(this->project_->get_type_table(), logger),
     };
+    data->errors_for_tool_tip =
+        logger.get_logged_messages_string_for_tool_tip();
     this->local_data_cache_.insert(row, data);
   }
   return data;
