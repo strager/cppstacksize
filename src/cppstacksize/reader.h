@@ -20,6 +20,9 @@ struct Location {
   std::string to_string() const;
 };
 
+template <class Base_Reader_T>
+class Sub_File_Reader;
+
 // Mixin class using CRTP.
 template <class Derived>
 class Reader_Base {
@@ -56,6 +59,16 @@ class Reader_Base {
           std::copy(chunk.begin(), chunk.end(), out.begin());
           out = out.subspan(chunk.size());
         });
+  }
+
+  Sub_File_Reader<Derived> sub_reader(U64 offset) const {
+    // TODO(strager): Check bounds.
+    return Sub_File_Reader<Derived>(this->derived(), offset,
+                                    this->size() - offset);
+  }
+
+  Sub_File_Reader<Derived> sub_reader(U64 offset, U64 size) const {
+    return Sub_File_Reader<Derived>(this->derived(), offset, size);
   }
 
  protected:

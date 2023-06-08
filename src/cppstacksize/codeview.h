@@ -269,9 +269,7 @@ struct CodeView_Function_Local;
 
 struct CodeView_Function {
   std::u8string name;
-  // TODO(strager): Collapse the Sub_File_Reader<Sub_File_Reader<...>>.
   std::variant<Sub_File_Reader<Span_Reader>,
-               Sub_File_Reader<Sub_File_Reader<Span_Reader>>,
                Sub_File_Reader<PDB_Blocks_Reader<Span_Reader>>>
       reader;
   U64 byte_offset;
@@ -470,9 +468,8 @@ void find_all_codeview_functions(Reader* reader,
     offset += 4;
     switch (subsection_type) {
       case DEBUG_S_SYMBOLS:
-        find_all_codeview_functions_in_subsection<Reader>(
-            Sub_File_Reader(reader, offset, subsection_size), out_functions,
-            logger);
+        find_all_codeview_functions_in_subsection(
+            reader->sub_reader(offset, subsection_size), out_functions, logger);
         break;
       default:
         // Ignore.
