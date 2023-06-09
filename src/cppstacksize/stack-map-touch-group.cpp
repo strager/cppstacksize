@@ -42,14 +42,12 @@ void Stack_Map_Touch_Groups::set_touches(
       this->groups_.push_back(Group{
           .first_index = i,
           .last_index = i,
-          .total_touched_size = touched_size,
           .total_read_size = 0,
           .total_write_size = 0,
       });
     } else {
       Group& group = this->groups_.at(group_temp.group_index);
       group.last_index = i;
-      group.total_touched_size += touched_size;
     }
     if (touch.is_read()) {
       group_temp.read_set.set_range(touch.entry_rsp_relative_address,

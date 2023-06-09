@@ -32,9 +32,6 @@ class Stack_Map_Touch_Groups {
     U64 first_index;
     U64 last_index;
 
-    // Number of bytes touched for each Stack_Map_Touch in this group.
-    U64 total_touched_size;
-
     // Number of bytes read by all Stack_Map_Touch in this group.
     U64 total_read_size;
 
