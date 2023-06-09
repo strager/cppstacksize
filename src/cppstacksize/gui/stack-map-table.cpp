@@ -1,8 +1,8 @@
-#include "cppstacksize/gui/style.h"
 #include <cppstacksize/asm-stack-map.h>
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/gui/stack-map-table.h>
+#include <cppstacksize/gui/style.h>
 #include <cppstacksize/line-tables.h>
 #include <cppstacksize/project.h>
 

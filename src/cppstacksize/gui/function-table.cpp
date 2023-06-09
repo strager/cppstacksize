@@ -1,4 +1,3 @@
-#include "qnamespace.h"
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/gui/function-table.h>
