@@ -18,7 +18,7 @@ int Stack_Map_Table_Model::rowCount(const QModelIndex&) const {
   return narrow_cast<int>(this->touch_groups_.size());
 }
 
-int Stack_Map_Table_Model::columnCount(const QModelIndex&) const { return 2; }
+int Stack_Map_Table_Model::columnCount(const QModelIndex&) const { return 3; }
 
 QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
   CSS_ASSERT(index.row() >= 0);
@@ -42,7 +42,9 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
           return QString("%1:%2").arg(
               "(todo)", QString::number(location.line_source_info.line_number));
         case 1:
-          return narrow_cast<qulonglong>(touch_group.total_touched_size);
+          return narrow_cast<qulonglong>(touch_group.total_read_size);
+        case 2:
+          return narrow_cast<qulonglong>(touch_group.total_write_size);
         default:
           __builtin_unreachable();
           break;
@@ -62,6 +64,7 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
           }
           return QVariant();
         case 1:
+        case 2:
         default:
           break;
       }
@@ -75,6 +78,7 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
           }
           return QVariant();
         case 1:
+        case 2:
         default:
           break;
       }
@@ -91,7 +95,9 @@ QVariant Stack_Map_Table_Model::headerData(int section,
       case 0:
         return QString("code loc");
       case 1:
-        return QString("size");
+        return QString("read size");
+      case 2:
+        return QString("write size");
     }
   }
   return QVariant();

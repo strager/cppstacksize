@@ -14,6 +14,9 @@ enum class Stack_Access_Kind : U8 {
   read_and_write,
 };
 
+bool is_read(Stack_Access_Kind);
+bool is_write(Stack_Access_Kind);
+
 struct Stack_Map_Touch {
   static constexpr Stack_Map_Touch read(U32 offset,
                                         S32 entry_rsp_relative_address,
@@ -57,6 +60,10 @@ struct Stack_Map_Touch {
         .access_kind = Stack_Access_Kind::read_and_write,
     };
   }
+
+  bool is_read() const { return cppstacksize::is_read(this->access_kind); }
+
+  bool is_write() const { return cppstacksize::is_write(this->access_kind); }
 
   friend bool operator==(const Stack_Map_Touch&,
                          const Stack_Map_Touch&) = default;

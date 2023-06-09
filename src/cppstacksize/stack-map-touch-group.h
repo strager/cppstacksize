@@ -34,6 +34,12 @@ class Stack_Map_Touch_Groups {
 
     // Number of bytes touched for each Stack_Map_Touch in this group.
     U64 total_touched_size;
+
+    // Number of bytes read by all Stack_Map_Touch in this group.
+    U64 total_read_size;
+
+    // Number of bytes written by all Stack_Map_Touch in this group.
+    U64 total_write_size;
   };
 
   void set_touches(std::span<const Stack_Map_Touch> touches,

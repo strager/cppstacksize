@@ -15,12 +15,16 @@ void Stack_Map_Touch_Groups::set_touches(
 
   this->groups_.clear();
   for (U64 i = 0; i < touches.size(); ++i) {
-    U32 touched_size = touches[i].byte_count;
+    const Stack_Map_Touch& touch = touches[i];
+    U32 touched_size = touch.byte_count;
     // TODO(strager): Make byte_count 0 inside the Stack_Map_Touch instead of
     // fixing it up here.
     if (touched_size == (U32)-1) {
       touched_size = 0;
     }
+    U32 write_size = touched_size * touches[i].is_write();
+    U32 read_size = touched_size * touches[i].is_read();
+
     auto [existing_it, inserted] = location_to_group_index.try_emplace(
         this->group_key(locations[i]), this->groups_.size());
     if (inserted) {
@@ -28,11 +32,15 @@ void Stack_Map_Touch_Groups::set_touches(
           .first_index = i,
           .last_index = i,
           .total_touched_size = touched_size,
+          .total_read_size = read_size,
+          .total_write_size = write_size,
       });
     } else {
       Group& group = this->groups_.at(existing_it->second);
       group.last_index = i;
       group.total_touched_size += touched_size;
+      group.total_read_size += read_size;
+      group.total_write_size += write_size;
     }
   }
 }

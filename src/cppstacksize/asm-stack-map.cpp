@@ -9,6 +9,28 @@ namespace {
 Stack_Access_Kind stack_access_kind_from_capstone(/*::cs_ac_type*/ U8 access);
 }
 
+bool is_read(Stack_Access_Kind sak) {
+  switch (sak) {
+    case Stack_Access_Kind::read_and_write:
+    case Stack_Access_Kind::read_only:
+    case Stack_Access_Kind::read_or_write:
+      return true;
+    case Stack_Access_Kind::write_only:
+      return false;
+  }
+}
+
+bool is_write(Stack_Access_Kind sak) {
+  switch (sak) {
+    case Stack_Access_Kind::write_only:
+    case Stack_Access_Kind::read_or_write:
+    case Stack_Access_Kind::read_and_write:
+      return true;
+    case Stack_Access_Kind::read_only:
+      return false;
+  }
+}
+
 Stack_Map analyze_x86_64_stack_map(std::span<const U8> code) {
   ::csh handle;
   if (::cs_open(::CS_ARCH_X86, ::CS_MODE_64, &handle) != ::CS_ERR_OK) {
