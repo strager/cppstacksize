@@ -62,8 +62,8 @@ class Line_Tables {
       std::span<const PDB_Blocks_Reader<Reader>> pdb_streams) {
     CSS_ASSERT(module.debug_info_stream_index < pdb_streams.size());
     Sub_File_Reader line_tables_reader(
-        &pdb_streams[module.debug_info_stream_index], module.symbols_size,
-        module.c13_line_info_size);
+        &pdb_streams[module.debug_info_stream_index],
+        module.c13_line_info_offset(), module.c13_line_info_size);
     return this->add_module_line_tables(line_tables_reader);
   }
 

@@ -316,6 +316,7 @@ TEST(Test_PDB, read_dbi_stream) {
             u8"test\\pdb\\example.obj");
   EXPECT_EQ(dbi.modules[0].debug_info_stream_index, 15);
   EXPECT_EQ(dbi.modules[0].symbols_size, 476);
+  EXPECT_EQ(dbi.modules[0].c11_line_info_size, 0);
   EXPECT_EQ(dbi.modules[0].c13_line_info_size, 160);
   ASSERT_EQ(dbi.modules[0].segments.size(), 1);
   EXPECT_EQ(dbi.modules[0].segments[0].pe_section_index, 0);
