@@ -224,5 +224,4 @@ inline Line_Source_Info Line_Tables::source_info_for_offset(
       },
       module.reader);
 }
-
 }
