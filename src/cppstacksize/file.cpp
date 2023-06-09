@@ -9,7 +9,7 @@
 
 namespace cppstacksize {
 Loaded_File Loaded_File::load(const char* path) {
-  std::ifstream file(path);
+  std::ifstream file(path, std::ifstream::in | std::ifstream::binary);
   std::stringstream data_stream;
   data_stream << file.rdbuf();
   if (!file) {
