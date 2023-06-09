@@ -10,8 +10,16 @@ void Stack_Map_Touch_Groups::set_touches(
   // See NOTE[touch-locations-size].
   CSS_ASSERT(locations.size() == touches.size());
 
+  // Per-group data used temporarily while building the groups.
+  struct Group_Temp_Data {
+    explicit Group_Temp_Data(U64 group_index) : group_index(group_index) {}
+
+    // Index into this->groups_.
+    U64 group_index;
+  };
+
   std::pmr::monotonic_buffer_resource memory;
-  std::pmr::map<Group_Key, U64> location_to_group_index(&memory);
+  std::pmr::map<Group_Key, Group_Temp_Data> location_to_group_temp(&memory);
 
   this->groups_.clear();
   for (U64 i = 0; i < touches.size(); ++i) {
@@ -25,7 +33,7 @@ void Stack_Map_Touch_Groups::set_touches(
     U32 write_size = touched_size * touches[i].is_write();
     U32 read_size = touched_size * touches[i].is_read();
 
-    auto [existing_it, inserted] = location_to_group_index.try_emplace(
+    auto [existing_it, inserted] = location_to_group_temp.try_emplace(
         this->group_key(locations[i]), this->groups_.size());
     if (inserted) {
       this->groups_.push_back(Group{
@@ -36,7 +44,8 @@ void Stack_Map_Touch_Groups::set_touches(
           .total_write_size = write_size,
       });
     } else {
-      Group& group = this->groups_.at(existing_it->second);
+      Group_Temp_Data& group_temp = existing_it->second;
+      Group& group = this->groups_.at(group_temp.group_index);
       group.last_index = i;
       group.total_touched_size += touched_size;
       group.total_read_size += read_size;
