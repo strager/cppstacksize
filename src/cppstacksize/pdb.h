@@ -155,7 +155,7 @@ PDB_DBI parse_pdb_dbi_stream(const Reader& reader,
     U16 module_section_offset = module_infos_reader.u16(offset + 0x08);
     U16 module_section_size = module_infos_reader.u16(offset + 0x0c);
     U16 module_sym_stream = module_infos_reader.u16(offset + 0x22);
-    U16 symbols_size = module_infos_reader.u16(offset + 0x24);
+    U32 symbols_size = module_infos_reader.u32(offset + 0x24);
     U32 c11_line_info_size = module_infos_reader.u32(offset + 0x28);
     U32 c13_line_info_size = module_infos_reader.u32(offset + 0x2c);
     std::optional<U64> module_name_null_terminator_offset =
