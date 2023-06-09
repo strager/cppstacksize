@@ -2,15 +2,12 @@
 #include <cppstacksize/example-file.h>
 #include <cppstacksize/pdb.h>
 #include <cppstacksize/pe.h>
+#include <cppstacksize/util.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 namespace cppstacksize {
 namespace {
-std::string u8string_to_string(const std::u8string& s) {
-  return std::string(reinterpret_cast<const char*>(s.data()), s.size());
-}
-
 TEST(Test_CodeView, primitives_obj_has_one_function) {
   Example_File file("coff/primitives.obj");
   PE_File<Span_Reader> pe = parse_pe_file(&file.reader());

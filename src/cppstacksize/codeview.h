@@ -2,6 +2,7 @@
 
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview-constants.h>
+#include <cppstacksize/line-tables.h>
 #include <cppstacksize/logger.h>
 #include <cppstacksize/pdb-reader.h>
 #include <cppstacksize/pe.h>
@@ -291,6 +292,9 @@ struct CodeView_Function {
 
   // Associated PE or COFF file, if any.
   PE_File<Span_Reader>* pe_file = nullptr;
+
+  // Associated module for Line_Tables lookups, if any.
+  Line_Tables::Handle line_tables_handle = Line_Tables::Handle::null();
 
   bool has_func_id_type;
   U32 type_id;

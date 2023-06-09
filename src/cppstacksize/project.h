@@ -2,6 +2,7 @@
 
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/file.h>
+#include <cppstacksize/line-tables.h>
 #include <cppstacksize/pdb.h>
 #include <cppstacksize/pe.h>
 #include <cppstacksize/util.h>
@@ -120,6 +121,11 @@ class Project {
     return this->functions_cache_;
   }
 
+  Line_Tables* get_line_tables(Logger& logger = fallback_logger) {
+    get_all_functions(logger);  // Side effect: Populate Line_Tables if needed.
+    return &this->line_tables_;
+  }
+
  private:
   void load_type_table(Logger& logger) {
     for (std::unique_ptr<Project_File>& file : this->files_) {
@@ -177,6 +183,7 @@ class Project {
 
   void load_functions(Logger& logger) {
     this->functions_cache_.clear();
+    this->line_tables_.clear();
 
     for (std::unique_ptr<Project_File>& file : this->files_) {
       file->try_load_pdb_generic_headers(logger);
@@ -191,8 +198,19 @@ class Project {
       for (const PDB_DBI_Module& module : file->pdb_dbi->modules) {
         PDB_Blocks_Reader<Reader>& codeview_stream =
             file->pdb_streams->at(module.debug_info_stream_index);
+        U64 begin_function_index = this->functions_cache_.size();
         find_all_codeview_functions_2(&codeview_stream, this->functions_cache_,
                                       logger);
+        U64 end_function_index = this->functions_cache_.size();
+
+        Line_Tables::Handle line_tables_handle =
+            this->line_tables_.add_module_line_tables(module,
+                                                      *file->pdb_streams);
+        for (U64 function_index = begin_function_index;
+             function_index < end_function_index; ++function_index) {
+          this->functions_cache_[function_index].line_tables_handle =
+              line_tables_handle;
+        }
       }
     }
 
@@ -221,5 +239,7 @@ class Project {
 
   std::optional<CodeView_Type_Table> type_index_table_cache_;
   bool type_index_table_is_dirty_ = true;
+
+  Line_Tables line_tables_;
 };
 }

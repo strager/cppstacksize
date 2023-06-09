@@ -1,6 +1,8 @@
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/example-file.h>
+#include <cppstacksize/line-tables.h>
 #include <cppstacksize/project.h>
+#include <cppstacksize/util.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <vector>
@@ -146,6 +148,53 @@ TEST(Test_Project, pdb_functions_link_to_loaded_dll) {
     // file or an unrelated file.
     EXPECT_EQ(temporary_reader->locate(0).file_offset, 0x0440);
     EXPECT_EQ(temporary_reader->size(), 0x39);
+  }
+}
+
+TEST(Test_Project, map_function_bytes_to_source_lines) {
+  Example_File pdb_reader("pdb-pe/line-numbers.pdb");
+  Project project;
+  project.add_file("line-numbers.pdb", std::move(pdb_reader).loaded_file());
+
+  std::span<const CodeView_Function> funcs = project.get_all_functions();
+  std::map<std::u8string, const CodeView_Function*> funcs_by_name;
+  for (const CodeView_Function& func : funcs) {
+    funcs_by_name[func.name] = &func;
+  }
+
+  Line_Tables* line_tables = project.get_line_tables();
+
+  struct Test_Case {
+    const char8_t* function_name;
+    U32 instruction_offset;
+    U32 line_number;
+  };
+  static constexpr Test_Case test_cases[] = {
+      // clang-format off
+      {.function_name = u8"foo", .instruction_offset = 0x00, .line_number = 3},
+      {.function_name = u8"foo", .instruction_offset = 0x01, .line_number = 3},
+      {.function_name = u8"foo", .instruction_offset = 0x04, .line_number = 4},
+      {.function_name = u8"foo", .instruction_offset = 0x08, .line_number = 4},
+      {.function_name = u8"foo", .instruction_offset = 0x09, .line_number = 5},
+      {.function_name = u8"foo", .instruction_offset = 0x0d, .line_number = 5},
+      {.function_name = u8"foo", .instruction_offset = 0x0e, .line_number = 2},  // line-numbers.inc
+      {.function_name = u8"foo", .instruction_offset = 0x12, .line_number = 2},  // line-numbers.inc
+      {.function_name = u8"foo", .instruction_offset = 0x13, .line_number = 7},
+      {.function_name = u8"foo", .instruction_offset = 0x1c, .line_number = 8},
+      // clang-format on
+  };
+  for (const Test_Case& test_case : test_cases) {
+    SCOPED_TRACE(fmt::format("function name: {}",
+                             u8string_to_string(test_case.function_name)));
+    SCOPED_TRACE(
+        fmt::format("instruction offset: {:#x}", test_case.instruction_offset));
+    const CodeView_Function* func = funcs_by_name[test_case.function_name];
+    ASSERT_NE(func, nullptr);
+    ASSERT_FALSE(func->line_tables_handle.is_null());
+    Line_Source_Info info = line_tables->source_info_for_offset(
+        func->line_tables_handle, func->code_section_index,
+        func->code_offset + test_case.instruction_offset);
+    EXPECT_EQ(info.line_number, test_case.line_number);
   }
 }
 }

@@ -9,6 +9,7 @@
 #include <cppstacksize/util.h>
 #include <iosfwd>
 #include <variant>
+#include <vector>
 
 namespace cppstacksize {
 struct Line_Source_Info {
@@ -34,8 +35,16 @@ struct Line_Source_Info {
 class Line_Tables {
  public:
   struct Handle {
+    static constexpr U64 null_module_index = static_cast<U64>(-1);
+
     U64 module_index;
+
+    static Handle null() { return Handle{.module_index = null_module_index}; }
+
+    bool is_null() const { return this->module_index == null_module_index; }
   };
+
+  void clear() { this->modules_.clear(); }
 
   // pdb_streams[module.debug_info_stream_index] must remain valid.
   template <class Reader>
@@ -195,6 +204,7 @@ found_match:
 inline Line_Source_Info Line_Tables::source_info_for_offset(
     Handle handle, U32 code_section_index, U32 instruction_offset,
     Logger& logger) {
+  CSS_ASSERT(!handle.is_null());
   Module& module = this->modules_.at(handle.module_index);
   return std::visit(
       [&](auto& reader) -> Line_Source_Info {
