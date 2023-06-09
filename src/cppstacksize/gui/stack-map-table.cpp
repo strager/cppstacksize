@@ -58,8 +58,8 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
           if (touch_data == nullptr) {
             return QString("line information is unavailable");
           }
-          if (!touch_data->errors_for_tool_tip.empty()) {
-            return QString(touch_data->errors_for_tool_tip.c_str());
+          if (touch_data->errors_for_tool_tip != nullptr) {
+            return QString(touch_data->errors_for_tool_tip);
           }
           if (touch_data->line_source_info.is_out_of_bounds()) {
             return QString("line information is out of bounds");
@@ -109,6 +109,8 @@ void Stack_Map_Table_Model::set_function(const CodeView_Function* function) {
   this->beginResetModel();
   this->stack_map_.clear();
   this->touch_data_cache_.clear();
+  this->touch_data_cache_strings_.release();
+
   this->function_ = function;
   if (function) {
     std::optional<Sub_File_Reader<Span_Reader>> instructions_reader =
@@ -146,10 +148,24 @@ Stack_Map_Table_Model::Cached_Touch_Data* Stack_Map_Table_Model::get_touch_data(
             this->function_->code_section_index,
             this->function_->code_offset + touch.offset, logger),
     };
-    data->errors_for_tool_tip =
+    std::string errors_for_tool_tip =
         logger.get_logged_messages_string_for_tool_tip();
+    if (!errors_for_tool_tip.empty()) {
+      data->errors_for_tool_tip =
+          make_touch_data_cache_string(errors_for_tool_tip);
+    }
     this->touch_data_cache_.insert(row, data);
   }
   return data;
+}
+
+char* Stack_Map_Table_Model::make_touch_data_cache_string(
+    std::string_view s) const {
+  char* heap_string = static_cast<char*>(
+      this->touch_data_cache_strings_.allocate(s.size() + 1, /*alignment=*/1));
+  char* out = heap_string;
+  out = std::copy(s.begin(), s.end(), out);
+  *out++ = '\0';
+  return heap_string;
 }
 }
