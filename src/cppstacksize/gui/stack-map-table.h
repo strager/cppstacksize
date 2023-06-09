@@ -29,5 +29,6 @@ class Stack_Map_Table_Model : public QAbstractTableModel {
   Project *project_;
   Logger *logger_;
   Stack_Map stack_map_;
+  const CodeView_Function *function_ = nullptr;
 };
 }

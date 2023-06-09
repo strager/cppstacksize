@@ -2,6 +2,7 @@
 #include <cppstacksize/base.h>
 #include <cppstacksize/codeview.h>
 #include <cppstacksize/gui/stack-map-table.h>
+#include <cppstacksize/line-tables.h>
 #include <cppstacksize/project.h>
 
 namespace cppstacksize {
@@ -27,8 +28,25 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
     }
     const Stack_Map_Touch& touch = this->stack_map_.touches[index.row()];
     switch (index.column()) {
-      case 0:
-        return touch.offset;
+      case 0: {
+        if (this->function_ == nullptr ||
+            this->function_->line_tables_handle.is_null()) {
+          return QString("+%1").arg(touch.offset);
+        }
+        Line_Tables* line_tables = this->project_->get_line_tables();
+        // TODO(perf): Cache this lookup.
+        Line_Source_Info info = line_tables->source_info_for_offset(
+            this->function_->line_tables_handle,
+            this->function_->code_section_index,
+            this->function_->code_offset + touch.offset);
+        if (info.is_out_of_bounds()) {
+          // TODO(strager): Indicate that this location is out of bounds with a
+          // tooltip.
+          return QString("+%1").arg(touch.offset);
+        }
+        return QString("%1:%2").arg("(todo)",
+                                    QString::number(info.line_number));
+      }
       case 1:
         return touch.byte_count;
       default:
@@ -56,6 +74,7 @@ QVariant Stack_Map_Table_Model::headerData(int section,
 void Stack_Map_Table_Model::set_function(const CodeView_Function* function) {
   this->beginResetModel();
   this->stack_map_.clear();
+  this->function_ = function;
   if (function) {
     std::optional<Sub_File_Reader<Span_Reader>> instructions_reader =
         function->get_instruction_bytes_reader(*this->logger_);
