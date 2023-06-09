@@ -5,7 +5,7 @@
 #include <cppstacksize/gui/style.h>
 #include <cppstacksize/line-tables.h>
 #include <cppstacksize/project.h>
-#include <map>
+#include <cppstacksize/stack-map-touch-group.h>
 
 namespace cppstacksize {
 Stack_Map_Table_Model::Stack_Map_Table_Model(Project* project, Logger* logger,
@@ -27,8 +27,9 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
   if (row >= this->touch_groups_.size()) {
     return QVariant();
   }
-  const Touch_Group& touch_group = this->touch_groups_[index.row()];
-  const Touch_Location& location =
+  const Stack_Map_Touch_Groups::Group& touch_group =
+      this->touch_groups_.raw_groups()[index.row()];
+  const Stack_Map_Touch_Location& location =
       this->touch_locations_[touch_group.first_index];
 
   switch (role) {
@@ -130,7 +131,7 @@ void Stack_Map_Table_Model::update_touch_locations() {
 
   for (Stack_Map_Touch& touch : this->stack_map_.touches) {
     Capturing_Logger logger(this->logger_);
-    Touch_Location touch_location = {
+    Stack_Map_Touch_Location touch_location = {
         .line_source_info = line_tables->source_info_for_offset(
             this->function_->line_tables_handle,
             this->function_->code_section_index,
@@ -150,34 +151,8 @@ void Stack_Map_Table_Model::update_touch_locations() {
 }
 
 void Stack_Map_Table_Model::update_touch_groups() {
-  // See NOTE[touch-locations-size].
-  CSS_ASSERT(this->touch_locations_.size() == this->stack_map_.touches.size());
-
-  std::pmr::monotonic_buffer_resource memory;
-  std::pmr::map<Touch_Group_Location, U64> location_to_group_index(&memory);
-
-  this->touch_groups_.clear();
-  for (U64 i = 0; i < this->stack_map_.touches.size(); ++i) {
-    U32 touched_size = this->stack_map_.touches[i].byte_count;
-    // TODO(strager): Make byte_count 0 inside the Stack_Map_Touch instead of
-    // fixing it up here.
-    if (touched_size == (U32)-1) {
-      touched_size = 0;
-    }
-    auto [existing_it, inserted] = location_to_group_index.try_emplace(
-        this->touch_locations_[i].group_key(), this->touch_groups_.size());
-    if (inserted) {
-      this->touch_groups_.push_back(Touch_Group{
-          .first_index = i,
-          .last_index = i,
-          .total_touched_size = touched_size,
-      });
-    } else {
-      Touch_Group& group = this->touch_groups_.at(existing_it->second);
-      group.last_index = i;
-      group.total_touched_size += touched_size;
-    }
-  }
+  this->touch_groups_.set_touches(this->stack_map_.touches,
+                                  this->touch_locations_);
 }
 
 char* Stack_Map_Table_Model::make_touch_location_string(std::string_view s) {

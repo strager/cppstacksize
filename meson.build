@@ -51,6 +51,8 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/register-debug.cpp',
     'src/cppstacksize/register.cpp',
     'src/cppstacksize/register.h',
+    'src/cppstacksize/stack-map-touch-group.cpp',
+    'src/cppstacksize/stack-map-touch-group.h',
     'src/cppstacksize/util.h',
   ],
   include_directories: [cppstacksize_includes],
