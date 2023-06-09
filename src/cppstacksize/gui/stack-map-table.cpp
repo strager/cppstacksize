@@ -9,10 +9,7 @@
 namespace cppstacksize {
 Stack_Map_Table_Model::Stack_Map_Table_Model(Project* project, Logger* logger,
                                              QObject* parent)
-    : QAbstractTableModel(parent),
-      project_(project),
-      logger_(logger),
-      touch_data_cache_(100) {}
+    : QAbstractTableModel(parent), project_(project), logger_(logger) {}
 
 Stack_Map_Table_Model::~Stack_Map_Table_Model() = default;
 
@@ -30,18 +27,21 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
     return QVariant();
   }
   const Stack_Map_Touch& touch = this->stack_map_.touches[index.row()];
+
+  // See NOTE[touch-locations-size].
+  CSS_ASSERT(this->touch_locations_.size() == this->stack_map_.touches.size());
+  const Touch_Location& touch_location = this->touch_locations_[index.row()];
+
   switch (role) {
     case Qt::DisplayRole:
       switch (index.column()) {
         case 0: {
-          Cached_Touch_Data* touch_data = this->get_touch_data(index);
-          if (touch_data == nullptr ||
-              touch_data->line_source_info.is_out_of_bounds()) {
+          if (touch_location.line_source_info.is_out_of_bounds()) {
             return QString("+%1").arg(touch.offset);
           }
           return QString("%1:%2").arg(
               "(todo)",
-              QString::number(touch_data->line_source_info.line_number));
+              QString::number(touch_location.line_source_info.line_number));
         }
         case 1:
           return touch.byte_count;
@@ -54,14 +54,10 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
     case Qt::ToolTipRole:
       switch (index.column()) {
         case 0: {
-          Cached_Touch_Data* touch_data = this->get_touch_data(index);
-          if (touch_data == nullptr) {
-            return QString("line information is unavailable");
+          if (touch_location.errors_for_tool_tip != nullptr) {
+            return QString(touch_location.errors_for_tool_tip);
           }
-          if (touch_data->errors_for_tool_tip != nullptr) {
-            return QString(touch_data->errors_for_tool_tip);
-          }
-          if (touch_data->line_source_info.is_out_of_bounds()) {
+          if (touch_location.line_source_info.is_out_of_bounds()) {
             return QString("line information is out of bounds");
           }
           return QString("byte offset from function: +%1").arg(touch.offset);
@@ -75,9 +71,7 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
     case Qt::BackgroundRole:
       switch (index.column()) {
         case 0: {
-          Cached_Touch_Data* touch_data = this->get_touch_data(index);
-          if (touch_data == nullptr ||
-              touch_data->line_source_info.is_out_of_bounds()) {
+          if (touch_location.line_source_info.is_out_of_bounds()) {
             return warning_background_brush;
           }
           return QVariant();
@@ -108,8 +102,7 @@ QVariant Stack_Map_Table_Model::headerData(int section,
 void Stack_Map_Table_Model::set_function(const CodeView_Function* function) {
   this->beginResetModel();
   this->stack_map_.clear();
-  this->touch_data_cache_.clear();
-  this->touch_data_cache_strings_.release();
+  this->touch_locations_.clear();
 
   this->function_ = function;
   if (function) {
@@ -121,28 +114,25 @@ void Stack_Map_Table_Model::set_function(const CodeView_Function* function) {
       this->stack_map_ = analyze_x86_64_stack_map(instruction_bytes);
     }
   }
+  this->update_touch_locations();
+
   this->endResetModel();
 }
 
-Stack_Map_Table_Model::Cached_Touch_Data* Stack_Map_Table_Model::get_touch_data(
-    const QModelIndex& index) const {
-  return this->get_touch_data(narrow_cast<U64>(index.row()));
-}
+void Stack_Map_Table_Model::update_touch_locations() {
+  this->touch_locations_.clear();
+  this->touch_locations_.reserve(this->stack_map_.touches.size());
 
-Stack_Map_Table_Model::Cached_Touch_Data* Stack_Map_Table_Model::get_touch_data(
-    U64 row) const {
-  CSS_ASSERT(row < this->stack_map_.touches.size());
-  if (this->function_ == nullptr ||
-      this->function_->line_tables_handle.is_null()) {
-    return nullptr;
+  Line_Tables* line_tables = this->project_->get_line_tables();
+  if (line_tables == nullptr) {
+    // See NOTE[touch-locations-size].
+    this->touch_locations_.resize(this->stack_map_.touches.size());
+    return;
   }
-  const Stack_Map_Touch& touch = this->stack_map_.touches[row];
 
-  Cached_Touch_Data* data = this->touch_data_cache_[row];
-  if (data == nullptr) {
+  for (Stack_Map_Touch& touch : this->stack_map_.touches) {
     Capturing_Logger logger(this->logger_);
-    Line_Tables* line_tables = this->project_->get_line_tables();
-    data = new Cached_Touch_Data{
+    Touch_Location touch_location = {
         .line_source_info = line_tables->source_info_for_offset(
             this->function_->line_tables_handle,
             this->function_->code_section_index,
@@ -151,18 +141,19 @@ Stack_Map_Table_Model::Cached_Touch_Data* Stack_Map_Table_Model::get_touch_data(
     std::string errors_for_tool_tip =
         logger.get_logged_messages_string_for_tool_tip();
     if (!errors_for_tool_tip.empty()) {
-      data->errors_for_tool_tip =
-          make_touch_data_cache_string(errors_for_tool_tip);
+      touch_location.errors_for_tool_tip =
+          this->make_touch_location_string(errors_for_tool_tip);
     }
-    this->touch_data_cache_.insert(row, data);
+    this->touch_locations_.push_back(touch_location);
   }
-  return data;
+
+  // See NOTE[touch-locations-size].
+  CSS_ASSERT(this->touch_locations_.size() == this->stack_map_.touches.size());
 }
 
-char* Stack_Map_Table_Model::make_touch_data_cache_string(
-    std::string_view s) const {
+char* Stack_Map_Table_Model::make_touch_location_string(std::string_view s) {
   char* heap_string = static_cast<char*>(
-      this->touch_data_cache_strings_.allocate(s.size() + 1, /*alignment=*/1));
+      this->touch_location_strings_.allocate(s.size() + 1, /*alignment=*/1));
   char* out = heap_string;
   out = std::copy(s.begin(), s.end(), out);
   *out++ = '\0';
