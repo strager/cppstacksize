@@ -1,4 +1,5 @@
 #include <cppstacksize/asm-stack-map.h>
+#include <cppstacksize/sparse-bit-set.h>
 #include <cppstacksize/stack-map-touch-group.h>
 #include <map>
 #include <memory_resource>
@@ -16,6 +17,9 @@ void Stack_Map_Touch_Groups::set_touches(
 
     // Index into this->groups_.
     U64 group_index;
+
+    Sparse_Bit_Set read_set;
+    Sparse_Bit_Set write_set;
   };
 
   std::pmr::monotonic_buffer_resource memory;
@@ -30,27 +34,37 @@ void Stack_Map_Touch_Groups::set_touches(
     if (touched_size == (U32)-1) {
       touched_size = 0;
     }
-    U32 write_size = touched_size * touches[i].is_write();
-    U32 read_size = touched_size * touches[i].is_read();
 
     auto [existing_it, inserted] = location_to_group_temp.try_emplace(
         this->group_key(locations[i]), this->groups_.size());
+    Group_Temp_Data& group_temp = existing_it->second;
     if (inserted) {
       this->groups_.push_back(Group{
           .first_index = i,
           .last_index = i,
           .total_touched_size = touched_size,
-          .total_read_size = read_size,
-          .total_write_size = write_size,
+          .total_read_size = 0,
+          .total_write_size = 0,
       });
     } else {
-      Group_Temp_Data& group_temp = existing_it->second;
       Group& group = this->groups_.at(group_temp.group_index);
       group.last_index = i;
       group.total_touched_size += touched_size;
-      group.total_read_size += read_size;
-      group.total_write_size += write_size;
     }
+    if (touch.is_read()) {
+      group_temp.read_set.set_range(touch.entry_rsp_relative_address,
+                                    touched_size);
+    }
+    if (touch.is_write()) {
+      group_temp.write_set.set_range(touch.entry_rsp_relative_address,
+                                     touched_size);
+    }
+  }
+
+  for (auto& [_group_key, group_temp] : location_to_group_temp) {
+    Group& group = this->groups_.at(group_temp.group_index);
+    group.total_read_size = group_temp.read_set.count();
+    group.total_write_size = group_temp.write_set.count();
   }
 }
 

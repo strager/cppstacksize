@@ -123,5 +123,26 @@ TEST(Test_Stack_Map_Touch_Group,
   EXPECT_EQ(groups.raw_groups()[1].first_index, 1);
   EXPECT_EQ(groups.raw_groups()[1].last_index, 1);
 }
+
+TEST(Test_Stack_Map_Touch_Group, overlapping_reads_are_not_counted_twice) {
+  static constexpr Stack_Map_Touch_Location loc = {
+      .line_source_info = Line_Source_Info{.line_number = 42},
+  };
+  {
+    static constexpr Stack_Map_Touch touches[] = {
+        Stack_Map_Touch::read(0, 0x10, 4),
+        Stack_Map_Touch::read(1, 0x10, 4),
+        Stack_Map_Touch::read(2, 0x10, 4),
+    };
+    static constexpr Stack_Map_Touch_Location locations[] = {loc, loc, loc};
+
+    Stack_Map_Touch_Groups groups;
+    groups.set_touches(touches, locations);
+    ASSERT_EQ(groups.size(), 1);
+    EXPECT_EQ(groups.raw_groups()[0].total_read_size, 4);
+    EXPECT_EQ(groups.raw_groups()[0].first_index, 0);
+    EXPECT_EQ(groups.raw_groups()[0].last_index, 2);
+  }
+}
 }
 }

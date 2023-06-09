@@ -51,6 +51,7 @@ cppstacksize_lib = static_library(
     'src/cppstacksize/register-debug.cpp',
     'src/cppstacksize/register.cpp',
     'src/cppstacksize/register.h',
+    'src/cppstacksize/sparse-bit-set.h',
     'src/cppstacksize/stack-map-touch-group.cpp',
     'src/cppstacksize/stack-map-touch-group.h',
     'src/cppstacksize/util.h',
@@ -116,6 +117,7 @@ test_sources = [
   'test/test-project.cpp',
   'test/test-reader-location.cpp',
   'test/test-reader.cpp',
+  'test/test-sparse-bit-set.cpp',
   'test/test-stack-map-touch-group.cpp',
 
   # HACK[example-file-path]: example-file.cpp uses __FILE__ which needs to expand to an
