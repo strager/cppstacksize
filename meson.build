@@ -18,7 +18,7 @@ capstone_cmake_options.add_cmake_defines({
 capstone_cmake_options.set_install(false)
 capstone_proj = cmake.subproject('capstone', options: capstone_cmake_options)
 
-fmt_proj = subproject('fmt')
+fmt_proj = subproject('fmt', default_options: 'default_library=static')
 gtest_proj = subproject('gtest')
 
 qt6_dep = dependency('qt6', modules: ['Core', 'Gui', 'Widgets'])
