@@ -15,8 +15,9 @@ enum class Stack_Access_Kind : U8 {
 };
 
 struct Stack_Map_Touch {
-  static Stack_Map_Touch read(U32 offset, S32 entry_rsp_relative_address,
-                              U32 byte_count) {
+  static constexpr Stack_Map_Touch read(U32 offset,
+                                        S32 entry_rsp_relative_address,
+                                        U32 byte_count) {
     return Stack_Map_Touch{
         .offset = offset,
         .entry_rsp_relative_address = entry_rsp_relative_address,
@@ -25,8 +26,9 @@ struct Stack_Map_Touch {
     };
   }
 
-  static Stack_Map_Touch write(U32 offset, S64 entry_rsp_relative_address,
-                               U32 byte_count) {
+  static constexpr Stack_Map_Touch write(U32 offset,
+                                         S64 entry_rsp_relative_address,
+                                         U32 byte_count) {
     return Stack_Map_Touch{
         .offset = offset,
         .entry_rsp_relative_address = entry_rsp_relative_address,
@@ -35,9 +37,9 @@ struct Stack_Map_Touch {
     };
   }
 
-  static Stack_Map_Touch read_or_write(U32 offset,
-                                       S64 entry_rsp_relative_address,
-                                       U32 byte_count) {
+  static constexpr Stack_Map_Touch read_or_write(U32 offset,
+                                                 S64 entry_rsp_relative_address,
+                                                 U32 byte_count) {
     return Stack_Map_Touch{
         .offset = offset,
         .entry_rsp_relative_address = entry_rsp_relative_address,
@@ -46,9 +48,8 @@ struct Stack_Map_Touch {
     };
   }
 
-  static Stack_Map_Touch read_and_write(U32 offset,
-                                        S64 entry_rsp_relative_address,
-                                        U32 byte_count) {
+  static constexpr Stack_Map_Touch read_and_write(
+      U32 offset, S64 entry_rsp_relative_address, U32 byte_count) {
     return Stack_Map_Touch{
         .offset = offset,
         .entry_rsp_relative_address = entry_rsp_relative_address,

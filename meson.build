@@ -116,6 +116,7 @@ test_sources = [
   'test/test-project.cpp',
   'test/test-reader-location.cpp',
   'test/test-reader.cpp',
+  'test/test-stack-map-touch-group.cpp',
 
   # HACK[example-file-path]: example-file.cpp uses __FILE__ which needs to expand to an
   # absolute path. Make the source path absolute to make __FILE__ absolute.

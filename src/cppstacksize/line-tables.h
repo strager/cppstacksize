@@ -18,7 +18,7 @@ struct Line_Source_Info {
   U32 line_number;
   // TODO[line-table-file]: Include a file ID.
 
-  static Line_Source_Info out_of_bounds() {
+  static constexpr Line_Source_Info out_of_bounds() {
     return Line_Source_Info{
         .line_number = out_of_bounds_line_number,
     };
