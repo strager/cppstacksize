@@ -1,7 +1,9 @@
 #pragma once
 
 #include <QAbstractTableModel>
+#include <QCache>
 #include <cppstacksize/asm-stack-map.h>
+#include <cppstacksize/line-tables.h>
 #include <vector>
 
 namespace cppstacksize {
@@ -26,9 +28,19 @@ class Stack_Map_Table_Model : public QAbstractTableModel {
   void set_function(const CodeView_Function *function);
 
  private:
+  struct Cached_Touch_Data {
+    Line_Source_Info line_source_info;
+    std::string errors_for_tool_tip;
+  };
+
+  // Possibly returns nullptr.
+  Cached_Touch_Data *get_touch_data(const QModelIndex &index) const;
+  Cached_Touch_Data *get_touch_data(U64 row) const;
+
   Project *project_;
   Logger *logger_;
   Stack_Map stack_map_;
   const CodeView_Function *function_ = nullptr;
+  mutable QCache<U64, Cached_Touch_Data> touch_data_cache_;
 };
 }
