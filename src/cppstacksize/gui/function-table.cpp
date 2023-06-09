@@ -40,7 +40,7 @@ QVariant Function_Table_Model::data(const QModelIndex& index, int role) const {
           return data->caller_stack_size;
         }
         default:
-          __builtin_unreachable();
+          CSS_UNREACHABLE();
           break;
       }
       break;

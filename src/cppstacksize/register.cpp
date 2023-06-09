@@ -113,7 +113,7 @@ bool operator==(const Register_Value& lhs, const Register_Value& rhs) {
     case Register_Value_Kind::literal:
       return lhs.literal == rhs.literal;
   }
-  __builtin_unreachable();
+  CSS_UNREACHABLE();
 }
 
 bool operator!=(const Register_Value& lhs, const Register_Value& rhs) {
@@ -175,7 +175,7 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src, U32 update_offset) {
                     v = (v & ~U64(0xff00)) | (src.imm << 8);
                     break;
                   default:
-                    __builtin_unreachable();
+                    CSS_UNREACHABLE();
                 }
                 value.literal = v;
                 break;
@@ -200,7 +200,7 @@ void Register_File::store(U32 dest, const ::cs_x86_op& src, U32 update_offset) {
       break;
 
     case ::X86_OP_INVALID:
-      __builtin_unreachable();
+      CSS_UNREACHABLE();
       break;
   }
 }
@@ -261,7 +261,7 @@ Register_Value Register_File::load(const ::cs_x86_op& src) {
       // TODO(strager)
       return Register_Value::make_uninitialized();
   }
-  __builtin_unreachable();
+  CSS_UNREACHABLE();
 }
 
 void Register_File::add(/*::x86_reg*/ U32 dest, U64 addend, U32 update_offset) {

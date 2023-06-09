@@ -5,6 +5,14 @@
 
 #define CSS_ASSERT(cond) assert(cond)
 
+#if defined(__GNU__)
+#define CSS_UNREACHABLE() __builtin_unreachable()
+#else
+#define CSS_UNREACHABLE() \
+  do {                    \
+  } while (0)
+#endif
+
 namespace cppstacksize {
 using S16 = std::int16_t;
 using S32 = std::int32_t;

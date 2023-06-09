@@ -46,7 +46,7 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
         case 2:
           return narrow_cast<qulonglong>(touch_group.total_write_size);
         default:
-          __builtin_unreachable();
+          CSS_UNREACHABLE();
           break;
       }
       break;

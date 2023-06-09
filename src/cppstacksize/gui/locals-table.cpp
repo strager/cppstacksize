@@ -49,7 +49,7 @@ QVariant Locals_Table_Model::data(const QModelIndex& index, int role) const {
           return narrow_cast<qulonglong>(data->type->byte_size);
         }
         default:
-          __builtin_unreachable();
+          CSS_UNREACHABLE();
           break;
       }
       break;

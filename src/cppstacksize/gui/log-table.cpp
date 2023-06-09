@@ -38,7 +38,7 @@ QVariant Log_Table_Model::data(const QModelIndex& index, int role) const {
         // TODO(strager): Store QString-s in this->message_.
         return QString(message.message.c_str());
       default:
-        __builtin_unreachable();
+        CSS_UNREACHABLE();
         break;
     }
   }
