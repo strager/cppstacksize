@@ -16,6 +16,7 @@ struct Line_Source_Info {
   static inline constexpr U32 out_of_bounds_line_number = static_cast<U32>(-1);
 
   U32 line_number;
+  // TODO[line-table-file]: Include a file ID.
 
   static Line_Source_Info out_of_bounds() {
     return Line_Source_Info{
@@ -198,6 +199,7 @@ found_match:
     return Line_Source_Info::out_of_bounds();
   }
   U32 line_number = last_entry->line_number_and_flags & 0x00ffffff;
+  // TODO[line-table-file]: Include file_id.
   return Line_Source_Info{.line_number = line_number};
 }
 

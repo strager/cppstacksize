@@ -5,6 +5,7 @@
 #include <cppstacksize/gui/style.h>
 #include <cppstacksize/line-tables.h>
 #include <cppstacksize/project.h>
+#include <map>
 
 namespace cppstacksize {
 Stack_Map_Table_Model::Stack_Map_Table_Model(Project* project, Logger* logger,
@@ -14,7 +15,7 @@ Stack_Map_Table_Model::Stack_Map_Table_Model(Project* project, Logger* logger,
 Stack_Map_Table_Model::~Stack_Map_Table_Model() = default;
 
 int Stack_Map_Table_Model::rowCount(const QModelIndex&) const {
-  return narrow_cast<int>(this->stack_map_.touches.size());
+  return narrow_cast<int>(this->touch_groups_.size());
 }
 
 int Stack_Map_Table_Model::columnCount(const QModelIndex&) const { return 2; }
@@ -22,29 +23,25 @@ int Stack_Map_Table_Model::columnCount(const QModelIndex&) const { return 2; }
 QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
   CSS_ASSERT(index.row() >= 0);
   U64 row = narrow_cast<U64>(index.row());
-  CSS_ASSERT(row < this->stack_map_.touches.size());
-  if (row >= this->stack_map_.touches.size()) {
+  CSS_ASSERT(row < this->touch_groups_.size());
+  if (row >= this->touch_groups_.size()) {
     return QVariant();
   }
-  const Stack_Map_Touch& touch = this->stack_map_.touches[index.row()];
-
-  // See NOTE[touch-locations-size].
-  CSS_ASSERT(this->touch_locations_.size() == this->stack_map_.touches.size());
-  const Touch_Location& touch_location = this->touch_locations_[index.row()];
+  const Touch_Group& touch_group = this->touch_groups_[index.row()];
+  const Touch_Location& location =
+      this->touch_locations_[touch_group.first_index];
 
   switch (role) {
     case Qt::DisplayRole:
       switch (index.column()) {
-        case 0: {
-          if (touch_location.line_source_info.is_out_of_bounds()) {
-            return QString("+%1").arg(touch.offset);
+        case 0:
+          if (location.line_source_info.is_out_of_bounds()) {
+            return QString("?");
           }
           return QString("%1:%2").arg(
-              "(todo)",
-              QString::number(touch_location.line_source_info.line_number));
-        }
+              "(todo)", QString::number(location.line_source_info.line_number));
         case 1:
-          return touch.byte_count;
+          return narrow_cast<qulonglong>(touch_group.total_touched_size);
         default:
           __builtin_unreachable();
           break;
@@ -53,15 +50,16 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
 
     case Qt::ToolTipRole:
       switch (index.column()) {
-        case 0: {
-          if (touch_location.errors_for_tool_tip != nullptr) {
-            return QString(touch_location.errors_for_tool_tip);
+        case 0:
+          if (location.errors_for_tool_tip != nullptr) {
+            // TODO(strager): Show all errors for each location in the group,
+            // not just the first location's errors.
+            return QString(location.errors_for_tool_tip);
           }
-          if (touch_location.line_source_info.is_out_of_bounds()) {
+          if (location.line_source_info.is_out_of_bounds()) {
             return QString("line information is out of bounds");
           }
-          return QString("byte offset from function: +%1").arg(touch.offset);
-        }
+          return QVariant();
         case 1:
         default:
           break;
@@ -70,12 +68,11 @@ QVariant Stack_Map_Table_Model::data(const QModelIndex& index, int role) const {
 
     case Qt::BackgroundRole:
       switch (index.column()) {
-        case 0: {
-          if (touch_location.line_source_info.is_out_of_bounds()) {
+        case 0:
+          if (location.line_source_info.is_out_of_bounds()) {
             return warning_background_brush;
           }
           return QVariant();
-        }
         case 1:
         default:
           break;
@@ -115,6 +112,7 @@ void Stack_Map_Table_Model::set_function(const CodeView_Function* function) {
     }
   }
   this->update_touch_locations();
+  this->update_touch_groups();
 
   this->endResetModel();
 }
@@ -149,6 +147,37 @@ void Stack_Map_Table_Model::update_touch_locations() {
 
   // See NOTE[touch-locations-size].
   CSS_ASSERT(this->touch_locations_.size() == this->stack_map_.touches.size());
+}
+
+void Stack_Map_Table_Model::update_touch_groups() {
+  // See NOTE[touch-locations-size].
+  CSS_ASSERT(this->touch_locations_.size() == this->stack_map_.touches.size());
+
+  std::pmr::monotonic_buffer_resource memory;
+  std::pmr::map<Touch_Group_Location, U64> location_to_group_index(&memory);
+
+  this->touch_groups_.clear();
+  for (U64 i = 0; i < this->stack_map_.touches.size(); ++i) {
+    U32 touched_size = this->stack_map_.touches[i].byte_count;
+    // TODO(strager): Make byte_count 0 inside the Stack_Map_Touch instead of
+    // fixing it up here.
+    if (touched_size == (U32)-1) {
+      touched_size = 0;
+    }
+    auto [existing_it, inserted] = location_to_group_index.try_emplace(
+        this->touch_locations_[i].group_key(), this->touch_groups_.size());
+    if (inserted) {
+      this->touch_groups_.push_back(Touch_Group{
+          .first_index = i,
+          .last_index = i,
+          .total_touched_size = touched_size,
+      });
+    } else {
+      Touch_Group& group = this->touch_groups_.at(existing_it->second);
+      group.last_index = i;
+      group.total_touched_size += touched_size;
+    }
+  }
 }
 
 char* Stack_Map_Table_Model::make_touch_location_string(std::string_view s) {
