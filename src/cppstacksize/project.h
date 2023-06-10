@@ -192,12 +192,22 @@ class Project {
 
     for (std::unique_ptr<Project_File>& file : this->files_) {
       if (!file->pdb_streams.has_value()) continue;
+      PDB_Blocks_Reader<Span_Reader>& dbi_reader = file->pdb_streams->at(3);
       if (!file->pdb_dbi.has_value()) {
-        file->pdb_dbi = parse_pdb_dbi_stream(file->pdb_streams->at(3), logger);
+        file->pdb_dbi = parse_pdb_dbi_stream(dbi_reader, logger);
       }
+      U64 module_index = 0;
       for (const PDB_DBI_Module& module : file->pdb_dbi->modules) {
+        if (module.debug_info_stream_index >= file->pdb_streams->size()) {
+          logger.log(
+              fmt::format(
+                  "module #{} has out of bounds stream index {}; ignoring",
+                  module_index, module.debug_info_stream_index),
+              dbi_reader.locate(module.header_offset));
+          continue;
+        }
         PDB_Blocks_Reader<Reader>& codeview_stream =
-            file->pdb_streams->at(module.debug_info_stream_index);
+            (*file->pdb_streams)[module.debug_info_stream_index];
         U64 begin_function_index = this->functions_cache_.size();
         find_all_codeview_functions_2(&codeview_stream, this->functions_cache_,
                                       logger);
@@ -211,6 +221,7 @@ class Project {
           this->functions_cache_[function_index].line_tables_handle =
               line_tables_handle;
         }
+        ++module_index;
       }
     }
 

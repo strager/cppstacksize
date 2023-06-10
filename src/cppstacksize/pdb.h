@@ -119,6 +119,10 @@ struct PDB_DBI_Module_Segment {
 };
 
 struct PDB_DBI_Module {
+  // Offset of this module's header relative to the
+  // beginning of the DBI stream.
+  U64 header_offset;
+
   std::u8string linked_object_path;
   std::u8string source_object_path;
   U16 debug_info_stream_index;
@@ -151,6 +155,7 @@ PDB_DBI parse_pdb_dbi_stream(const Reader& reader,
   U64 offset = 0;
   while (offset < module_infos_reader.size()) {
     offset = align_up(offset, 4);
+    U64 module_header_offset = offset + module_infos_reader.sub_file_offset();
     U16 module_section_section = module_infos_reader.u16(offset + 0x04);
     U16 module_section_offset = module_infos_reader.u16(offset + 0x08);
     U16 module_section_size = module_infos_reader.u16(offset + 0x0c);
@@ -180,6 +185,7 @@ PDB_DBI parse_pdb_dbi_stream(const Reader& reader,
     offset = *obj_name_null_terminator_offset + 1;
 
     dbi.modules.push_back(PDB_DBI_Module{
+        .header_offset = module_header_offset,
         .linked_object_path = std::move(obj_name),
         .source_object_path = std::move(module_name),
         .debug_info_stream_index = module_sym_stream,

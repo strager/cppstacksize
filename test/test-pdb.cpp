@@ -308,6 +308,7 @@ TEST(Test_PDB, read_dbi_stream) {
   PDB_DBI dbi = parse_pdb_dbi_stream(dbi_reader);
   ASSERT_EQ(dbi.modules.size(), 29);
 
+  EXPECT_EQ(dbi.modules[0].header_offset, 0x40);
   EXPECT_EQ(dbi.modules[0].linked_object_path,
             u8"C:\\Users\\strager\\Documents\\Projects\\cppstacksize\\"
             u8"test\\pdb\\example.obj");
@@ -323,6 +324,7 @@ TEST(Test_PDB, read_dbi_stream) {
   EXPECT_EQ(dbi.modules[0].segments[0].offset, 0x0000);
   EXPECT_EQ(dbi.modules[0].segments[0].size, 160);
 
+  EXPECT_EQ(dbi.modules[1].header_offset, 0x10c);
   EXPECT_EQ(dbi.modules[1].linked_object_path,
             u8"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\"
             u8"VC\\Tools\\MSVC\\14.31.31103\\lib\\x64\\MSVCRT.lib");
